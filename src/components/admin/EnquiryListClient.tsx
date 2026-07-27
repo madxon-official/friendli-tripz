@@ -70,62 +70,86 @@ export const EnquiryListClient: React.FC<EnquiryListClientProps> = ({
 
   const supabase = useMemo(() => createClient(), []);
 
-  // Update status filter if query param changes in browser
+  // Sync initialEnquiries prop updates from server
+  useEffect(() => {
+    setEnquiries(initialEnquiries);
+  }, [initialEnquiries]);
+
+  // Sync status filter if query param changes in browser
   useEffect(() => {
     const s = searchParams.get('status') || 'all';
     setStatusFilter(s);
   }, [searchParams]);
 
-  const refreshData = useCallback(async () => {
-    setLoading(true);
-    setFetchError(null);
-
-    try {
-      let query = supabase
-        .from('enquiries')
-        .select(
-          'id, reference, created_at, name, phone, email, destination, traveller_count, preferred_date, starting_location, status, archived_at'
-        )
-        .order('created_at', { ascending: false })
-        .limit(30);
-
-      if (archiveFilter === 'active') {
-        query = query.is('archived_at', null);
-      } else if (archiveFilter === 'archived') {
-        query = query.not('archived_at', 'is', null);
-      }
-
-      if (statusFilter && statusFilter !== 'all') {
-        query = query.eq('status', statusFilter);
-      }
-
-      const { data, error } = await query;
-
-      if (error) {
-        console.error('Supabase query error loading enquiries:', error.message, error.code);
-        setFetchError(error.message || 'Could not fetch enquiries from Supabase.');
-      } else {
-        setEnquiries(data || []);
-      }
+  // Explicit parameters for targetArchive and targetStatus prevent stale closure bugs
+  const fetchEnquiriesData = useCallback(
+    async (targetArchive: 'active' | 'archived', targetStatus: string) => {
+      setLoading(true);
+      setFetchError(null);
 
       try {
-        const { count } = await supabase
+        let query = supabase
           .from('enquiries')
-          .select('id', { count: 'exact', head: true })
-          .eq('status', 'new')
-          .is('archived_at', null);
+          .select(
+            'id, reference, created_at, name, phone, email, destination, traveller_count, preferred_date, starting_location, status, archived_at'
+          )
+          .order('created_at', { ascending: false })
+          .limit(50);
 
-        if (count !== null) setNewCount(count);
-      } catch {
-        // ignore headcount error
+        if (targetArchive === 'active') {
+          query = query.is('archived_at', null);
+        } else {
+          query = query.not('archived_at', 'is', null);
+        }
+
+        if (targetStatus && targetStatus !== 'all') {
+          query = query.eq('status', targetStatus);
+        }
+
+        const { data, error } = await query;
+
+        if (error) {
+          console.error('Supabase query error loading enquiries:', error.message, error.code);
+          setFetchError(error.message || 'Could not fetch enquiries from Supabase.');
+        } else {
+          setEnquiries(data || []);
+        }
+
+        try {
+          const { count } = await supabase
+            .from('enquiries')
+            .select('id', { count: 'exact', head: true })
+            .eq('status', 'new')
+            .is('archived_at', null);
+
+          if (count !== null) setNewCount(count);
+        } catch {
+          // ignore headcount error
+        }
+      } catch (err: any) {
+        console.error('Unexpected error refreshing enquiries:', err);
+        setFetchError(err.message || 'An unexpected error occurred while refreshing enquiries.');
+      } finally {
+        setLoading(false);
       }
-    } catch (err: any) {
-      console.error('Unexpected error refreshing enquiries:', err);
-      setFetchError(err.message || 'An unexpected error occurred while refreshing enquiries.');
-    } finally {
-      setLoading(false);
-    }
-  }, [archiveFilter, statusFilter, supabase]);
+    },
+    [supabase]
+  );
+
+  const handleArchiveTabChange = (newArchive: 'active' | 'archived') => {
+    setArchiveFilter(newArchive);
+    fetchEnquiriesData(newArchive, statusFilter);
+  };
+
+  const handleStatusFilterChange = (newStatus: string) => {
+    setStatusFilter(newStatus);
+    router.push(`/admin/enquiries${newStatus !== 'all' ? `?status=${newStatus}` : ''}`);
+    fetchEnquiriesData(archiveFilter, newStatus);
+  };
+
+  const handleRefresh = () => {
+    fetchEnquiriesData(archiveFilter, statusFilter);
+  };
 
   const filteredEnquiries = enquiries.filter((item) => {
     if (!searchQuery.trim()) return true;
@@ -176,7 +200,7 @@ export const EnquiryListClient: React.FC<EnquiryListClientProps> = ({
           </div>
 
           <button
-            onClick={refreshData}
+            onClick={handleRefresh}
             disabled={loading}
             className="inline-flex items-center gap-2 text-xs font-bold text-brand-navy hover:text-brand-orange bg-white px-4 py-2.5 rounded-xl border border-brand-border/60 shadow-sm transition-colors shrink-0 min-h-[44px]"
           >
@@ -204,10 +228,7 @@ export const EnquiryListClient: React.FC<EnquiryListClientProps> = ({
             <div className="w-full md:w-52 shrink-0">
               <select
                 value={statusFilter}
-                onChange={(e) => {
-                  setStatusFilter(e.target.value);
-                  router.push(`/admin/enquiries${e.target.value !== 'all' ? `?status=${e.target.value}` : ''}`);
-                }}
+                onChange={(e) => handleStatusFilterChange(e.target.value)}
                 className="w-full px-3.5 py-2.5 rounded-xl border border-brand-border text-sm font-medium text-brand-navy outline-none focus:border-brand-orange bg-white cursor-pointer min-h-[44px]"
               >
                 <option value="all">All Statuses</option>
@@ -224,10 +245,7 @@ export const EnquiryListClient: React.FC<EnquiryListClientProps> = ({
             <div className="flex bg-brand-warm p-1 rounded-xl border border-brand-border/60 w-full md:w-60 shrink-0">
               <button
                 type="button"
-                onClick={() => {
-                  setArchiveFilter('active');
-                  refreshData();
-                }}
+                onClick={() => handleArchiveTabChange('active')}
                 className={`flex-1 py-2 px-3 text-xs font-bold rounded-lg transition-colors min-h-[40px] ${
                   archiveFilter === 'active'
                     ? 'bg-white text-brand-navy shadow-sm'
@@ -238,10 +256,7 @@ export const EnquiryListClient: React.FC<EnquiryListClientProps> = ({
               </button>
               <button
                 type="button"
-                onClick={() => {
-                  setArchiveFilter('archived');
-                  refreshData();
-                }}
+                onClick={() => handleArchiveTabChange('archived')}
                 className={`flex-1 py-2 px-3 text-xs font-bold rounded-lg transition-colors min-h-[40px] ${
                   archiveFilter === 'archived'
                     ? 'bg-white text-brand-navy shadow-sm'
@@ -270,7 +285,7 @@ export const EnquiryListClient: React.FC<EnquiryListClientProps> = ({
               {fetchError}
             </p>
             <button
-              onClick={refreshData}
+              onClick={handleRefresh}
               className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-brand-orange text-white font-bold text-xs shadow-button hover:bg-brand-orange-dark transition-colors"
             >
               <RefreshCw className="w-4 h-4" />
@@ -281,10 +296,18 @@ export const EnquiryListClient: React.FC<EnquiryListClientProps> = ({
           <div className="bg-white rounded-3xl p-12 text-center space-y-3 border border-brand-border/60">
             <Inbox className="w-10 h-10 text-brand-muted mx-auto" />
             <p className="text-base font-bold text-brand-navy">
-              {searchQuery ? 'No matching enquiries found.' : 'No enquiries in this list.'}
+              {searchQuery
+                ? 'No matching enquiries found.'
+                : archiveFilter === 'archived'
+                ? 'No archived enquiries.'
+                : 'No active enquiries.'}
             </p>
             <p className="text-xs text-brand-muted">
-              {searchQuery ? 'Try changing your search keywords or status filter.' : 'New trip enquiries will appear here in real time.'}
+              {searchQuery
+                ? 'Try changing your search keywords or status filter.'
+                : archiveFilter === 'archived'
+                ? 'Archived enquiries will appear here.'
+                : 'New trip enquiries will appear here in real time.'}
             </p>
           </div>
         ) : (

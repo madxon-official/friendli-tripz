@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import {
   Users,
@@ -48,6 +48,12 @@ export const TeamListClient: React.FC<TeamListClientProps> = ({
 }) => {
   const router = useRouter();
   const [members, setMembers] = useState<TeamMemberItem[]>(initialMembers);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+
+  // Sync state when initialMembers prop updates from server revalidation
+  useEffect(() => {
+    setMembers(initialMembers);
+  }, [initialMembers]);
 
   // Invite Modal state
   const [showInviteModal, setShowInviteModal] = useState(false);
@@ -73,8 +79,12 @@ export const TeamListClient: React.FC<TeamListClientProps> = ({
   // Action Menu state for mobile
   const [activeMenuId, setActiveMenuId] = useState<string | null>(null);
 
-  const refreshPageData = () => {
+  const refreshPageData = async () => {
+    setIsRefreshing(true);
     router.refresh();
+    setTimeout(() => {
+      setIsRefreshing(false);
+    }, 800);
   };
 
   // Handle Invitation submission
@@ -285,10 +295,11 @@ export const TeamListClient: React.FC<TeamListClientProps> = ({
           <div className="flex items-center gap-3">
             <button
               onClick={refreshPageData}
-              className="p-2.5 rounded-xl border border-brand-border text-brand-navy hover:bg-brand-warm transition-colors min-h-[44px] min-w-[44px] flex items-center justify-center"
+              disabled={isRefreshing}
+              className="p-2.5 rounded-xl border border-brand-border text-brand-navy hover:bg-brand-warm transition-colors min-h-[44px] min-w-[44px] flex items-center justify-center disabled:opacity-50"
               title="Refresh Team List"
             >
-              <RefreshCw className="w-4 h-4" />
+              <RefreshCw className={`w-4 h-4 ${isRefreshing ? 'animate-spin text-brand-orange' : ''}`} />
             </button>
 
             <Button
