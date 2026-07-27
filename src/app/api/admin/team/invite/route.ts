@@ -38,8 +38,18 @@ export async function POST(req: NextRequest) {
 
     const serviceClient = createServiceRoleClient();
 
-    // Determine production/development App URL
-    const appUrl = (process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000').replace(/\/$/, '');
+    // Determine production/development App URL dynamically or from env
+    let baseAppUrl = process.env.NEXT_PUBLIC_APP_URL || '';
+    if (!baseAppUrl) {
+      const host = req.headers.get('x-forwarded-host') || req.headers.get('host');
+      const proto = req.headers.get('x-forwarded-proto') || 'https';
+      if (host) {
+        baseAppUrl = `${proto}://${host}`;
+      } else {
+        baseAppUrl = 'http://localhost:3000';
+      }
+    }
+    const appUrl = baseAppUrl.replace(/\/$/, '');
     const redirectTo = `${appUrl}/admin/set-password`;
 
     // 3. Send Invitation via Supabase Auth Admin API
