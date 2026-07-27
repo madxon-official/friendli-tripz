@@ -4,13 +4,16 @@ import React, { useMemo } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { usePathname, useRouter } from 'next/navigation';
-import { LayoutDashboard, Inbox, LogOut, Bell, Sparkles } from 'lucide-react';
+import { LayoutDashboard, Inbox, Users, LogOut, Bell, Sparkles } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
+import { AdminRole, getRoleLabel } from '@/lib/auth/roles';
+import { hasPermission } from '@/lib/auth/permissions';
 
 interface AdminSidebarProps {
   newEnquiriesCount: number;
   adminName?: string;
   adminEmail?: string;
+  adminRole?: AdminRole | string;
   notificationsEnabled?: boolean;
   onEnableNotifications?: () => void;
 }
@@ -19,6 +22,7 @@ export const AdminSidebar: React.FC<AdminSidebarProps> = ({
   newEnquiriesCount,
   adminName = 'Friendli Admin',
   adminEmail = '',
+  adminRole = 'operations',
   notificationsEnabled = false,
   onEnableNotifications,
 }) => {
@@ -36,6 +40,8 @@ export const AdminSidebar: React.FC<AdminSidebarProps> = ({
     router.refresh();
   };
 
+  const showTeamLink = hasPermission(adminRole, 'team.view');
+
   const navItems = [
     {
       label: 'Dashboard',
@@ -51,6 +57,18 @@ export const AdminSidebar: React.FC<AdminSidebarProps> = ({
       badge: newEnquiriesCount > 0 ? newEnquiriesCount : null,
     },
   ];
+
+  if (showTeamLink) {
+    navItems.push({
+      label: 'Team',
+      href: '/admin/team',
+      icon: Users,
+      active: pathname.startsWith('/admin/team'),
+      badge: null,
+    });
+  }
+
+  const roleLabel = getRoleLabel(adminRole);
 
   return (
     <div className="w-full bg-brand-navy text-white flex flex-col justify-between h-screen sticky top-0 border-r border-white/10 z-30">
@@ -71,7 +89,7 @@ export const AdminSidebar: React.FC<AdminSidebarProps> = ({
               Friendli Admin
             </span>
             <span className="text-[10px] font-bold text-brand-orange uppercase tracking-wider font-mono">
-              OPERATIONS
+              {roleLabel}
             </span>
           </div>
         </div>

@@ -25,12 +25,13 @@ export async function middleware(request: NextRequest) {
     return response;
   }
 
-  // If requesting /admin/login, allow unauthenticated access
-  if (url.pathname === '/admin/login') {
+  // Public admin pages that do not require an active admin profile
+  const publicAdminPaths = ['/admin/login', '/admin/set-password', '/admin/access-denied'];
+  if (publicAdminPaths.includes(url.pathname)) {
     return response;
   }
 
-  // If requesting admin routes (/admin, /admin/enquiries, etc.)
+  // If requesting admin routes (/admin, /admin/enquiries, /admin/team, etc.)
   if (isAdminPath) {
     const supabaseUrl = sanitizeSupabaseUrl(process.env.NEXT_PUBLIC_SUPABASE_URL);
     const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
@@ -64,14 +65,22 @@ export async function middleware(request: NextRequest) {
     // Verify active admin profile in database
     const { data: profile } = await supabase
       .from('admin_profiles')
-      .select('is_active')
+      .select('role, is_active')
       .eq('id', session.user.id)
       .single();
 
     if (!profile || !profile.is_active) {
-      // User authenticated in Supabase but not an active Friendli admin profile
-      const loginUrl = new URL('/admin/login?error=access_denied', request.url);
-      return NextResponse.redirect(loginUrl);
+      // User authenticated in Supabase but inactive or missing profile
+      const accessDeniedUrl = new URL('/admin/access-denied?reason=inactive', request.url);
+      return NextResponse.redirect(accessDeniedUrl);
+    }
+
+    // Guard /admin/team route: OWNER ONLY
+    if (url.pathname.startsWith('/admin/team')) {
+      if (profile.role !== 'owner') {
+        const forbiddenUrl = new URL('/admin/access-denied?reason=forbidden', request.url);
+        return NextResponse.redirect(forbiddenUrl);
+      }
     }
   }
 

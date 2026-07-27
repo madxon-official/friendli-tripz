@@ -4,13 +4,16 @@ import React, { useState, useMemo, useRef, useEffect } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { usePathname, useRouter } from 'next/navigation';
-import { Menu, X, LayoutDashboard, Inbox, LogOut, Bell, ExternalLink, ChevronDown, Sparkles } from 'lucide-react';
+import { Menu, X, LayoutDashboard, Inbox, Users, LogOut, Bell, ExternalLink, ChevronDown, Sparkles } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
+import { AdminRole, getRoleLabel } from '@/lib/auth/roles';
+import { hasPermission } from '@/lib/auth/permissions';
 
 interface AdminHeaderProps {
   newEnquiriesCount: number;
   adminName?: string;
   adminEmail?: string;
+  adminRole?: AdminRole | string;
   notificationsEnabled?: boolean;
   onEnableNotifications?: () => void;
 }
@@ -19,6 +22,7 @@ export const AdminHeader: React.FC<AdminHeaderProps> = ({
   newEnquiriesCount,
   adminName = 'Admin',
   adminEmail = '',
+  adminRole = 'operations',
   notificationsEnabled = false,
   onEnableNotifications,
 }) => {
@@ -29,6 +33,9 @@ export const AdminHeader: React.FC<AdminHeaderProps> = ({
   const router = useRouter();
   const supabase = useMemo(() => createClient(), []);
   const dropdownRef = useRef<HTMLDivElement>(null);
+
+  const showTeamLink = hasPermission(adminRole, 'team.view');
+  const roleLabel = getRoleLabel(adminRole);
 
   // Close dropdown on outside click
   useEffect(() => {
@@ -59,8 +66,8 @@ export const AdminHeader: React.FC<AdminHeaderProps> = ({
           <span className="font-heading font-black text-base text-brand-navy">
             Friendli Operations
           </span>
-          <span className="text-xs font-mono font-bold text-brand-orange bg-brand-soft-orange px-2.5 py-0.5 rounded-full">
-            LIVE
+          <span className="text-xs font-mono font-bold text-brand-orange bg-brand-soft-orange px-2.5 py-0.5 rounded-full uppercase">
+            {roleLabel}
           </span>
         </div>
 
@@ -96,7 +103,21 @@ export const AdminHeader: React.FC<AdminHeaderProps> = ({
                 <div className="px-4 py-2 border-b border-brand-border/40">
                   <span className="font-bold text-brand-navy block truncate font-heading">{adminName}</span>
                   {adminEmail && <span className="text-brand-muted block truncate">{adminEmail}</span>}
+                  <span className="inline-block mt-1 text-[10px] font-mono font-bold text-brand-orange bg-brand-soft-orange px-2 py-0.5 rounded uppercase">
+                    {roleLabel}
+                  </span>
                 </div>
+
+                {showTeamLink && (
+                  <Link
+                    href="/admin/team"
+                    onClick={() => setDropdownOpen(false)}
+                    className="flex items-center gap-2 px-4 py-2.5 text-brand-navy hover:bg-brand-soft-navy font-semibold transition-colors"
+                  >
+                    <Users className="w-3.5 h-3.5 text-brand-orange" />
+                    <span>Manage Team</span>
+                  </Link>
+                )}
 
                 <Link
                   href="/"
@@ -196,6 +217,21 @@ export const AdminHeader: React.FC<AdminHeaderProps> = ({
                 )}
               </Link>
 
+              {showTeamLink && (
+                <Link
+                  href="/admin/team"
+                  onClick={() => setMenuOpen(false)}
+                  className={`flex items-center justify-between px-4 py-3 rounded-xl font-semibold text-sm min-h-[44px] ${
+                    pathname.startsWith('/admin/team') ? 'bg-brand-orange text-white' : 'text-slate-300 hover:bg-white/10'
+                  }`}
+                >
+                  <div className="flex items-center gap-3">
+                    <Users className="w-4 h-4" />
+                    <span>Team</span>
+                  </div>
+                </Link>
+              )}
+
               {onEnableNotifications && !notificationsEnabled && (
                 <button
                   onClick={() => {
@@ -228,7 +264,10 @@ export const AdminHeader: React.FC<AdminHeaderProps> = ({
             </nav>
 
             <div className="pt-3 border-t border-white/10 flex items-center justify-between">
-              <span className="text-xs text-slate-300 font-semibold">{adminName}</span>
+              <div>
+                <span className="text-xs text-slate-300 font-semibold block">{adminName}</span>
+                <span className="text-[10px] text-brand-orange font-mono uppercase font-bold">{roleLabel}</span>
+              </div>
               <button
                 onClick={handleLogout}
                 className="px-3 py-2 text-xs font-bold text-red-300 hover:text-white rounded-lg hover:bg-red-500/20 flex items-center gap-1.5 min-h-[44px]"

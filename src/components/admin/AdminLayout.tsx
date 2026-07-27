@@ -6,12 +6,14 @@ import { AdminSidebar } from './AdminSidebar';
 import { AdminHeader } from './AdminHeader';
 import { createClient } from '@/lib/supabase/client';
 import { X, ArrowRight } from 'lucide-react';
+import { AdminRole } from '@/lib/auth/roles';
 
 interface AdminLayoutProps {
   children: React.ReactNode;
   initialNewCount?: number;
   adminName?: string;
   adminEmail?: string;
+  adminRole?: AdminRole | string;
 }
 
 interface ToastNotification {
@@ -27,6 +29,7 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({
   initialNewCount = 0,
   adminName = 'Admin',
   adminEmail = '',
+  adminRole = 'operations',
 }) => {
   const [newCount, setNewCount] = useState<number>(initialNewCount);
   const [notificationsEnabled, setNotificationsEnabled] = useState<boolean>(false);
@@ -155,6 +158,7 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({
           newEnquiriesCount={newCount}
           adminName={adminName}
           adminEmail={adminEmail}
+          adminRole={adminRole}
           notificationsEnabled={notificationsEnabled}
           onEnableNotifications={handleEnableNotifications}
         />
@@ -167,6 +171,7 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({
           newEnquiriesCount={newCount}
           adminName={adminName}
           adminEmail={adminEmail}
+          adminRole={adminRole}
           notificationsEnabled={notificationsEnabled}
           onEnableNotifications={handleEnableNotifications}
         />

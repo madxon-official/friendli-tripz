@@ -51,7 +51,7 @@ export default async function EnquiryListPage({
       .is('archived_at', null),
     supabase
       .from('admin_profiles')
-      .select('full_name')
+      .select('full_name, role')
       .eq('id', session.user.id)
       .single(),
   ]);
@@ -59,6 +59,7 @@ export default async function EnquiryListPage({
   const initialEnquiries: EnquiryRow[] = enquiriesRes.data || [];
   const initialNewCount = newCountRes.count || 0;
   const adminName = profileRes.data?.full_name || 'Admin';
+  const adminRole = profileRes.data?.role || 'operations';
 
   return (
     <Suspense>
@@ -68,6 +69,7 @@ export default async function EnquiryListPage({
         initialStatus={statusFilter}
         adminName={adminName}
         adminEmail={session.user.email}
+        adminRole={adminRole}
       />
     </Suspense>
   );

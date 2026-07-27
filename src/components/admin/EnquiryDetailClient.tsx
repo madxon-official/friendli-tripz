@@ -23,6 +23,7 @@ import {
 import { Button } from '@/components/ui/Button';
 import { AdminLayout } from '@/components/admin/AdminLayout';
 import { createClient } from '@/lib/supabase/client';
+import { hasPermission } from '@/lib/auth/permissions';
 
 export interface EnquiryDetail {
   id: string;
@@ -66,7 +67,7 @@ interface EnquiryDetailClientProps {
   initialHistory: HistoryItem[];
   historyAvailable: boolean;
   initialNewCount: number;
-  adminUser?: { id: string; name: string; email?: string };
+  adminUser?: { id: string; name: string; email?: string; role?: string };
 }
 
 export const EnquiryDetailClient: React.FC<EnquiryDetailClientProps> = ({
@@ -203,14 +204,19 @@ export const EnquiryDetailClient: React.FC<EnquiryDetailClientProps> = ({
     const isArchived = Boolean(enquiry.archived_at);
 
     try {
-      const { error: archErr } = await supabase
-        .from('enquiries')
-        .update({
-          archived_at: isArchived ? null : new Date().toISOString(),
-        })
-        .eq('id', enquiry.id);
+      const res = await fetch('/api/admin/enquiries/archive', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          enquiryId: enquiry.id,
+          archive: !isArchived,
+        }),
+      });
 
-      if (archErr) throw archErr;
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        throw new Error(data.error || 'Failed to update archive status.');
+      }
 
       setShowArchiveModal(false);
       refreshDetail();
@@ -239,11 +245,14 @@ export const EnquiryDetailClient: React.FC<EnquiryDetailClientProps> = ({
   const waFormattedPhone = waPhoneClean.startsWith('+') ? waPhoneClean.substring(1) : waPhoneClean.startsWith('91') ? waPhoneClean : `91${waPhoneClean.slice(-10)}`;
   const waHref = `https://wa.me/${waFormattedPhone}?text=${encodeURIComponent(waRaw)}`;
 
+  const canArchive = hasPermission(adminUser?.role || 'operations', 'enquiries.archive');
+
   return (
     <AdminLayout
       initialNewCount={initialNewCount}
       adminName={adminUser?.name}
       adminEmail={adminUser?.email}
+      adminRole={adminUser?.role}
     >
       <div className="space-y-6 pb-12">
         {/* Back Link & Header */}
@@ -283,29 +292,31 @@ export const EnquiryDetailClient: React.FC<EnquiryDetailClientProps> = ({
             </div>
           </div>
 
-          {/* Archive Modal Trigger Button */}
-          <button
-            onClick={() => {
-              if (enquiry.archived_at) {
-                confirmArchiveToggle();
-              } else {
-                setShowArchiveModal(true);
-              }
-            }}
-            className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl border border-brand-border text-xs font-bold text-brand-navy hover:bg-brand-soft-navy transition-colors shrink-0 min-h-[44px]"
-          >
-            {enquiry.archived_at ? (
-              <>
-                <ArchiveRestore className="w-4 h-4 text-emerald-600" />
-                <span>Restore Enquiry</span>
-              </>
-            ) : (
-              <>
-                <Archive className="w-4 h-4 text-slate-500" />
-                <span>Archive Enquiry</span>
-              </>
-            )}
-          </button>
+          {/* Archive Modal Trigger Button (Owner & Admin only) */}
+          {canArchive && (
+            <button
+              onClick={() => {
+                if (enquiry.archived_at) {
+                  confirmArchiveToggle();
+                } else {
+                  setShowArchiveModal(true);
+                }
+              }}
+              className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl border border-brand-border text-xs font-bold text-brand-navy hover:bg-brand-soft-navy transition-colors shrink-0 min-h-[44px]"
+            >
+              {enquiry.archived_at ? (
+                <>
+                  <ArchiveRestore className="w-4 h-4 text-emerald-600" />
+                  <span>Restore Enquiry</span>
+                </>
+              ) : (
+                <>
+                  <Archive className="w-4 h-4 text-slate-500" />
+                  <span>Archive Enquiry</span>
+                </>
+              )}
+            </button>
+          )}
         </div>
 
         {/* Action Trigger Bar: WhatsApp, Call, Copy Number */}

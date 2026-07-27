@@ -25,10 +25,10 @@ export default async function AdminDashboardPage() {
     redirect('/admin/login');
   }
 
-  // Get admin profile with minimal fields
+  // Get admin profile
   const { data: profile } = await supabase
     .from('admin_profiles')
-    .select('full_name, is_active')
+    .select('full_name, role, is_active')
     .eq('id', session.user.id)
     .single();
 
@@ -83,6 +83,7 @@ export default async function AdminDashboardPage() {
       initialNewCount={newCount || 0}
       adminName={profile.full_name}
       adminEmail={session.user.email}
+      adminRole={profile.role}
     >
       <div className="space-y-8">
         {/* Top Greeting Header */}

@@ -69,13 +69,14 @@ export default async function EnquiryDetailPage({
 
   // 2. Fetch SECONDARY DATA in parallel (Non-blocking settled promises)
   const [profileRes, notesRes, historyRes, newCountRes] = await Promise.allSettled([
-    supabase.from('admin_profiles').select('full_name').eq('id', session.user.id).single(),
+    supabase.from('admin_profiles').select('full_name, role').eq('id', session.user.id).single(),
     supabase.from('enquiry_notes').select('*').eq('enquiry_id', targetId).order('created_at', { ascending: false }),
     supabase.from('enquiry_status_history').select('*').eq('enquiry_id', targetId).order('created_at', { ascending: false }),
     supabase.from('enquiries').select('id', { count: 'exact', head: true }).eq('status', 'new').is('archived_at', null),
   ]);
 
   const adminName = profileRes.status === 'fulfilled' && profileRes.value.data ? profileRes.value.data.full_name : 'Admin';
+  const adminRole = profileRes.status === 'fulfilled' && profileRes.value.data ? profileRes.value.data.role : 'operations';
   
   const notes: NoteItem[] = notesRes.status === 'fulfilled' && notesRes.value.data ? notesRes.value.data : [];
   const notesAvailable = notesRes.status === 'fulfilled' && !notesRes.value.error;
@@ -97,6 +98,7 @@ export default async function EnquiryDetailPage({
         id: session.user.id,
         name: adminName,
         email: session.user.email,
+        role: adminRole,
       }}
     />
   );

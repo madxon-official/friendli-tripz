@@ -27,6 +27,7 @@ interface EnquiryListClientProps {
   initialStatus: string;
   adminName?: string;
   adminEmail?: string;
+  adminRole?: string;
 }
 
 function formatRelativeTime(isoString: string): string {
@@ -53,6 +54,7 @@ export const EnquiryListClient: React.FC<EnquiryListClientProps> = ({
   initialStatus,
   adminName,
   adminEmail,
+  adminRole,
 }) => {
   const searchParams = useSearchParams();
   const router = useRouter();
@@ -159,6 +161,7 @@ export const EnquiryListClient: React.FC<EnquiryListClientProps> = ({
       initialNewCount={newCount}
       adminName={adminName}
       adminEmail={adminEmail}
+      adminRole={adminRole}
     >
       <div className="space-y-6">
         {/* Header Title */}
