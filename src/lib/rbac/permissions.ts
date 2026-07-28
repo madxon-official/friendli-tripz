@@ -11,6 +11,7 @@ export type Permission =
   | 'team.role.change'
   | 'team.department.change'
   | 'team.delete'
+  | 'team.transfer_ownership'
   | 'enquiry.view'
   | 'enquiry.view_all'
   | 'enquiry.update'
@@ -41,6 +42,7 @@ export const ROLE_PERMISSIONS: Record<AdminRole, Permission[]> = {
     'team.role.change',
     'team.department.change',
     'team.delete',
+    'team.transfer_ownership',
     'enquiry.view',
     'enquiry.view_all',
     'enquiry.update',

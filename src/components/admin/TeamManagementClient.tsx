@@ -7,27 +7,24 @@ import {
   UserPlus,
   Shield,
   Building2,
-  Clock,
-  Settings,
   Activity,
   RefreshCw,
   Search,
   MoreVertical,
   Edit2,
-  UserX,
-  UserCheck,
   Trash2,
   Send,
-  Lock,
   Plus,
   Loader2,
   AlertCircle,
   CheckCircle2,
-  Filter,
+  Crown,
+  Briefcase,
+  ArrowRightLeft,
+  Lock,
 } from 'lucide-react';
 import { AdminLayout } from '@/components/admin/AdminLayout';
 import { Button } from '@/components/ui/Button';
-import { createClient } from '@/lib/supabase/client';
 import { AdminRole, getRoleLabel, ROLES, ALL_ROLES } from '@/lib/rbac/roles';
 import { can } from '@/lib/rbac/can';
 
@@ -52,8 +49,8 @@ export interface TeamMemberItem {
   is_active: boolean;
   status: 'active' | 'inactive' | 'suspended' | 'invited';
   created_at: string;
-  updated_at?: string;
-  created_by?: string | null;
+  last_sign_in_at?: string | null;
+  assigned_enquiries_count?: number;
 }
 
 export interface InvitationItem {
@@ -62,7 +59,6 @@ export interface InvitationItem {
   full_name: string;
   role: AdminRole;
   department_id?: string | null;
-  department_name?: string | null;
   status: 'pending' | 'accepted' | 'expired' | 'cancelled';
   created_at: string;
   expires_at: string;
@@ -85,6 +81,7 @@ interface TeamManagementClientProps {
   initialDepartments: DepartmentItem[];
   initialActivityLogs: AuditLogItem[];
   initialNewCount: number;
+  currentUserId: string;
   adminName: string;
   adminEmail: string;
   adminRole: AdminRole;
@@ -96,13 +93,14 @@ export const TeamManagementClient: React.FC<TeamManagementClientProps> = ({
   initialDepartments,
   initialActivityLogs,
   initialNewCount,
+  currentUserId,
   adminName,
   adminEmail,
   adminRole = 'owner',
 }) => {
   const router = useRouter();
 
-  const [activeTab, setActiveTab] = useState<'members' | 'invitations' | 'departments' | 'activity' | 'settings'>('members');
+  const [activeTab, setActiveTab] = useState<'members' | 'invitations' | 'departments' | 'activity'>('members');
 
   const [members, setMembers] = useState<TeamMemberItem[]>(initialMembers);
   const [invitations, setInvitations] = useState<InvitationItem[]>(initialInvitations);
@@ -111,7 +109,7 @@ export const TeamManagementClient: React.FC<TeamManagementClientProps> = ({
 
   const [isRefreshing, setIsRefreshing] = useState(false);
 
-  // Filters state
+  // Filters
   const [searchQuery, setSearchQuery] = useState('');
   const [roleFilter, setRoleFilter] = useState<string>('all');
   const [deptFilter, setDeptFilter] = useState<string>('all');
@@ -127,6 +125,13 @@ export const TeamManagementClient: React.FC<TeamManagementClientProps> = ({
   const [inviteError, setInviteError] = useState<string | null>(null);
   const [inviteSuccess, setInviteSuccess] = useState<string | null>(null);
 
+  // Transfer Ownership Modal
+  const [showTransferModal, setShowTransferModal] = useState(false);
+  const [targetAdminId, setTargetAdminId] = useState<string>('');
+  const [confirmText, setConfirmText] = useState('');
+  const [transferring, setTransferring] = useState(false);
+  const [transferError, setTransferError] = useState<string | null>(null);
+
   // Department Modal
   const [showDeptModal, setShowDeptModal] = useState(false);
   const [editingDept, setEditingDept] = useState<DepartmentItem | null>(null);
@@ -141,19 +146,16 @@ export const TeamManagementClient: React.FC<TeamManagementClientProps> = ({
   const [changingRole, setChangingRole] = useState(false);
   const [roleError, setRoleError] = useState<string | null>(null);
 
-  // Status Modal (Suspend / Deactivate / Reactivate)
+  // Status Modal
   const [statusModalUser, setStatusModalUser] = useState<TeamMemberItem | null>(null);
   const [targetStatus, setTargetStatus] = useState<'active' | 'inactive' | 'suspended'>('active');
   const [updatingStatus, setUpdatingStatus] = useState(false);
   const [statusError, setStatusError] = useState<string | null>(null);
 
-  // Delete Modal (Owner Only)
+  // Delete Modal
   const [deleteModalUser, setDeleteModalUser] = useState<TeamMemberItem | null>(null);
   const [deletingUser, setDeletingUser] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
-
-  // Mobile action dropdown menu
-  const [activeMenuId, setActiveMenuId] = useState<string | null>(null);
 
   useEffect(() => {
     setMembers(initialMembers);
@@ -168,7 +170,6 @@ export const TeamManagementClient: React.FC<TeamManagementClientProps> = ({
     setTimeout(() => setIsRefreshing(false), 800);
   };
 
-  // Filtered members list
   const filteredMembers = useMemo(() => {
     return members.filter((m) => {
       const q = searchQuery.toLowerCase().trim();
@@ -186,11 +187,16 @@ export const TeamManagementClient: React.FC<TeamManagementClientProps> = ({
     });
   }, [members, searchQuery, roleFilter, deptFilter, statusFilter]);
 
-  // Invite submit
+  // Invite member submit
   const handleSendInvite = async (e: React.FormEvent) => {
     e.preventDefault();
     setInviteError(null);
     setInviteSuccess(null);
+
+    if (inviteRole === 'owner') {
+      setInviteError('Owner role cannot be invited. Use Transfer Ownership.');
+      return;
+    }
 
     if (!inviteName.trim() || !inviteEmail.trim()) {
       setInviteError('Please fill in both Full Name and Email.');
@@ -229,6 +235,47 @@ export const TeamManagementClient: React.FC<TeamManagementClientProps> = ({
       setInviteError(err.message || 'Failed to send invitation.');
     } finally {
       setInviting(false);
+    }
+  };
+
+  // Transfer Ownership submit
+  const handleTransferOwnershipSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setTransferError(null);
+
+    if (!targetAdminId) {
+      setTransferError('Please select an active Admin to receive ownership.');
+      return;
+    }
+
+    if (confirmText.trim().toLowerCase() !== 'transfer') {
+      setTransferError('Please type "TRANSFER" in all caps to confirm.');
+      return;
+    }
+
+    setTransferring(true);
+
+    try {
+      const res = await fetch('/api/admin/team/transfer-ownership', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          targetAdminId,
+        }),
+      });
+
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        throw new Error(data.error || 'Transfer ownership failed.');
+      }
+
+      setShowTransferModal(false);
+      alert(data.message || 'Ownership transferred successfully!');
+      handleRefresh();
+    } catch (err: any) {
+      setTransferError(err.message || 'Could not transfer ownership.');
+    } finally {
+      setTransferring(false);
     }
   };
 
@@ -276,6 +323,12 @@ export const TeamManagementClient: React.FC<TeamManagementClientProps> = ({
     e.preventDefault();
     if (!roleModalUser) return;
     setRoleError(null);
+
+    if (selectedNewRole === 'owner') {
+      setRoleError('Owner role cannot be assigned via role edit. Use Transfer Ownership.');
+      return;
+    }
+
     setChangingRole(true);
 
     try {
@@ -336,6 +389,12 @@ export const TeamManagementClient: React.FC<TeamManagementClientProps> = ({
   const handleDeleteSubmit = async () => {
     if (!deleteModalUser) return;
     setDeleteError(null);
+
+    if (deleteModalUser.id === currentUserId) {
+      setDeleteError('You cannot delete your own account.');
+      return;
+    }
+
     setDeletingUser(true);
 
     try {
@@ -361,7 +420,6 @@ export const TeamManagementClient: React.FC<TeamManagementClientProps> = ({
     }
   };
 
-  // Resend invitation
   const handleResendInvite = async (invId: string, email: string) => {
     try {
       const res = await fetch('/api/admin/team/resend', {
@@ -381,21 +439,53 @@ export const TeamManagementClient: React.FC<TeamManagementClientProps> = ({
     }
   };
 
+  // Exact Role Badges requested
   const getRoleBadge = (role: AdminRole) => {
-    const roleDef = ROLES[role] || { label: role, color: '#64748B' };
-    return (
-      <span
-        className="px-2.5 py-1 text-xs font-bold rounded-full font-mono flex items-center gap-1 w-fit"
-        style={{
-          backgroundColor: `${roleDef.color}15`,
-          color: roleDef.color,
-          border: `1px solid ${roleDef.color}30`,
-        }}
-      >
-        {role === 'owner' && <Shield className="w-3 h-3 text-purple-600" />}
-        <span>{roleDef.label.toUpperCase()}</span>
-      </span>
-    );
+    switch (role) {
+      case 'owner':
+        return (
+          <span className="px-2.5 py-1 text-xs font-bold rounded-full bg-amber-100 text-amber-900 border border-amber-300 font-mono flex items-center gap-1 w-fit shadow-2xs">
+            <Crown className="w-3.5 h-3.5 text-amber-600 fill-amber-500" />
+            <span>OWNER</span>
+          </span>
+        );
+      case 'admin':
+        return (
+          <span className="px-2.5 py-1 text-xs font-bold rounded-full bg-orange-100 text-orange-900 border border-orange-300 font-mono w-fit">
+            ADMIN
+          </span>
+        );
+      case 'operations':
+        return (
+          <span className="px-2.5 py-1 text-xs font-bold rounded-full bg-blue-100 text-blue-900 border border-blue-300 font-mono w-fit">
+            OPERATIONS
+          </span>
+        );
+      case 'sales':
+        return (
+          <span className="px-2.5 py-1 text-xs font-bold rounded-full bg-emerald-100 text-emerald-900 border border-emerald-300 font-mono w-fit">
+            SALES
+          </span>
+        );
+      case 'support':
+        return (
+          <span className="px-2.5 py-1 text-xs font-bold rounded-full bg-purple-100 text-purple-900 border border-purple-300 font-mono w-fit">
+            SUPPORT
+          </span>
+        );
+      case 'viewer':
+        return (
+          <span className="px-2.5 py-1 text-xs font-bold rounded-full bg-slate-100 text-slate-800 border border-slate-300 font-mono w-fit">
+            VIEWER
+          </span>
+        );
+      default:
+        return (
+          <span className="px-2.5 py-1 text-xs font-bold rounded-full bg-slate-100 text-slate-800 font-mono w-fit">
+            {role}
+          </span>
+        );
+    }
   };
 
   const getStatusBadge = (status: string) => {
@@ -433,6 +523,8 @@ export const TeamManagementClient: React.FC<TeamManagementClientProps> = ({
     }
   };
 
+  const activeAdminsForTransfer = members.filter((m) => m.role === 'admin' && m.is_active);
+
   return (
     <AdminLayout
       initialNewCount={initialNewCount}
@@ -449,11 +541,11 @@ export const TeamManagementClient: React.FC<TeamManagementClientProps> = ({
               <span>Team Management</span>
             </h1>
             <p className="text-sm text-brand-muted mt-1">
-              Enterprise Role-Based Access Control, Departments & Staff Directory.
+              Enterprise Access Control, Departments & Staff Directory.
             </p>
           </div>
 
-          <div className="flex items-center gap-3">
+          <div className="flex flex-wrap items-center gap-3">
             <button
               onClick={handleRefresh}
               disabled={isRefreshing}
@@ -462,6 +554,22 @@ export const TeamManagementClient: React.FC<TeamManagementClientProps> = ({
             >
               <RefreshCw className={`w-4 h-4 ${isRefreshing ? 'animate-spin text-brand-orange' : ''}`} />
             </button>
+
+            {adminRole === 'owner' && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  setTransferError(null);
+                  setConfirmText('');
+                  setTargetAdminId('');
+                  setShowTransferModal(true);
+                }}
+                icon={<ArrowRightLeft className="w-4 h-4 text-amber-600" />}
+              >
+                Transfer Ownership
+              </Button>
+            )}
 
             {can(adminRole, 'team.invite') && (
               <Button
@@ -529,21 +637,9 @@ export const TeamManagementClient: React.FC<TeamManagementClientProps> = ({
             <Activity className="w-4 h-4" />
             <span>Audit Logs ({activityLogs.length})</span>
           </button>
-
-          <button
-            onClick={() => setActiveTab('settings')}
-            className={`flex items-center gap-2 px-4 py-2.5 text-xs font-bold rounded-xl transition-all whitespace-nowrap ${
-              activeTab === 'settings'
-                ? 'bg-brand-navy text-white shadow-sm'
-                : 'text-brand-muted hover:text-brand-navy hover:bg-brand-warm'
-            }`}
-          >
-            <Settings className="w-4 h-4" />
-            <span>Settings</span>
-          </button>
         </div>
 
-        {/* TAB 1: MEMBERS */}
+        {/* TAB 1: MEMBERS TABLE */}
         {activeTab === 'members' && (
           <div className="space-y-4">
             {/* Filter Bar */}
@@ -600,108 +696,161 @@ export const TeamManagementClient: React.FC<TeamManagementClientProps> = ({
               </div>
             </div>
 
-            {/* Desktop Table View */}
-            <div className="hidden lg:block bg-white rounded-3xl border border-brand-border/60 shadow-card overflow-hidden">
+            {/* Comprehensive Enterprise Table View */}
+            <div className="hidden xl:block bg-white rounded-3xl border border-brand-border/60 shadow-card overflow-hidden">
               <table className="w-full text-left text-sm border-collapse">
                 <thead>
                   <tr className="bg-brand-soft-navy/50 border-b border-brand-border/60 text-xs font-bold text-brand-navy uppercase tracking-wider font-mono">
-                    <th className="py-4 px-6">Member</th>
-                    <th className="py-4 px-6">Role</th>
+                    <th className="py-4 px-6">Avatar</th>
+                    <th className="py-4 px-6">Name</th>
+                    <th className="py-4 px-6">Email</th>
+                    <th className="py-4 px-6">Phone</th>
                     <th className="py-4 px-6">Department</th>
+                    <th className="py-4 px-6">Role</th>
                     <th className="py-4 px-6">Status</th>
-                    <th className="py-4 px-6">Joined</th>
+                    <th className="py-4 px-6">Assigned Leads</th>
+                    <th className="py-4 px-6">Joined / Login</th>
                     <th className="py-4 px-6 text-right">Actions</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-brand-border/40 font-medium text-brand-navy">
-                  {filteredMembers.map((m) => (
-                    <tr key={m.id} className="hover:bg-brand-warm/60 transition-colors">
-                      <td className="py-4 px-6">
-                        <div className="flex items-center gap-3">
-                          <div className="w-10 h-10 rounded-full bg-brand-navy text-white flex items-center justify-center font-bold text-sm uppercase">
+                  {filteredMembers.map((m) => {
+                    const isSelf = m.id === currentUserId;
+                    const isTargetOwner = m.role === 'owner';
+                    const isAdminUser = adminRole === 'admin';
+
+                    return (
+                      <tr key={m.id} className="hover:bg-brand-warm/60 transition-colors">
+                        <td className="py-4 px-6">
+                          <div className="relative w-10 h-10 rounded-full bg-brand-navy text-white flex items-center justify-center font-bold text-sm uppercase shadow-xs">
                             {m.full_name.charAt(0)}
+                            <span
+                              className={`absolute bottom-0 right-0 w-3 h-3 rounded-full border-2 border-white ${
+                                m.status === 'active' ? 'bg-emerald-500' : 'bg-slate-400'
+                              }`}
+                            />
                           </div>
-                          <div>
-                            <div className="font-bold text-brand-navy font-heading">{m.full_name}</div>
-                            <div className="text-xs text-brand-muted font-mono">{m.email}</div>
-                          </div>
-                        </div>
-                      </td>
+                        </td>
 
-                      <td className="py-4 px-6">{getRoleBadge(m.role)}</td>
+                        <td className="py-4 px-6 font-bold text-brand-navy font-heading">
+                          {m.full_name}
+                          {isSelf && <span className="ml-1.5 text-[10px] text-brand-orange font-mono font-bold">(You)</span>}
+                        </td>
 
-                      <td className="py-4 px-6 text-xs font-semibold text-brand-navy">
-                        {m.department_name ? (
-                          <span
-                            className="px-2.5 py-1 rounded-full text-xs font-bold"
-                            style={{
-                              backgroundColor: `${m.department_color || '#F97316'}15`,
-                              color: m.department_color || '#F97316',
-                            }}
-                          >
-                            {m.department_name}
+                        <td className="py-4 px-6 font-mono text-xs text-brand-muted">{m.email}</td>
+
+                        <td className="py-4 px-6 font-mono text-xs text-brand-muted">{m.phone || '—'}</td>
+
+                        <td className="py-4 px-6 text-xs font-semibold">
+                          {m.department_name ? (
+                            <span
+                              className="px-2.5 py-1 rounded-full text-xs font-bold"
+                              style={{
+                                backgroundColor: `${m.department_color || '#F97316'}15`,
+                                color: m.department_color || '#F97316',
+                              }}
+                            >
+                              {m.department_name}
+                            </span>
+                          ) : (
+                            <span className="text-brand-muted font-mono text-[11px]">General</span>
+                          )}
+                        </td>
+
+                        <td className="py-4 px-6">{getRoleBadge(m.role)}</td>
+
+                        <td className="py-4 px-6">{getStatusBadge(m.status)}</td>
+
+                        <td className="py-4 px-6">
+                          <span className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-bold rounded-lg bg-brand-soft-navy text-brand-navy font-mono">
+                            <Briefcase className="w-3 h-3 text-brand-orange" />
+                            <span>{m.assigned_enquiries_count || 0}</span>
                           </span>
-                        ) : (
-                          <span className="text-brand-muted font-mono text-[11px]">—</span>
-                        )}
-                      </td>
+                        </td>
 
-                      <td className="py-4 px-6">{getStatusBadge(m.status)}</td>
+                        <td className="py-4 px-6 text-xs text-brand-muted font-mono">
+                          {new Date(m.created_at).toLocaleDateString('en-IN', {
+                            day: 'numeric',
+                            month: 'short',
+                            year: 'numeric',
+                          })}
+                        </td>
 
-                      <td className="py-4 px-6 text-xs text-brand-muted font-mono">
-                        {new Date(m.created_at).toLocaleDateString('en-IN', {
-                          day: 'numeric',
-                          month: 'short',
-                          year: 'numeric',
-                        })}
-                      </td>
+                        <td className="py-4 px-6 text-right">
+                          <div className="flex items-center justify-end gap-2">
+                            {/* OWNER ON SELF ACTIONS */}
+                            {isSelf && isTargetOwner && (
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => {
+                                  setTransferError(null);
+                                  setConfirmText('');
+                                  setTargetAdminId('');
+                                  setShowTransferModal(true);
+                                }}
+                              >
+                                Transfer Ownership
+                              </Button>
+                            )}
 
-                      <td className="py-4 px-6 text-right">
-                        {/* Action buttons based on permissions */}
-                        <div className="flex items-center justify-end gap-2">
-                          {can(adminRole, 'team.role.change', m.role) && (
-                            <button
-                              onClick={() => {
-                                setRoleModalUser(m);
-                                setSelectedNewRole(m.role);
-                              }}
-                              className="px-2.5 py-1 text-xs font-bold text-brand-navy hover:text-brand-orange border border-brand-border rounded-lg transition-colors"
-                            >
-                              Role
-                            </button>
-                          )}
+                            {/* ADMIN LOOKING AT OWNER: READ-ONLY PROTECTED BADGE */}
+                            {isAdminUser && isTargetOwner && (
+                              <span className="text-[11px] font-mono text-brand-muted italic flex items-center gap-1">
+                                <Lock className="w-3 h-3 text-amber-600" />
+                                <span>Owner Protected</span>
+                              </span>
+                            )}
 
-                          {can(adminRole, 'team.deactivate', m.role) && (
-                            <button
-                              onClick={() => {
-                                setStatusModalUser(m);
-                                setTargetStatus(m.status === 'active' ? 'suspended' : 'active');
-                              }}
-                              className="px-2.5 py-1 text-xs font-bold text-brand-navy hover:text-amber-600 border border-brand-border rounded-lg transition-colors"
-                            >
-                              {m.status === 'active' ? 'Suspend' : 'Activate'}
-                            </button>
-                          )}
+                            {/* Standard non-self Actions for Owner & Admin */}
+                            {!isSelf && (!isTargetOwner || adminRole === 'owner') && (
+                              <>
+                                {can(adminRole, 'team.role.change', m.role) && !isTargetOwner && (
+                                  <button
+                                    onClick={() => {
+                                      setRoleModalUser(m);
+                                      setSelectedNewRole(m.role);
+                                    }}
+                                    className="px-2.5 py-1 text-xs font-bold text-brand-navy hover:text-brand-orange border border-brand-border rounded-lg transition-colors"
+                                  >
+                                    Role
+                                  </button>
+                                )}
 
-                          {can(adminRole, 'team.delete', m.role) && (
-                            <button
-                              onClick={() => setDeleteModalUser(m)}
-                              className="p-1.5 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                              title="Delete Member"
-                            >
-                              <Trash2 className="w-4 h-4" />
-                            </button>
-                          )}
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
+                                {can(adminRole, 'team.deactivate', m.role) && !isTargetOwner && (
+                                  <button
+                                    onClick={() => {
+                                      setStatusModalUser(m);
+                                      setTargetStatus(m.status === 'active' ? 'suspended' : 'active');
+                                    }}
+                                    className="px-2.5 py-1 text-xs font-bold text-brand-navy hover:text-amber-600 border border-brand-border rounded-lg transition-colors"
+                                  >
+                                    {m.status === 'active' ? 'Suspend' : 'Activate'}
+                                  </button>
+                                )}
+
+                                {can(adminRole, 'team.delete', m.role) && !isTargetOwner && (
+                                  <button
+                                    onClick={() => setDeleteModalUser(m)}
+                                    className="p-1.5 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                                    title="Delete Member"
+                                  >
+                                    <Trash2 className="w-4 h-4" />
+                                  </button>
+                                )}
+                              </>
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>
 
-            {/* Mobile Cards View */}
-            <div className="lg:hidden space-y-3">
+            {/* Mobile & Tablet Card Layout */}
+            <div className="xl:hidden space-y-3">
               {filteredMembers.map((m) => (
                 <div
                   key={m.id}
@@ -722,7 +871,7 @@ export const TeamManagementClient: React.FC<TeamManagementClientProps> = ({
 
                   <div className="flex items-center justify-between text-xs pt-2 border-t border-brand-border/40">
                     <div>{getRoleBadge(m.role)}</div>
-                    <span className="font-semibold text-brand-muted">{m.department_name || 'General'}</span>
+                    <span className="font-semibold text-brand-navy">{m.department_name || 'General'}</span>
                   </div>
                 </div>
               ))}
@@ -856,25 +1005,84 @@ export const TeamManagementClient: React.FC<TeamManagementClientProps> = ({
             </div>
           </div>
         )}
-
-        {/* TAB 5: SETTINGS */}
-        {activeTab === 'settings' && (
-          <div className="bg-white rounded-3xl border border-brand-border/60 shadow-card p-6 space-y-4 max-w-xl">
-            <h2 className="text-lg font-bold text-brand-navy font-heading">Team Security Settings</h2>
-            <p className="text-xs text-brand-muted">
-              Configure session durations, multi-factor authentication requirements, and role assignment boundaries.
-            </p>
-            <div className="p-4 rounded-2xl bg-brand-warm border border-brand-border/60 text-xs space-y-2">
-              <div className="font-bold text-brand-navy">Owner Authority Protection</div>
-              <p className="text-brand-muted">
-                Admins and lower roles are strictly prohibited from changing Owner credentials, deleting Owners, or demoting Owner roles.
-              </p>
-            </div>
-          </div>
-        )}
       </div>
 
-      {/* MODAL: INVITE MEMBER */}
+      {/* MODAL: TRANSFER OWNERSHIP (Owner Only) */}
+      {showTransferModal && (
+        <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl p-6 sm:p-8 max-w-md w-full shadow-2xl border border-brand-border space-y-5">
+            <div className="flex items-center justify-between border-b border-brand-border/60 pb-3">
+              <h2 className="text-xl font-black text-brand-navy font-heading flex items-center gap-2">
+                <Crown className="w-5 h-5 text-amber-500 fill-amber-400" />
+                <span>Transfer Ownership</span>
+              </h2>
+              <button onClick={() => setShowTransferModal(false)} className="text-brand-muted hover:text-brand-navy">
+                ✕
+              </button>
+            </div>
+
+            <form onSubmit={handleTransferOwnershipSubmit} className="space-y-4">
+              <div className="p-3.5 rounded-2xl bg-amber-50 border border-amber-200 text-xs text-amber-900 space-y-1.5">
+                <div className="font-bold flex items-center gap-1.5">
+                  <AlertCircle className="w-4 h-4 text-amber-600 shrink-0" />
+                  <span>Important Single Owner Warning</span>
+                </div>
+                <p className="leading-relaxed">
+                  Transferring ownership will appoint the selected Admin as the new Owner and convert your account into an Admin. This transaction is permanent.
+                </p>
+              </div>
+
+              {transferError && (
+                <div className="p-3 bg-red-50 text-red-700 text-xs rounded-xl font-bold">{transferError}</div>
+              )}
+
+              <div>
+                <label className="block text-xs font-bold uppercase tracking-wider text-brand-navy mb-1.5 font-mono">
+                  Select New Owner (Active Admins Only)
+                </label>
+                <select
+                  required
+                  value={targetAdminId}
+                  onChange={(e) => setTargetAdminId(e.target.value)}
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-brand-border text-xs sm:text-sm font-bold text-brand-navy outline-none focus:border-brand-orange bg-white cursor-pointer"
+                >
+                  <option value="">Choose active Admin...</option>
+                  {activeAdminsForTransfer.map((adm) => (
+                    <option key={adm.id} value={adm.id}>
+                      {adm.full_name} ({adm.email})
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold uppercase tracking-wider text-brand-navy mb-1.5 font-mono">
+                  Type &quot;TRANSFER&quot; to Confirm
+                </label>
+                <input
+                  type="text"
+                  required
+                  placeholder="TRANSFER"
+                  value={confirmText}
+                  onChange={(e) => setConfirmText(e.target.value)}
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-brand-border text-sm font-bold text-brand-navy outline-none font-mono focus:border-brand-orange"
+                />
+              </div>
+
+              <div className="pt-2 flex justify-end gap-3">
+                <Button type="button" variant="ghost" size="sm" onClick={() => setShowTransferModal(false)}>
+                  Cancel
+                </Button>
+                <Button type="submit" variant="primary" size="sm" disabled={transferring || activeAdminsForTransfer.length === 0}>
+                  {transferring ? 'Transferring...' : 'Transfer Ownership'}
+                </Button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL: INVITE MEMBER (Owner & Admin) */}
       {showInviteModal && (
         <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
           <div className="bg-white rounded-3xl p-6 sm:p-8 max-w-md w-full shadow-2xl border border-brand-border space-y-5">
@@ -933,14 +1141,14 @@ export const TeamManagementClient: React.FC<TeamManagementClientProps> = ({
 
               <div>
                 <label className="block text-xs font-bold uppercase tracking-wider text-brand-navy mb-1 font-mono">
-                  Assigned Role
+                  Assigned Role (Owner excluded)
                 </label>
                 <select
                   value={inviteRole}
                   onChange={(e) => setInviteRole(e.target.value as AdminRole)}
                   className="w-full px-3.5 py-2.5 rounded-xl border border-brand-border text-sm font-medium text-brand-navy outline-none focus:border-brand-orange bg-white cursor-pointer"
                 >
-                  {ALL_ROLES.filter((r) => can(adminRole, 'team.invite', r.id)).map((r) => (
+                  {ALL_ROLES.filter((r) => r.id !== 'owner' && can(adminRole, 'team.invite', r.id)).map((r) => (
                     <option key={r.id} value={r.id}>
                       {r.label} — {r.description}
                     </option>
@@ -1038,9 +1246,9 @@ export const TeamManagementClient: React.FC<TeamManagementClientProps> = ({
               <select
                 value={selectedNewRole}
                 onChange={(e) => setSelectedNewRole(e.target.value as AdminRole)}
-                className="w-full px-3.5 py-2.5 rounded-xl border border-brand-border text-sm font-medium outline-none"
+                className="w-full px-3.5 py-2.5 rounded-xl border border-brand-border text-sm font-medium outline-none cursor-pointer"
               >
-                {ALL_ROLES.filter((r) => can(adminRole, 'team.role.change', r.id)).map((r) => (
+                {ALL_ROLES.filter((r) => r.id !== 'owner' && can(adminRole, 'team.role.change', r.id)).map((r) => (
                   <option key={r.id} value={r.id}>
                     {r.label} — {r.description}
                   </option>
@@ -1056,6 +1264,38 @@ export const TeamManagementClient: React.FC<TeamManagementClientProps> = ({
                 </Button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL: STATUS UPDATE */}
+      {statusModalUser && (
+        <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl p-6 sm:p-8 max-w-md w-full shadow-2xl border border-brand-border space-y-4">
+            <h2 className="text-lg font-bold text-brand-navy font-heading">
+              Update Status for {statusModalUser.full_name}
+            </h2>
+            {statusError && <div className="p-3 bg-red-50 text-red-700 text-xs rounded-xl font-bold">{statusError}</div>}
+            <div className="space-y-2">
+              <label className="block text-xs font-bold text-brand-navy font-mono uppercase">Target Status</label>
+              <select
+                value={targetStatus}
+                onChange={(e) => setTargetStatus(e.target.value as any)}
+                className="w-full px-3.5 py-2.5 rounded-xl border border-brand-border text-sm font-medium outline-none cursor-pointer"
+              >
+                <option value="active">Active</option>
+                <option value="suspended">Suspended</option>
+                <option value="inactive">Inactive</option>
+              </select>
+            </div>
+            <div className="flex justify-end gap-2 pt-2">
+              <Button variant="ghost" size="sm" onClick={() => setStatusModalUser(null)}>
+                Cancel
+              </Button>
+              <Button variant="primary" size="sm" disabled={updatingStatus} onClick={handleStatusSubmit}>
+                Confirm Status Change
+              </Button>
+            </div>
           </div>
         </div>
       )}

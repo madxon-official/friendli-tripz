@@ -1,6 +1,7 @@
 import React, { Suspense } from 'react';
 import { redirect } from 'next/navigation';
 import { requirePermission, AuthorizationError } from '@/lib/rbac/authorize';
+import { createServiceRoleClient } from '@/lib/supabase/service';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
 import { TeamManagementClient, TeamMemberItem, InvitationItem, DepartmentItem, AuditLogItem } from '@/components/admin/TeamManagementClient';
 
@@ -22,26 +23,33 @@ export default async function AdminTeamPage() {
     redirect('/admin/access-denied');
   }
 
+  const serviceClient = createServiceRoleClient();
   const supabase = await createServerSupabaseClient();
 
-  const [profilesRes, invitationsRes, deptsRes, activityRes, newCountRes] = await Promise.all([
-    supabase
+  // Run server queries concurrently using serviceClient for reliable multi-user data join
+  const [profilesRes, usersRes, invitationsRes, deptsRes, activityRes, enquiriesRes, newCountRes] = await Promise.all([
+    serviceClient
       .from('admin_profiles')
       .select('id, full_name, role, is_active, status, created_at, phone, avatar_url, department_id, departments(name, color)')
       .order('created_at', { ascending: false }),
-    supabase
+    serviceClient.auth.admin.listUsers(),
+    serviceClient
       .from('admin_invitations')
       .select('id, email, full_name, role, department_id, status, created_at, expires_at')
       .order('created_at', { ascending: false }),
-    supabase
+    serviceClient
       .from('departments')
       .select('*')
       .order('name', { ascending: true }),
-    supabase
+    serviceClient
       .from('admin_activity_logs')
       .select('id, actor_id, target_type, action, old_data, new_data, created_at')
       .order('created_at', { ascending: false })
       .limit(30),
+    serviceClient
+      .from('enquiries')
+      .select('id, assigned_to')
+      .is('archived_at', null),
     supabase
       .from('enquiries')
       .select('id', { count: 'exact', head: true })
@@ -49,21 +57,53 @@ export default async function AdminTeamPage() {
       .is('archived_at', null),
   ]);
 
+  // Create fast map of user emails & metadata
+  const userMap = new Map<string, { email: string; last_sign_in_at?: string }>();
+  if (usersRes.data?.users) {
+    usersRes.data.users.forEach((u) => {
+      userMap.set(u.id, { email: u.email || '', last_sign_in_at: u.last_sign_in_at });
+    });
+  }
+
+  // Calculate assigned enquiries per team member
+  const assignmentMap = new Map<string, number>();
+  if (enquiriesRes.data) {
+    enquiriesRes.data.forEach((e) => {
+      if (e.assigned_to) {
+        assignmentMap.set(e.assigned_to, (assignmentMap.get(e.assigned_to) || 0) + 1);
+      }
+    });
+  }
+
   const rawMembers = profilesRes.data || [];
-  const teamMembers: TeamMemberItem[] = rawMembers.map((m: any) => ({
-    id: m.id,
-    full_name: m.full_name,
-    email: '', // populated via fallback or profile join
-    phone: m.phone,
-    avatar_url: m.avatar_url,
-    role: m.role,
-    department_id: m.department_id,
-    department_name: m.departments?.name || null,
-    department_color: m.departments?.color || null,
-    is_active: m.is_active,
-    status: m.status || (m.is_active ? 'active' : 'inactive'),
-    created_at: m.created_at,
-  }));
+  const allMembers: TeamMemberItem[] = rawMembers.map((m: any) => {
+    const userInfo = userMap.get(m.id);
+    return {
+      id: m.id,
+      full_name: m.full_name,
+      email: userInfo?.email || authResult.email || 'team@friendlitripz.com',
+      phone: m.phone || null,
+      avatar_url: m.avatar_url || null,
+      role: m.role,
+      department_id: m.department_id,
+      department_name: m.departments?.name || null,
+      department_color: m.departments?.color || null,
+      is_active: m.is_active,
+      status: m.status || (m.is_active ? 'active' : 'inactive'),
+      created_at: m.created_at,
+      last_sign_in_at: userInfo?.last_sign_in_at || null,
+      assigned_enquiries_count: assignmentMap.get(m.id) || 0,
+    };
+  });
+
+  // TEAM VISIBILITY RULES:
+  // Owner: sees ALL members
+  // Admin: sees ALL members (Owner marked read-only in UI)
+  // Operations / Sales / Support / Viewer: sees ONLY their own profile
+  let visibleMembers: TeamMemberItem[] = allMembers;
+  if (['operations', 'sales', 'support', 'viewer'].includes(authResult.role)) {
+    visibleMembers = allMembers.filter((m) => m.id === authResult.userId);
+  }
 
   const invitations: InvitationItem[] = (invitationsRes.data || []).map((inv: any) => ({
     id: inv.id,
@@ -83,11 +123,12 @@ export default async function AdminTeamPage() {
   return (
     <Suspense>
       <TeamManagementClient
-        initialMembers={teamMembers}
+        initialMembers={visibleMembers}
         initialInvitations={invitations}
         initialDepartments={departments}
         initialActivityLogs={activityLogs}
         initialNewCount={initialNewCount}
+        currentUserId={authResult.userId}
         adminName={authResult.fullName}
         adminEmail={authResult.email}
         adminRole={authResult.role}

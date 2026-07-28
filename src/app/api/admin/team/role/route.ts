@@ -24,6 +24,13 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    if (newRole === 'owner') {
+      return NextResponse.json(
+        { success: false, error: 'Owner role cannot be set via role change. Use Transfer Ownership.' },
+        { status: 400 }
+      );
+    }
+
     // 1. Authorize caller has 'team.role.change' permission
     const caller = await requirePermission('team.role.change', newRole as AdminRole);
 

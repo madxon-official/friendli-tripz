@@ -32,6 +32,13 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    if (role === 'owner') {
+      return NextResponse.json(
+        { success: false, error: 'Owner role cannot be assigned via invitation. Use Transfer Ownership.' },
+        { status: 400 }
+      );
+    }
+
     // 1. Authorize caller has 'team.invite' permission and can manage target role
     const caller = await requirePermission('team.invite', role as AdminRole);
 

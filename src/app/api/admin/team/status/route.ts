@@ -23,6 +23,13 @@ export async function POST(req: NextRequest) {
 
     const caller = await requirePermission(requiredPermission);
 
+    if (targetUserId === caller.userId && caller.role === 'owner' && !targetIsActive) {
+      return NextResponse.json(
+        { success: false, error: 'As Owner, you cannot suspend or deactivate your own account. Use Transfer Ownership first.' },
+        { status: 400 }
+      );
+    }
+
     const serviceClient = createServiceRoleClient();
 
     const { data: targetProfile, error: targetError } = await serviceClient
