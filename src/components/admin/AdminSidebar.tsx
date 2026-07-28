@@ -4,10 +4,10 @@ import React, { useMemo } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { usePathname, useRouter } from 'next/navigation';
-import { LayoutDashboard, Inbox, Users, LogOut, Bell, Sparkles } from 'lucide-react';
+import { LayoutDashboard, Inbox, Users, LogOut, Bell, Sparkles, Shield, Building2 } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
-import { AdminRole, getRoleLabel } from '@/lib/auth/roles';
-import { hasPermission } from '@/lib/auth/permissions';
+import { AdminRole, getRoleLabel } from '@/lib/rbac/roles';
+import { hasPermission } from '@/lib/rbac/permissions';
 
 interface AdminSidebarProps {
   newEnquiriesCount: number;
@@ -40,14 +40,13 @@ export const AdminSidebar: React.FC<AdminSidebarProps> = ({
     router.refresh();
   };
 
-  const showTeamLink = hasPermission(adminRole, 'team.view');
-
   const navItems = [
     {
       label: 'Dashboard',
       href: '/admin',
       icon: LayoutDashboard,
       active: pathname === '/admin',
+      permission: 'dashboard.view',
     },
     {
       label: 'Enquiries',
@@ -55,16 +54,18 @@ export const AdminSidebar: React.FC<AdminSidebarProps> = ({
       icon: Inbox,
       active: pathname.startsWith('/admin/enquiries'),
       badge: newEnquiriesCount > 0 ? newEnquiriesCount : null,
+      permission: 'enquiry.view',
     },
   ];
 
-  if (showTeamLink) {
+  if (hasPermission(adminRole, 'team.view')) {
     navItems.push({
       label: 'Team',
       href: '/admin/team',
       icon: Users,
       active: pathname.startsWith('/admin/team'),
       badge: null,
+      permission: 'team.view',
     });
   }
 
@@ -94,7 +95,7 @@ export const AdminSidebar: React.FC<AdminSidebarProps> = ({
           </div>
         </div>
 
-        {/* Navigation Item List */}
+        {/* Navigation Item List — Dynamically Generated from Permissions */}
         <nav className="p-4 space-y-1">
           {navItems.map((item) => {
             const Icon = item.icon;
@@ -131,7 +132,6 @@ export const AdminSidebar: React.FC<AdminSidebarProps> = ({
 
       {/* Sidebar Footer & Admin Profile */}
       <div className="p-4 border-t border-white/10 space-y-3">
-        {/* Enable Notifications Trigger */}
         {onEnableNotifications && !notificationsEnabled && (
           <button
             onClick={onEnableNotifications}
@@ -145,7 +145,6 @@ export const AdminSidebar: React.FC<AdminSidebarProps> = ({
           </button>
         )}
 
-        {/* Admin Info & Logout */}
         <div className="flex items-center justify-between pt-2">
           <div className="min-w-0 pr-2">
             <span className="block text-xs font-bold text-white truncate font-heading">

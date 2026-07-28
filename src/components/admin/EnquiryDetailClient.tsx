@@ -41,6 +41,7 @@ export interface EnquiryDetail {
   notes_from_traveller?: string | null;
   status: string;
   archived_at?: string | null;
+  assigned_to?: string | null;
 }
 
 export interface NoteItem {
@@ -67,6 +68,7 @@ interface EnquiryDetailClientProps {
   initialHistory: HistoryItem[];
   historyAvailable: boolean;
   initialNewCount: number;
+  teamMembers?: Array<{ id: string; full_name: string; role: string }>;
   adminUser?: { id: string; name: string; email?: string; role?: string };
 }
 
@@ -77,6 +79,7 @@ export const EnquiryDetailClient: React.FC<EnquiryDetailClientProps> = ({
   initialHistory,
   historyAvailable: initialHistoryAvailable,
   initialNewCount,
+  teamMembers,
   adminUser,
 }) => {
   const router = useRouter();
@@ -532,6 +535,50 @@ export const EnquiryDetailClient: React.FC<EnquiryDetailClientProps> = ({
                   <span>Updating status...</span>
                 </p>
               )}
+            </div>
+
+            {/* Team Assignment Box */}
+            <div className="bg-white rounded-3xl p-5 border border-brand-border/60 shadow-card space-y-3.5">
+              <h3 className="font-heading font-bold text-sm text-brand-navy border-b border-brand-border/60 pb-2">
+                Team Assignment
+              </h3>
+
+              <div>
+                <label className="block text-[11px] font-bold text-brand-muted uppercase font-mono mb-1.5">
+                  Assigned Staff Member
+                </label>
+                <select
+                  value={enquiry.assigned_to || ''}
+                  onChange={async (e) => {
+                    const targetUserId = e.target.value;
+                    try {
+                      const res = await fetch('/api/admin/enquiries/assign', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                          enquiryId: enquiry.id,
+                          assignedTo: targetUserId || null,
+                        }),
+                      });
+                      const data = await res.json();
+                      if (!res.ok || !data.success) {
+                        throw new Error(data.error || 'Failed to assign.');
+                      }
+                      setEnquiry({ ...enquiry, assigned_to: targetUserId || null });
+                    } catch (err: any) {
+                      alert(err.message || 'Could not update assignment.');
+                    }
+                  }}
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-brand-border text-xs sm:text-sm font-bold text-brand-navy outline-none focus:border-brand-orange bg-white cursor-pointer min-h-[44px]"
+                >
+                  <option value="">Unassigned</option>
+                  {(teamMembers || []).map((m) => (
+                    <option key={m.id} value={m.id}>
+                      {m.full_name} ({m.role.toUpperCase()})
+                    </option>
+                  ))}
+                </select>
+              </div>
             </div>
 
             {/* Status History Timeline */}

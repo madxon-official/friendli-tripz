@@ -4,10 +4,20 @@ import React, { useState, useMemo, useRef, useEffect } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { usePathname, useRouter } from 'next/navigation';
-import { Menu, X, LayoutDashboard, Inbox, Users, LogOut, Bell, ExternalLink, ChevronDown, Sparkles } from 'lucide-react';
+import { Menu, X, LayoutDashboard, Inbox, Users, LogOut, Bell, ExternalLink, ChevronDown, Sparkles, CheckCheck } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
-import { AdminRole, getRoleLabel } from '@/lib/auth/roles';
-import { hasPermission } from '@/lib/auth/permissions';
+import { AdminRole, getRoleLabel } from '@/lib/rbac/roles';
+import { hasPermission } from '@/lib/rbac/permissions';
+
+export interface AdminNotification {
+  id: string;
+  title: string;
+  body: string;
+  type: string;
+  link?: string | null;
+  is_read: boolean;
+  created_at: string;
+}
 
 interface AdminHeaderProps {
   newEnquiriesCount: number;
@@ -29,24 +39,82 @@ export const AdminHeader: React.FC<AdminHeaderProps> = ({
   const [menuOpen, setMenuOpen] = useState(false);
   const [dropdownOpen, setDropdownOpen] = useState(false);
 
+  // Notification drawer state
+  const [notifDrawerOpen, setNotifDrawerOpen] = useState(false);
+  const [notifications, setNotifications] = useState<AdminNotification[]>([]);
+  const [unreadCount, setUnreadCount] = useState(0);
+
   const pathname = usePathname();
   const router = useRouter();
   const supabase = useMemo(() => createClient(), []);
+
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const notifRef = useRef<HTMLDivElement>(null);
 
   const showTeamLink = hasPermission(adminRole, 'team.view');
   const roleLabel = getRoleLabel(adminRole);
 
-  // Close dropdown on outside click
+  // Fetch notifications
+  const fetchNotifications = async () => {
+    try {
+      const res = await fetch('/api/admin/notifications');
+      const data = await res.json();
+      if (res.ok && data.success) {
+        setNotifications(data.notifications || []);
+        setUnreadCount(data.unreadCount || 0);
+      }
+    } catch {
+      // ignore
+    }
+  };
+
+  useEffect(() => {
+    fetchNotifications();
+
+    // Supabase Realtime Listener for new notifications
+    const channel = supabase
+      .channel('admin-notifications-header')
+      .on(
+        'postgres_changes',
+        { event: 'INSERT', schema: 'public', table: 'admin_notifications' },
+        () => {
+          fetchNotifications();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [supabase]);
+
+  // Close dropdowns on outside click
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
         setDropdownOpen(false);
       }
+      if (notifRef.current && !notifRef.current.contains(event.target as Node)) {
+        setNotifDrawerOpen(false);
+      }
     };
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
+
+  const markAllRead = async () => {
+    try {
+      await fetch('/api/admin/notifications', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ markAllRead: true }),
+      });
+      setUnreadCount(0);
+      setNotifications((prev) => prev.map((n) => ({ ...n, is_read: true })));
+    } catch {
+      // ignore
+    }
+  };
 
   const handleLogout = async () => {
     try {
@@ -73,17 +141,61 @@ export const AdminHeader: React.FC<AdminHeaderProps> = ({
 
         {/* Desktop Profile Dropdown & Controls */}
         <div className="flex items-center gap-4">
-          {/* Enable Notifications button */}
-          {onEnableNotifications && !notificationsEnabled && (
+          {/* Notification Bell with Badge & Drawer */}
+          <div className="relative" ref={notifRef}>
             <button
-              onClick={onEnableNotifications}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-brand-soft-navy text-brand-navy hover:bg-brand-soft-orange text-xs font-semibold transition-colors"
+              onClick={() => setNotifDrawerOpen(!notifDrawerOpen)}
+              className="relative p-2 rounded-xl hover:bg-brand-warm transition-colors border border-brand-border/40 text-brand-navy min-h-[40px] min-w-[40px] flex items-center justify-center"
+              title="Admin Notifications"
             >
-              <Bell className="w-3.5 h-3.5 text-brand-orange" />
-              <span>Notifications Off</span>
-              <Sparkles className="w-3 h-3 text-brand-orange" />
+              <Bell className="w-4 h-4 text-brand-navy" />
+              {unreadCount > 0 && (
+                <span className="absolute -top-1 -right-1 w-5 h-5 bg-brand-orange text-white text-[10px] font-black rounded-full flex items-center justify-center font-mono">
+                  {unreadCount > 9 ? '9+' : unreadCount}
+                </span>
+              )}
             </button>
-          )}
+
+            {notifDrawerOpen && (
+              <div className="absolute right-0 mt-2 w-80 sm:w-96 bg-white rounded-2xl shadow-xl border border-brand-border/60 py-3 z-50 animate-fadeIn text-xs space-y-2">
+                <div className="px-4 pb-2 border-b border-brand-border/40 flex items-center justify-between">
+                  <span className="font-bold text-brand-navy font-heading text-sm">Notifications</span>
+                  {unreadCount > 0 && (
+                    <button
+                      onClick={markAllRead}
+                      className="text-[11px] text-brand-orange font-bold hover:underline flex items-center gap-1"
+                    >
+                      <CheckCheck className="w-3.5 h-3.5" />
+                      <span>Mark all read</span>
+                    </button>
+                  )}
+                </div>
+
+                <div className="max-h-80 overflow-y-auto divide-y divide-brand-border/30 px-2 space-y-1">
+                  {notifications.length === 0 ? (
+                    <p className="text-center py-6 text-brand-muted text-xs">No notifications yet.</p>
+                  ) : (
+                    notifications.map((n) => (
+                      <Link
+                        key={n.id}
+                        href={n.link || '/admin'}
+                        onClick={() => setNotifDrawerOpen(false)}
+                        className={`block p-3 rounded-xl transition-colors ${
+                          n.is_read ? 'hover:bg-brand-warm/60' : 'bg-brand-soft-orange/30 font-bold'
+                        }`}
+                      >
+                        <div className="text-brand-navy font-heading font-bold">{n.title}</div>
+                        <div className="text-brand-muted text-[11px] mt-0.5">{n.body}</div>
+                        <div className="text-[10px] text-brand-muted font-mono mt-1">
+                          {new Date(n.created_at).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}
+                        </div>
+                      </Link>
+                    ))
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
 
           {/* Profile Dropdown */}
           <div className="relative" ref={dropdownRef}>
@@ -91,7 +203,7 @@ export const AdminHeader: React.FC<AdminHeaderProps> = ({
               onClick={() => setDropdownOpen(!dropdownOpen)}
               className="flex items-center gap-2 px-3 py-1.5 rounded-xl hover:bg-brand-warm transition-colors border border-brand-border/40 text-brand-navy text-xs font-bold font-heading"
             >
-              <div className="w-7 h-7 rounded-full bg-brand-navy text-white flex items-center justify-center font-black text-xs">
+              <div className="w-7 h-7 rounded-full bg-brand-navy text-white flex items-center justify-center font-black text-xs uppercase">
                 {adminName.charAt(0)}
               </div>
               <span>{adminName}</span>
@@ -149,7 +261,6 @@ export const AdminHeader: React.FC<AdminHeaderProps> = ({
       {/* Mobile Top Header (lg:hidden) */}
       <header className="bg-brand-navy text-white lg:hidden sticky top-0 z-30 border-b border-brand-navy-light/20 w-full">
         <div className="flex items-center justify-between px-4 h-14">
-          {/* Brand Lockup */}
           <Link href="/admin" className="flex items-center gap-2">
             <div className="relative w-7 h-7 rounded bg-white p-0.5 shrink-0">
               <Image
@@ -165,7 +276,6 @@ export const AdminHeader: React.FC<AdminHeaderProps> = ({
             </span>
           </Link>
 
-          {/* Mobile Actions & Toggle */}
           <div className="flex items-center gap-2">
             {newEnquiriesCount > 0 && (
               <span className="px-2 py-0.5 text-xs font-bold rounded-full bg-brand-orange text-white font-mono">
@@ -231,36 +341,6 @@ export const AdminHeader: React.FC<AdminHeaderProps> = ({
                   </div>
                 </Link>
               )}
-
-              {onEnableNotifications && !notificationsEnabled && (
-                <button
-                  onClick={() => {
-                    onEnableNotifications();
-                    setMenuOpen(false);
-                  }}
-                  className="w-full text-left flex items-center justify-between px-4 py-3 rounded-xl font-semibold text-sm text-slate-300 hover:bg-white/10 min-h-[44px]"
-                >
-                  <div className="flex items-center gap-3">
-                    <Bell className="w-4 h-4 text-brand-orange" />
-                    <span>Enable Notifications</span>
-                  </div>
-                  <Sparkles className="w-3.5 h-3.5 text-brand-orange" />
-                </button>
-              )}
-
-              <Link
-                href="/"
-                target="_blank"
-                rel="noopener noreferrer"
-                onClick={() => setMenuOpen(false)}
-                className="flex items-center justify-between px-4 py-3 rounded-xl font-semibold text-sm text-slate-300 hover:bg-white/10 min-h-[44px]"
-              >
-                <div className="flex items-center gap-3">
-                  <ExternalLink className="w-4 h-4 text-brand-orange" />
-                  <span>Open Customer Website</span>
-                </div>
-                <span>↗</span>
-              </Link>
             </nav>
 
             <div className="pt-3 border-t border-white/10 flex items-center justify-between">

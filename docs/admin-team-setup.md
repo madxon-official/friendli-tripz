@@ -1,99 +1,52 @@
-# FRIENDLI TRIPZ — PHASE 5.2 ADMIN TEAM & SECURITY SETUP GUIDE
+# FRIENDLI TRIPZ — PHASE 5.3 ENTERPRISE RBAC & DEPARTMENTS SETUP GUIDE
 
-This document outlines the database migration steps, Supabase Dashboard settings, Vercel environment variables, and role permission architecture for **Phase 5.2: Multi-User Friendli Admin, Role-Based Access Control (RBAC), and Team Invitation Flow**.
+This document outlines the database migration steps, Supabase Dashboard settings, Vercel environment variables, and enterprise role permission architecture for **Phase 5.3: Enterprise Role-Based Access Control (RBAC), Departments, Assignment Engine, Audit Logging & Realtime Notifications**.
 
 ---
 
-## 1. ROLE & PERMISSION ARCHITECTURE
+## 1. ROLE HIERARCHY & PERMISSION MATRIX
 
-Friendli Admin supports four roles:
+Friendli Admin supports six enterprise roles:
 
-| Role | Display Name | Authority Level & Key Permissions | Assignable via Invite |
-| :--- | :--- | :--- | :--- |
-| `owner` | **Owner** | Founder / highest authority. Full system control, Team management (`team.view`, `team.invite`, `team.change_role`, `team.change_status`), enquiry archiving, security settings. | ❌ (Manual DB promotion only) |
-| `admin` | **Admin** | Core team member. Enquiries view, update, internal notes, and archiving (`enquiries.archive`). | ✅ |
-| `operations` | **Operations** | Trip operations. Enquiries view, status updates, internal notes. Cannot archive enquiries or access Team. | ✅ |
-| `sales` | **Sales** | Lead conversion team. Enquiries view, status updates, internal notes. Cannot archive enquiries or access Team. | ✅ |
+| Role | Display Name | Authority Level & Key Scope | Assignable via Invite | Management Boundaries |
+| :--- | :--- | :--- | :--- | :--- |
+| `owner` | **Owner** | Highest authority (Level 100). Full control over security, team, departments, payments, trips, settings. | ❌ (Manual DB promotion) | Can manage all roles including Owners & Admins. |
+| `admin` | **Admin** | Daily operational manager (Level 80). Manages Operations, Sales, Support, Viewers, departments, and enquiry archiving. | ✅ | **Cannot manage Owners** (cannot edit, deactivate, or delete Owner accounts). |
+| `operations` | **Operations** | Trip operations team (Level 50). Manages assigned enquiries, bookings, travellers, vehicles, hotels. | ✅ | Cannot manage team members. |
+| `sales` | **Sales** | Lead conversion team (Level 50). Views enquiries, updates follow-ups, calls, WhatsApp, assigns leads. | ✅ | Cannot archive or manage team members. |
+| `support` | **Support** | Customer support team (Level 50). Views assigned travellers and updates customer support notes. | ✅ | Cannot manage team members. |
+| `viewer` | **Viewer** | Read-only access (Level 10) across allowed operational dashboards and enquiries. | ✅ | Read-only. |
 
 ---
 
 ## 2. SUPABASE DATABASE MIGRATION
 
-Run the SQL migration script located in `supabase/migrations/20260727000000_phase5_2_team_and_permissions.sql` in your Supabase SQL Editor:
+Run the SQL migration script located in `supabase/migrations/20260728000000_enterprise_rbac_and_departments.sql` in your Supabase SQL Editor:
 
 ```sql
--- 1. Migrate legacy role values and update role check constraint
-UPDATE public.admin_profiles
-SET role = 'operations'
-WHERE role NOT IN ('owner', 'admin', 'operations', 'sales');
-
-DO $$
-BEGIN
-  IF EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'admin_profiles_role_check') THEN
-    ALTER TABLE public.admin_profiles DROP CONSTRAINT admin_profiles_role_check;
-  END IF;
-END $$;
-
-ALTER TABLE public.admin_profiles
-  ADD CONSTRAINT admin_profiles_role_check
-  CHECK (role IN ('owner', 'admin', 'operations', 'sales'));
-
--- 2. Create Admin Audit Log table
-CREATE TABLE IF NOT EXISTS public.admin_audit_log (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  admin_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
-  action TEXT NOT NULL,
-  target_user_id UUID REFERENCES auth.users(id) ON DELETE SET NULL,
-  metadata JSONB NOT NULL DEFAULT '{}'::jsonb,
-  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
-);
-
--- Indexes & RLS
-CREATE INDEX IF NOT EXISTS idx_admin_audit_log_created_at ON public.admin_audit_log(created_at DESC);
-CREATE INDEX IF NOT EXISTS idx_admin_audit_log_admin_id ON public.admin_audit_log(admin_id);
-
-ALTER TABLE public.admin_audit_log ENABLE ROW LEVEL SECURITY;
-
-DROP POLICY IF EXISTS "Active admins can view audit log" ON public.admin_audit_log;
-CREATE POLICY "Active admins can view audit log"
-  ON public.admin_audit_log FOR SELECT
-  TO authenticated
-  USING (public.is_active_admin(auth.uid()));
+-- Apply 20260728000000_enterprise_rbac_and_departments.sql
 ```
 
 ---
 
 ## 3. SUPABASE DASHBOARD AUTH CONFIGURATION
 
-To ensure invitation email links redirect invited members to the password setup page instead of failing or defaulting to localhost in production:
-
 1. Open your **Supabase Dashboard** -> **Authentication** -> **URL Configuration**.
-2. Set **Site URL**:
-   - `https://friendli-tripz.vercel.app` (or custom domain `https://admin.friendlitripz.com`)
-3. Under **Redirect URLs**, add the following entries:
+2. Set **Site URL**: `https://friendli-tripz.vercel.app` (or custom domain).
+3. Under **Redirect URLs**, add:
    - `http://localhost:3000/**`
    - `https://friendli-tripz.vercel.app/**`
-   - `https://admin.friendlitripz.com/**`
 4. Click **Save**.
 
 ---
 
-## 4. ENVIRONMENT VARIABLES (VERCEL & LOCAL)
-
-Ensure these variables are configured in Vercel Project Settings and local `.env.local`:
+## 4. ENVIRONMENT VARIABLES
 
 ```env
-# Supabase Configuration
 NEXT_PUBLIC_SUPABASE_URL=https://ovsrfytzylxcofahhbcy.supabase.co/
 NEXT_PUBLIC_SUPABASE_ANON_KEY=<your-anon-key>
 SUPABASE_SERVICE_ROLE_KEY=<your-service-role-key>
-
-# Application Base URL (Crucial for invitation redirects)
-# Local: http://localhost:3000
-# Production: https://friendli-tripz.vercel.app
 NEXT_PUBLIC_APP_URL=https://friendli-tripz.vercel.app
-
-# Operations WhatsApp
 NEXT_PUBLIC_WHATSAPP_NUMBER=917603967190
 ```
 
@@ -101,11 +54,6 @@ NEXT_PUBLIC_WHATSAPP_NUMBER=917603967190
 
 ## 5. SECURITY RULES & SAFEGUARDS
 
-1. **Service Role Key Security**: `SUPABASE_SERVICE_ROLE_KEY` is restricted exclusively to server execution (`src/lib/supabase/service.ts` and API routes). It is never sent to the browser.
-2. **Server-Side Authorization**: Every sensitive route and API endpoint validates caller authentication, active admin status (`is_active = true`), and role permissions via `authorizeAdmin()`.
-3. **Single Owner Protection**:
-   - An Owner cannot deactivate their own account if they are the only active Owner.
-   - The application blocks deactivating or demoting the last active Owner account.
-4. **Non-Owner Escalation Prevention**:
-   - Admins, Operations, and Sales cannot access `/admin/team`. Direct URL access redirects to `/admin/access-denied?reason=forbidden`.
-   - Admin roles cannot promote themselves to Owner.
+1. **Owner Authority Protection**: Admins are strictly prohibited from changing Owner credentials, deleting Owners, or demoting Owner roles.
+2. **Server-Side Authorization**: Every API and route validates caller session, active profile status, and role permission via `requirePermission()`.
+3. **Audit Trail**: Every invitation, role change, status update, assignment, and deletion generates a sanitized `admin_activity_logs` entry.

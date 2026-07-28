@@ -1,98 +1,97 @@
-import React from 'react';
+import React, { Suspense } from 'react';
 import { redirect } from 'next/navigation';
-import { authorizeAdmin, AuthorizationError } from '@/lib/auth/authorize';
-import { createServiceRoleClient } from '@/lib/supabase/service';
-import { TeamListClient, TeamMemberItem } from '@/components/admin/TeamListClient';
-import { AdminRole } from '@/lib/auth/roles';
+import { requirePermission, AuthorizationError } from '@/lib/rbac/authorize';
+import { createServerSupabaseClient } from '@/lib/supabase/server';
+import { TeamManagementClient, TeamMemberItem, InvitationItem, DepartmentItem, AuditLogItem } from '@/components/admin/TeamManagementClient';
 
 export const dynamic = 'force-dynamic';
 
 export const metadata = {
-  title: 'Team Management | Friendli Admin',
-  description: 'Manage who can access Friendli Admin and assign operational roles.',
+  title: 'Team & Access Management | Friendli Admin',
+  description: 'Manage staff accounts, departments, role permissions, and access controls.',
 };
 
 export default async function AdminTeamPage() {
-  let caller;
+  let authResult;
   try {
-    // 1. Central Server-side authorization for 'team.view' permission (Owner only)
-    caller = await authorizeAdmin('team.view');
-  } catch (error) {
-    if (error instanceof AuthorizationError) {
-      if (error.code === 'UNAUTHENTICATED') {
-        redirect('/admin/login');
-      }
-      redirect(`/admin/access-denied?reason=${error.code.toLowerCase()}`);
+    authResult = await requirePermission('team.view');
+  } catch (err: any) {
+    if (err instanceof AuthorizationError && err.code === 'UNAUTHENTICATED') {
+      redirect('/admin/login');
     }
-    redirect('/admin/access-denied?reason=forbidden');
+    redirect('/admin/access-denied');
   }
 
-  const serviceClient = createServiceRoleClient();
+  const supabase = await createServerSupabaseClient();
 
-  // 2. Fetch admin profiles & auth metadata
-  const [{ data: profiles, error: profileErr }, authUsersRes, newCountRes] = await Promise.all([
-    serviceClient
+  const [profilesRes, invitationsRes, deptsRes, activityRes, newCountRes] = await Promise.all([
+    supabase
       .from('admin_profiles')
-      .select('id, full_name, role, is_active, created_at, updated_at')
+      .select('id, full_name, role, is_active, status, created_at, phone, avatar_url, department_id, departments(name, color)')
       .order('created_at', { ascending: false }),
-    serviceClient.auth.admin.listUsers({ page: 1, perPage: 100 }),
-    serviceClient
+    supabase
+      .from('admin_invitations')
+      .select('id, email, full_name, role, department_id, status, created_at, expires_at')
+      .order('created_at', { ascending: false }),
+    supabase
+      .from('departments')
+      .select('*')
+      .order('name', { ascending: true }),
+    supabase
+      .from('admin_activity_logs')
+      .select('id, actor_id, target_type, action, old_data, new_data, created_at')
+      .order('created_at', { ascending: false })
+      .limit(30),
+    supabase
       .from('enquiries')
       .select('id', { count: 'exact', head: true })
       .eq('status', 'new')
       .is('archived_at', null),
   ]);
 
-  if (profileErr) {
-    console.error('Error loading team profiles:', profileErr);
-  }
+  const rawMembers = profilesRes.data || [];
+  const teamMembers: TeamMemberItem[] = rawMembers.map((m: any) => ({
+    id: m.id,
+    full_name: m.full_name,
+    email: '', // populated via fallback or profile join
+    phone: m.phone,
+    avatar_url: m.avatar_url,
+    role: m.role,
+    department_id: m.department_id,
+    department_name: m.departments?.name || null,
+    department_color: m.departments?.color || null,
+    is_active: m.is_active,
+    status: m.status || (m.is_active ? 'active' : 'inactive'),
+    created_at: m.created_at,
+  }));
 
-  const authUserMap = new Map<string, { email: string; last_sign_in_at?: string | null }>();
+  const invitations: InvitationItem[] = (invitationsRes.data || []).map((inv: any) => ({
+    id: inv.id,
+    email: inv.email,
+    full_name: inv.full_name,
+    role: inv.role,
+    department_id: inv.department_id,
+    status: inv.status,
+    created_at: inv.created_at,
+    expires_at: inv.expires_at,
+  }));
 
-  if (authUsersRes.data?.users) {
-    authUsersRes.data.users.forEach((u) => {
-      authUserMap.set(u.id, {
-        email: u.email || '',
-        last_sign_in_at: u.last_sign_in_at,
-      });
-    });
-  }
-
-  const teamMembers: TeamMemberItem[] = (profiles || []).map((p) => {
-    const authData = authUserMap.get(p.id);
-    const email = authData?.email || p.full_name.toLowerCase().replace(/\s+/g, '') + '@friendlitripz.com';
-    const lastSignIn = authData?.last_sign_in_at;
-
-    let status: 'Active' | 'Inactive' | 'Invited' = 'Active';
-    if (!p.is_active) {
-      status = 'Inactive';
-    } else if (!lastSignIn) {
-      status = 'Invited';
-    } else {
-      status = 'Active';
-    }
-
-    return {
-      id: p.id,
-      full_name: p.full_name,
-      email,
-      role: p.role as AdminRole,
-      is_active: p.is_active,
-      status,
-      created_at: p.created_at,
-      last_sign_in_at: lastSignIn,
-    };
-  });
-
+  const departments: DepartmentItem[] = deptsRes.data || [];
+  const activityLogs: AuditLogItem[] = activityRes.data || [];
   const initialNewCount = newCountRes.count || 0;
 
   return (
-    <TeamListClient
-      teamMembers={teamMembers}
-      initialNewCount={initialNewCount}
-      adminName={caller.fullName}
-      adminEmail={caller.email}
-      adminRole={caller.role}
-    />
+    <Suspense>
+      <TeamManagementClient
+        initialMembers={teamMembers}
+        initialInvitations={invitations}
+        initialDepartments={departments}
+        initialActivityLogs={activityLogs}
+        initialNewCount={initialNewCount}
+        adminName={authResult.fullName}
+        adminEmail={authResult.email}
+        adminRole={authResult.role}
+      />
+    </Suspense>
   );
 }

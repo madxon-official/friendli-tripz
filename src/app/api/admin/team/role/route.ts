@@ -1,13 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { authorizeAdmin, AuthorizationError } from '@/lib/auth/authorize';
+import { requirePermission, AuthorizationError } from '@/lib/rbac/authorize';
 import { createServiceRoleClient } from '@/lib/supabase/service';
-import { isValidRole } from '@/lib/auth/roles';
+import { isValidRole, AdminRole, canManageTargetRole, getRoleLabel } from '@/lib/rbac/roles';
+import { logActivity } from '@/lib/rbac/audit';
+import { createAdminNotification } from '@/lib/rbac/notifications';
 
 export async function POST(req: NextRequest) {
   try {
-    // 1. Authorize caller has 'team.change_role' permission (Owner only)
-    const caller = await authorizeAdmin('team.change_role');
-
     const body = await req.json();
     const { targetUserId, newRole } = body;
 
@@ -18,12 +17,15 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    if (!newRole || !isValidRole(newRole) || newRole === 'owner') {
+    if (!newRole || !isValidRole(newRole)) {
       return NextResponse.json(
-        { success: false, error: 'Role can only be changed to Admin, Operations, or Sales.' },
+        { success: false, error: 'Invalid role choice.' },
         { status: 400 }
       );
     }
+
+    // 1. Authorize caller has 'team.role.change' permission
+    const caller = await requirePermission('team.role.change', newRole as AdminRole);
 
     if (targetUserId === caller.userId) {
       return NextResponse.json(
@@ -34,7 +36,7 @@ export async function POST(req: NextRequest) {
 
     const serviceClient = createServiceRoleClient();
 
-    // Fetch target user's current profile
+    // Fetch target user profile
     const { data: targetProfile, error: targetError } = await serviceClient
       .from('admin_profiles')
       .select('id, full_name, role, is_active')
@@ -48,10 +50,10 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Protection rule: cannot change an Owner's role via normal API
-    if (targetProfile.role === 'owner') {
+    // Protection rule: Admin cannot manage Owner or change an Owner's role
+    if (!canManageTargetRole(caller.role, targetProfile.role as AdminRole)) {
       return NextResponse.json(
-        { success: false, error: 'Owner roles cannot be modified.' },
+        { success: false, error: `You do not have permission to modify a user with the '${targetProfile.role}' role.` },
         { status: 403 }
       );
     }
@@ -61,7 +63,7 @@ export async function POST(req: NextRequest) {
     if (oldRole === newRole) {
       return NextResponse.json({
         success: true,
-        message: 'Role is already set to ' + newRole,
+        message: 'Role is already set to ' + getRoleLabel(newRole),
       });
     }
 
@@ -75,32 +77,35 @@ export async function POST(req: NextRequest) {
       .eq('id', targetUserId);
 
     if (updateError) {
-      console.error('Role update database error:', updateError);
+      console.error('Role update error:', updateError);
       return NextResponse.json(
         { success: false, error: 'Failed to update user role in database.' },
         { status: 500 }
       );
     }
 
-    // Write security audit log
-    try {
-      await serviceClient.from('admin_audit_log').insert({
-        admin_id: caller.userId,
-        action: 'team.role_changed',
-        target_user_id: targetUserId,
-        metadata: {
-          target_name: targetProfile.full_name,
-          old_role: oldRole,
-          new_role: newRole,
-        },
-      });
-    } catch (auditErr) {
-      console.warn('Could not record audit log:', auditErr);
-    }
+    // Audit log & notification
+    await logActivity({
+      actorId: caller.userId,
+      targetType: 'role',
+      targetId: targetUserId,
+      action: 'role_changed',
+      oldData: { role: oldRole },
+      newData: { role: newRole, user_name: targetProfile.full_name },
+      req,
+    });
+
+    await createAdminNotification({
+      recipientId: targetUserId,
+      title: 'Role Updated',
+      body: `Your Friendli Admin role has been updated to ${getRoleLabel(newRole)}.`,
+      type: 'role_changed',
+      link: '/admin',
+    });
 
     return NextResponse.json({
       success: true,
-      message: `Role for ${targetProfile.full_name} updated from ${oldRole} to ${newRole}.`,
+      message: `Role for ${targetProfile.full_name} updated from ${getRoleLabel(oldRole)} to ${getRoleLabel(newRole)}.`,
       profile: {
         id: targetUserId,
         fullName: targetProfile.full_name,

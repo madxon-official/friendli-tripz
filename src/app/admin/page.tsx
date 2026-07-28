@@ -1,13 +1,13 @@
 import React from 'react';
-
-export const dynamic = 'force-dynamic';
-
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
 import { AdminLayout } from '@/components/admin/AdminLayout';
 import { Inbox, ArrowRight, Clock, UserCheck, CheckCircle2 } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
+import { MyWorkWidget } from '@/components/admin/MyWorkWidget';
+
+export const dynamic = 'force-dynamic';
 
 export const metadata = {
   title: 'Admin Dashboard | Friendli Tripz',
@@ -42,22 +42,35 @@ export default async function AdminDashboardPage() {
   const greeting =
     hour < 12 ? 'Good morning' : hour < 18 ? 'Good afternoon' : 'Good evening';
 
-  // Fetch summary counts concurrently using narrow headcount selects
-  const [{ count: newCount }, { count: followUpCount }, { count: confirmedCount }, { count: completedCount }] =
-    await Promise.all([
-      supabase.from('enquiries').select('id', { count: 'exact', head: true }).eq('status', 'new').is('archived_at', null),
-      supabase.from('enquiries').select('id', { count: 'exact', head: true }).eq('status', 'follow_up').is('archived_at', null),
-      supabase.from('enquiries').select('id', { count: 'exact', head: true }).eq('status', 'confirmed').is('archived_at', null),
-      supabase.from('enquiries').select('id', { count: 'exact', head: true }).eq('status', 'completed').is('archived_at', null),
-    ]);
+  // Fetch summary counts and assigned enquiries concurrently
+  const [
+    { count: newCount },
+    { count: followUpCount },
+    { count: confirmedCount },
+    { count: completedCount },
+    assignedRes,
+    recentRes,
+  ] = await Promise.all([
+    supabase.from('enquiries').select('id', { count: 'exact', head: true }).eq('status', 'new').is('archived_at', null),
+    supabase.from('enquiries').select('id', { count: 'exact', head: true }).eq('status', 'follow_up').is('archived_at', null),
+    supabase.from('enquiries').select('id', { count: 'exact', head: true }).eq('status', 'confirmed').is('archived_at', null),
+    supabase.from('enquiries').select('id', { count: 'exact', head: true }).eq('status', 'completed').is('archived_at', null),
+    supabase
+      .from('enquiries')
+      .select('id, reference, created_at, name, phone, email, destination, traveller_count, preferred_date, starting_location, status, archived_at')
+      .eq('assigned_to', session.user.id)
+      .is('archived_at', null)
+      .order('created_at', { ascending: false }),
+    supabase
+      .from('enquiries')
+      .select('id, reference, name, phone, traveller_count, starting_location, destination, status, created_at')
+      .is('archived_at', null)
+      .order('created_at', { ascending: false })
+      .limit(5),
+  ]);
 
-  // Fetch recent enquiries (latest 5 active with ONLY required fields for dashboard display)
-  const { data: recentEnquiries } = await supabase
-    .from('enquiries')
-    .select('id, reference, name, phone, traveller_count, starting_location, destination, status, created_at')
-    .is('archived_at', null)
-    .order('created_at', { ascending: false })
-    .limit(5);
+  const assignedEnquiries = assignedRes.data || [];
+  const recentEnquiries = recentRes.data || [];
 
   const getStatusBadge = (status: string) => {
     switch (status) {
@@ -93,7 +106,7 @@ export default async function AdminDashboardPage() {
               {greeting}, {adminFirstName}
             </h1>
             <p className="text-sm text-brand-muted mt-1">
-              Here&apos;s what&apos;s happening with Friendli Tripz.
+              Here&apos;s your operational status and assigned workspace.
             </p>
           </div>
 
@@ -187,72 +200,77 @@ export default async function AdminDashboardPage() {
           </Link>
         </div>
 
-        {/* Recent Enquiries Section */}
-        <div className="bg-white rounded-3xl p-6 sm:p-8 border border-brand-border/60 shadow-card space-y-6">
-          <div className="flex items-center justify-between border-b border-brand-border/60 pb-4">
-            <div>
-              <h2 className="text-lg font-bold text-brand-navy font-heading">
-                Recent Enquiries
-              </h2>
-              <p className="text-xs text-brand-muted">
-                Latest submissions from the website
-              </p>
-            </div>
-            <Link
-              href="/admin/enquiries"
-              className="text-xs font-bold text-brand-orange hover:underline flex items-center gap-1"
-            >
-              <span>View All</span>
-              <ArrowRight className="w-3.5 h-3.5" />
-            </Link>
+        {/* Dashboard Grid: My Work & Recent Enquiries */}
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+          {/* My Work Widget */}
+          <div className="lg:col-span-5">
+            <MyWorkWidget assignedEnquiries={assignedEnquiries} currentUserId={session.user.id} />
           </div>
 
-          {!recentEnquiries || recentEnquiries.length === 0 ? (
-            <div className="text-center py-12 space-y-3">
-              <Inbox className="w-10 h-10 text-brand-muted mx-auto" />
-              <p className="text-sm font-semibold text-brand-navy">No enquiries yet.</p>
-              <p className="text-xs text-brand-muted">New trip enquiries will appear here in real time.</p>
+          {/* Recent Enquiries Section */}
+          <div className="lg:col-span-7 bg-white rounded-3xl p-6 border border-brand-border/60 shadow-card space-y-6">
+            <div className="flex items-center justify-between border-b border-brand-border/60 pb-4">
+              <div>
+                <h2 className="text-lg font-bold text-brand-navy font-heading">
+                  Recent Enquiries
+                </h2>
+                <p className="text-xs text-brand-muted">
+                  Latest submissions from the website
+                </p>
+              </div>
+              <Link
+                href="/admin/enquiries"
+                className="text-xs font-bold text-brand-orange hover:underline flex items-center gap-1"
+              >
+                <span>View All</span>
+                <ArrowRight className="w-3.5 h-3.5" />
+              </Link>
             </div>
-          ) : (
-            <div className="space-y-3">
-              {recentEnquiries.map((enq) => (
-                <Link
-                  key={enq.id}
-                  href={`/admin/enquiries/${enq.id}`}
-                  className="flex flex-col sm:flex-row sm:items-center justify-between p-4 rounded-2xl bg-brand-warm hover:bg-brand-soft-navy border border-brand-border/40 transition-colors gap-3"
-                >
-                  <div className="space-y-1">
-                    <div className="flex items-center gap-2">
-                      <span className="font-mono text-xs font-bold text-brand-navy">
-                        {enq.reference}
-                      </span>
-                      {getStatusBadge(enq.status)}
-                    </div>
-                    <p className="font-heading font-bold text-brand-navy text-base">
-                      {enq.name}
-                    </p>
-                    <div className="flex flex-wrap items-center gap-3 text-xs text-brand-muted">
-                      <span>📱 {enq.phone}</span>
-                      <span>👥 {enq.traveller_count} travellers</span>
-                      <span>📍 {enq.starting_location || 'TBD'}</span>
-                    </div>
-                  </div>
 
-                  <div className="flex items-center justify-between sm:justify-end gap-3 text-xs">
-                    <span className="text-brand-muted">
-                      {new Date(enq.created_at).toLocaleDateString('en-IN', {
-                        month: 'short',
-                        day: 'numeric',
-                        hour: '2-digit',
-                        minute: '2-digit',
-                      })}
-                    </span>
-                    <ArrowRight className="w-4 h-4 text-brand-orange shrink-0" />
-                  </div>
-                </Link>
-              ))}
-            </div>
-          )}
+            {recentEnquiries.length === 0 ? (
+              <div className="text-center py-12 space-y-3">
+                <Inbox className="w-10 h-10 text-brand-muted mx-auto" />
+                <p className="text-sm font-semibold text-brand-navy">No enquiries yet.</p>
+                <p className="text-xs text-brand-muted">New trip enquiries will appear here in real time.</p>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {recentEnquiries.map((enq) => (
+                  <Link
+                    key={enq.id}
+                    href={`/admin/enquiries/${enq.id}`}
+                    className="flex flex-col sm:flex-row sm:items-center justify-between p-4 rounded-2xl bg-brand-warm hover:bg-brand-soft-navy border border-brand-border/40 transition-colors gap-3"
+                  >
+                    <div className="space-y-1">
+                      <div className="flex items-center gap-2">
+                        <span className="font-mono text-xs font-bold text-brand-navy">
+                          {enq.reference}
+                        </span>
+                        {getStatusBadge(enq.status)}
+                      </div>
+                      <p className="font-heading font-bold text-brand-navy text-base">
+                        {enq.name}
+                      </p>
+                      <div className="flex flex-wrap items-center gap-3 text-xs text-brand-muted">
+                        <span>📱 {enq.phone}</span>
+                        <span>👥 {enq.traveller_count} travellers</span>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center justify-between sm:justify-end gap-3 text-xs">
+                      <span className="text-brand-muted">
+                        {new Date(enq.created_at).toLocaleDateString('en-IN', {
+                          month: 'short',
+                          day: 'numeric',
+                        })}
+                      </span>
+                      <ArrowRight className="w-4 h-4 text-brand-orange shrink-0" />
+                    </div>
+                  </Link>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
       </div>
     </AdminLayout>

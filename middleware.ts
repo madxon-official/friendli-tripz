@@ -75,9 +75,9 @@ export async function middleware(request: NextRequest) {
       return NextResponse.redirect(accessDeniedUrl);
     }
 
-    // Guard /admin/team route: OWNER ONLY
+    // Guard /admin/team route: OWNER & ADMIN ONLY
     if (url.pathname.startsWith('/admin/team')) {
-      if (profile.role !== 'owner') {
+      if (!['owner', 'admin'].includes(profile.role)) {
         const forbiddenUrl = new URL('/admin/access-denied?reason=forbidden', request.url);
         return NextResponse.redirect(forbiddenUrl);
       }

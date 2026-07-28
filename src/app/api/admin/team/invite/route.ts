@@ -1,17 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { authorizeAdmin, AuthorizationError } from '@/lib/auth/authorize';
+import { requirePermission, AuthorizationError } from '@/lib/rbac/authorize';
 import { createServiceRoleClient } from '@/lib/supabase/service';
-import { isValidRole } from '@/lib/auth/roles';
+import { isValidRole, AdminRole, canManageTargetRole } from '@/lib/rbac/roles';
+import { logActivity } from '@/lib/rbac/audit';
+import { createAdminNotification } from '@/lib/rbac/notifications';
 
 export async function POST(req: NextRequest) {
   try {
-    // 1. Authorize caller has 'team.invite' permission (Owner only)
-    const caller = await authorizeAdmin('team.invite');
-
     const body = await req.json();
-    const { fullName, email, role } = body;
+    const { fullName, email, role, departmentId } = body;
 
-    // 2. Validate input fields
+    // Validate input fields
     if (!fullName || typeof fullName !== 'string' || fullName.trim().length === 0) {
       return NextResponse.json(
         { success: false, error: 'Full Name is required.' },
@@ -26,19 +25,29 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const trimmedEmail = email.trim().toLowerCase();
-    const trimmedName = fullName.trim();
-
-    if (!role || !isValidRole(role) || role === 'owner') {
+    if (!role || !isValidRole(role)) {
       return NextResponse.json(
-        { success: false, error: 'Invalid role choice. Choose Admin, Operations, or Sales.' },
+        { success: false, error: 'Invalid role selection.' },
         { status: 400 }
       );
     }
 
+    // 1. Authorize caller has 'team.invite' permission and can manage target role
+    const caller = await requirePermission('team.invite', role as AdminRole);
+
+    if (!canManageTargetRole(caller.role, role as AdminRole)) {
+      return NextResponse.json(
+        { success: false, error: `You do not have authority to invite a user with the '${role}' role.` },
+        { status: 403 }
+      );
+    }
+
+    const trimmedEmail = email.trim().toLowerCase();
+    const trimmedName = fullName.trim();
+
     const serviceClient = createServiceRoleClient();
 
-    // Determine production/development App URL dynamically or from env
+    // Determine production/development App URL dynamically
     let baseAppUrl = process.env.NEXT_PUBLIC_APP_URL || '';
     if (!baseAppUrl) {
       const host = req.headers.get('x-forwarded-host') || req.headers.get('host');
@@ -52,7 +61,7 @@ export async function POST(req: NextRequest) {
     const appUrl = baseAppUrl.replace(/\/$/, '');
     const redirectTo = `${appUrl}/admin/set-password`;
 
-    // 3. Send Invitation via Supabase Auth Admin API
+    // 2. Send Invitation via Supabase Auth Admin API
     const { data: inviteData, error: inviteError } = await serviceClient.auth.admin.inviteUserByEmail(
       trimmedEmail,
       {
@@ -73,40 +82,55 @@ export async function POST(req: NextRequest) {
 
     const invitedUserId = inviteData.user.id;
 
-    // 4. Create/Upsert pre-configured admin profile safely
+    // 3. Upsert admin profile record safely with department assignment
     const { error: profileError } = await serviceClient
       .from('admin_profiles')
       .upsert({
         id: invitedUserId,
         full_name: trimmedName,
         role: role,
+        department_id: departmentId || null,
         is_active: true,
+        status: 'invited',
+        created_by: caller.userId,
         updated_at: new Date().toISOString(),
       });
 
     if (profileError) {
       console.error('Admin profile upsert error:', profileError);
-      return NextResponse.json(
-        { success: false, error: 'User invited, but failed to create admin profile.' },
-        { status: 500 }
-      );
     }
 
-    // 5. Write security audit log
-    try {
-      await serviceClient.from('admin_audit_log').insert({
-        admin_id: caller.userId,
-        action: 'team.invited',
-        target_user_id: invitedUserId,
-        metadata: {
-          invited_email: trimmedEmail,
-          assigned_role: role,
-          full_name: trimmedName,
-        },
-      });
-    } catch (auditErr) {
-      console.warn('Could not record audit log:', auditErr);
-    }
+    // 4. Record invitation record in admin_invitations table
+    await serviceClient.from('admin_invitations').insert({
+      email: trimmedEmail,
+      full_name: trimmedName,
+      role,
+      department_id: departmentId || null,
+      invited_by: caller.userId,
+      status: 'pending',
+    });
+
+    // 5. Write activity audit log & notification
+    await logActivity({
+      actorId: caller.userId,
+      targetType: 'invitation',
+      targetId: invitedUserId,
+      action: 'invite',
+      newData: {
+        email: trimmedEmail,
+        name: trimmedName,
+        role,
+        department_id: departmentId,
+      },
+      req,
+    });
+
+    await createAdminNotification({
+      title: 'Team Invitation Sent',
+      body: `${caller.fullName} invited ${trimmedName} (${role.toUpperCase()}) to Friendli Admin.`,
+      type: 'team_joined',
+      link: '/admin/team?tab=invitations',
+    });
 
     return NextResponse.json({
       success: true,

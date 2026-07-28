@@ -1,7 +1,7 @@
 import React from 'react';
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
-import { AlertCircle, RefreshCw } from 'lucide-react';
+import { AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { AdminLayout } from '@/components/admin/AdminLayout';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
@@ -37,7 +37,7 @@ export default async function EnquiryDetailPage({
     redirect('/admin/login');
   }
 
-  // 1. Fetch CORE ENQUIRY (Primary blocking query on server)
+  // 1. Fetch CORE ENQUIRY
   const { data: enquiry, error: enqError } = await supabase
     .from('enquiries')
     .select('*')
@@ -67,17 +67,18 @@ export default async function EnquiryDetailPage({
     );
   }
 
-  // 2. Fetch SECONDARY DATA in parallel (Non-blocking settled promises)
-  const [profileRes, notesRes, historyRes, newCountRes] = await Promise.allSettled([
+  // 2. Fetch SECONDARY DATA in parallel
+  const [profileRes, notesRes, historyRes, newCountRes, teamRes] = await Promise.allSettled([
     supabase.from('admin_profiles').select('full_name, role').eq('id', session.user.id).single(),
     supabase.from('enquiry_notes').select('*').eq('enquiry_id', targetId).order('created_at', { ascending: false }),
     supabase.from('enquiry_status_history').select('*').eq('enquiry_id', targetId).order('created_at', { ascending: false }),
     supabase.from('enquiries').select('id', { count: 'exact', head: true }).eq('status', 'new').is('archived_at', null),
+    supabase.from('admin_profiles').select('id, full_name, role').eq('is_active', true).order('full_name', { ascending: true }),
   ]);
 
   const adminName = profileRes.status === 'fulfilled' && profileRes.value.data ? profileRes.value.data.full_name : 'Admin';
   const adminRole = profileRes.status === 'fulfilled' && profileRes.value.data ? profileRes.value.data.role : 'operations';
-  
+
   const notes: NoteItem[] = notesRes.status === 'fulfilled' && notesRes.value.data ? notesRes.value.data : [];
   const notesAvailable = notesRes.status === 'fulfilled' && !notesRes.value.error;
 
@@ -85,6 +86,7 @@ export default async function EnquiryDetailPage({
   const historyAvailable = historyRes.status === 'fulfilled' && !historyRes.value.error;
 
   const newCount = newCountRes.status === 'fulfilled' && newCountRes.value.count ? newCountRes.value.count : 0;
+  const teamMembers = teamRes.status === 'fulfilled' && teamRes.value.data ? teamRes.value.data : [];
 
   return (
     <EnquiryDetailClient
@@ -94,6 +96,7 @@ export default async function EnquiryDetailPage({
       initialHistory={history}
       historyAvailable={historyAvailable}
       initialNewCount={newCount}
+      teamMembers={teamMembers}
       adminUser={{
         id: session.user.id,
         name: adminName,
