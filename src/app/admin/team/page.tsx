@@ -30,9 +30,9 @@ export default async function AdminTeamPage() {
   const [profilesRes, usersRes, invitationsRes, deptsRes, activityRes, enquiriesRes, newCountRes] = await Promise.all([
     serviceClient
       .from('admin_profiles')
-      .select('id, full_name, role, is_active, status, created_at, created_by, phone, avatar_url, department_id, departments(name, color)')
+      .select('id, full_name, role, is_active, status, created_at, created_by, phone, avatar_url, department_id')
       .order('created_at', { ascending: false }),
-    serviceClient.auth.admin.listUsers(),
+    serviceClient.auth.admin.listUsers().catch((e) => ({ data: { users: [] }, error: e })),
     serviceClient
       .from('admin_invitations')
       .select('id, email, full_name, role, department_id, invited_by, phone, status, created_at, expires_at, accepted_at')
@@ -57,6 +57,10 @@ export default async function AdminTeamPage() {
       .is('archived_at', null),
   ]);
 
+  if (profilesRes.error) {
+    console.error('Fetch admin_profiles error:', profilesRes.error);
+  }
+
   // Create fast map of user emails & metadata
   const userMap = new Map<string, { email: string; last_sign_in_at?: string }>();
   if (usersRes.data?.users) {
@@ -64,6 +68,12 @@ export default async function AdminTeamPage() {
       userMap.set(u.id, { email: u.email || '', last_sign_in_at: u.last_sign_in_at });
     });
   }
+
+  // Create department map for fast lookup without PostgREST join failures
+  const deptMap = new Map<string, { name: string; color: string }>();
+  (deptsRes.data || []).forEach((d: any) => {
+    deptMap.set(d.id, { name: d.name, color: d.color });
+  });
 
   // Create name map for user IDs
   const userNameMap = new Map<string, string>();
@@ -84,24 +94,48 @@ export default async function AdminTeamPage() {
   const rawMembers = profilesRes.data || [];
   const allMembers: TeamMemberItem[] = rawMembers.map((m: any) => {
     const userInfo = userMap.get(m.id);
+    const deptInfo = m.department_id ? deptMap.get(m.department_id) : null;
+
     return {
       id: m.id,
       full_name: m.full_name,
-      email: userInfo?.email || authResult.email || 'team@friendlitripz.com',
+      email: userInfo?.email || (m.id === authResult.userId ? authResult.email : 'team@friendlitripz.com'),
       phone: m.phone || null,
       avatar_url: m.avatar_url || null,
       role: m.role,
       department_id: m.department_id,
-      department_name: m.departments?.name || 'Admin',
-      department_color: m.departments?.color || '#8B5CF6',
-      is_active: m.is_active,
+      department_name: deptInfo?.name || 'Admin',
+      department_color: deptInfo?.color || '#8B5CF6',
+      is_active: m.is_active !== false,
       status: m.status || (m.is_active ? 'active' : 'inactive'),
-      created_at: m.created_at,
+      created_at: m.created_at || new Date().toISOString(),
       created_by: m.created_by ? userNameMap.get(m.created_by) || 'System' : 'System',
       last_sign_in_at: userInfo?.last_sign_in_at || null,
       assigned_enquiries_count: assignmentMap.get(m.id) || 0,
     };
   });
+
+  // Safety Fallback: Ensure current logged in user (Owner/Admin) is always included in members list
+  const currentUserExists = allMembers.some((m) => m.id === authResult.userId);
+  if (!currentUserExists && authResult.userId) {
+    allMembers.unshift({
+      id: authResult.userId,
+      full_name: authResult.fullName || 'Admin User',
+      email: authResult.email || 'admin@friendlitripz.com',
+      phone: null,
+      avatar_url: null,
+      role: authResult.role as any,
+      department_id: null,
+      department_name: 'Admin',
+      department_color: '#8B5CF6',
+      is_active: true,
+      status: 'active',
+      created_at: new Date().toISOString(),
+      created_by: 'System',
+      last_sign_in_at: new Date().toISOString(),
+      assigned_enquiries_count: 0,
+    });
+  }
 
   // Calculate department statistics
   const totalCountMap = new Map<string, number>();
@@ -147,6 +181,7 @@ export default async function AdminTeamPage() {
     name: d.name,
     color: d.color,
     active: d.active,
+    archived_at: d.archived_at || null,
     manager_id: d.manager_id || null,
     manager_name: d.manager_id ? userNameMap.get(d.manager_id) || null : null,
     total_members: totalCountMap.get(d.id) || 0,
