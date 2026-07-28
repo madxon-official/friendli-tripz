@@ -208,6 +208,20 @@ function SetPasswordForm() {
         throw updateError;
       }
 
+      // Trigger Atomic Invitation Acceptance API
+      try {
+        await fetch('/api/admin/team/accept-invite', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            userId: userData.user.id,
+            email: userData.user.email,
+          }),
+        });
+      } catch (acceptErr) {
+        console.error('Failed to notify invitation acceptance API:', acceptErr);
+      }
+
       setSuccessMessage('Password created successfully.');
 
       // Sign out invitation session and redirect to /admin/login (Option B)

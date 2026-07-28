@@ -8,7 +8,7 @@ import { createAdminNotification } from '@/lib/rbac/notifications';
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const { fullName, email, role, departmentId } = body;
+    const { fullName, email, phone, role, departmentId } = body;
 
     // Validate input fields
     if (!fullName || typeof fullName !== 'string' || fullName.trim().length === 0) {
@@ -24,6 +24,8 @@ export async function POST(req: NextRequest) {
         { status: 400 }
       );
     }
+
+    const cleanPhone = phone ? phone.replace(/\D/g, '') : null;
 
     if (!role || !isValidRole(role)) {
       return NextResponse.json(
@@ -75,6 +77,7 @@ export async function POST(req: NextRequest) {
         redirectTo,
         data: {
           full_name: trimmedName,
+          phone: cleanPhone,
         },
       }
     );
@@ -88,6 +91,7 @@ export async function POST(req: NextRequest) {
     }
 
     const invitedUserId = inviteData.user.id;
+    const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
 
     // 3. Upsert admin profile record safely with department assignment
     const { error: profileError } = await serviceClient
@@ -95,10 +99,11 @@ export async function POST(req: NextRequest) {
       .upsert({
         id: invitedUserId,
         full_name: trimmedName,
+        phone: cleanPhone,
         role: role,
         department_id: departmentId || null,
-        is_active: true,
-        status: 'invited',
+        is_active: false,
+        status: 'pending',
         created_by: caller.userId,
         updated_at: new Date().toISOString(),
       });
@@ -111,10 +116,12 @@ export async function POST(req: NextRequest) {
     await serviceClient.from('admin_invitations').insert({
       email: trimmedEmail,
       full_name: trimmedName,
+      phone: cleanPhone,
       role,
       department_id: departmentId || null,
       invited_by: caller.userId,
       status: 'pending',
+      expires_at: expiresAt,
     });
 
     // 5. Write activity audit log & notification

@@ -20,18 +20,38 @@ import {
   Briefcase,
   ArrowRightLeft,
   Lock,
+  Phone,
+  MessageSquare,
+  Copy,
+  X,
+  UserCheck,
+  UserX,
+  Archive,
+  Eye,
+  Calendar,
+  Clock,
+  ExternalLink,
+  ChevronRight,
 } from 'lucide-react';
 import { AdminLayout } from '@/components/admin/AdminLayout';
 import { Button } from '@/components/ui/Button';
 import { AdminRole, getRoleLabel, ROLES, ALL_ROLES } from '@/lib/rbac/roles';
 import { can } from '@/lib/rbac/can';
+import { getRolePermissions } from '@/lib/rbac/permissions';
 
 export interface DepartmentItem {
   id: string;
   name: string;
   color: string;
   active: boolean;
-  member_count?: number;
+  manager_id?: string | null;
+  manager_name?: string | null;
+  total_members?: number;
+  active_members?: number;
+  pending_members?: number;
+  suspended_members?: number;
+  archived_members?: number;
+  pending_invitations_count?: number;
 }
 
 export interface TeamMemberItem {
@@ -45,21 +65,28 @@ export interface TeamMemberItem {
   department_name?: string | null;
   department_color?: string | null;
   is_active: boolean;
-  status: 'active' | 'inactive' | 'suspended' | 'invited';
+  status: 'pending' | 'active' | 'suspended' | 'archived';
   created_at: string;
+  joined_at?: string | null;
   last_sign_in_at?: string | null;
+  created_by?: string | null;
   assigned_enquiries_count?: number;
+  employee_id?: string | null;
+  emergency_contact?: string | null;
 }
 
 export interface InvitationItem {
   id: string;
   email: string;
   full_name: string;
+  phone?: string | null;
   role: AdminRole;
   department_id?: string | null;
   status: 'pending' | 'accepted' | 'expired' | 'cancelled';
   created_at: string;
   expires_at: string;
+  accepted_at?: string | null;
+  invited_by?: string | null;
 }
 
 export interface AuditLogItem {
@@ -67,6 +94,7 @@ export interface AuditLogItem {
   actor_id: string;
   actor_name?: string;
   target_type: string;
+  target_id?: string | null;
   action: string;
   old_data?: any;
   new_data?: any;
@@ -113,15 +141,36 @@ export const TeamManagementClient: React.FC<TeamManagementClientProps> = ({
   const [deptFilter, setDeptFilter] = useState<string>('all');
   const [statusFilter, setStatusFilter] = useState<string>('all');
 
+  // Member Detail Drawer State
+  const [selectedMember, setSelectedMember] = useState<TeamMemberItem | null>(null);
+  const [drawerTab, setDrawerTab] = useState<'overview' | 'permissions' | 'leads' | 'timeline' | 'audit' | 'settings'>('overview');
+
   // Modals state
   const [showInviteModal, setShowInviteModal] = useState(false);
   const [inviteName, setInviteName] = useState('');
   const [inviteEmail, setInviteEmail] = useState('');
+  const [invitePhone, setInvitePhone] = useState('');
   const [inviteRole, setInviteRole] = useState<AdminRole>('sales');
   const [inviteDept, setInviteDept] = useState<string>('');
   const [inviting, setInviting] = useState(false);
   const [inviteError, setInviteError] = useState<string | null>(null);
   const [inviteSuccess, setInviteSuccess] = useState<string | null>(null);
+
+  // Edit Member Modal
+  const [editModalUser, setEditModalUser] = useState<TeamMemberItem | null>(null);
+  const [editName, setEditName] = useState('');
+  const [editPhone, setEditPhone] = useState('');
+  const [editDept, setEditDept] = useState('');
+  const [editRole, setEditRole] = useState<AdminRole>('sales');
+  const [editStatus, setEditStatus] = useState<'pending' | 'active' | 'suspended' | 'archived'>('active');
+  const [savingEdit, setSavingEdit] = useState(false);
+  const [editError, setEditError] = useState<string | null>(null);
+
+  // Assign Manager Modal
+  const [managerDept, setManagerDept] = useState<DepartmentItem | null>(null);
+  const [selectedManagerId, setSelectedManagerId] = useState('');
+  const [savingManager, setSavingManager] = useState(false);
+  const [managerError, setManagerError] = useState<string | null>(null);
 
   // Transfer Ownership Modal
   const [showTransferModal, setShowTransferModal] = useState(false);
@@ -130,25 +179,13 @@ export const TeamManagementClient: React.FC<TeamManagementClientProps> = ({
   const [transferring, setTransferring] = useState(false);
   const [transferError, setTransferError] = useState<string | null>(null);
 
-  // Department Modal
+  // Department Add/Edit Modal
   const [showDeptModal, setShowDeptModal] = useState(false);
   const [editingDept, setEditingDept] = useState<DepartmentItem | null>(null);
   const [deptName, setDeptName] = useState('');
   const [deptColor, setDeptColor] = useState('#F97316');
   const [savingDept, setSavingDept] = useState(false);
   const [deptError, setDeptError] = useState<string | null>(null);
-
-  // Role Modal
-  const [roleModalUser, setRoleModalUser] = useState<TeamMemberItem | null>(null);
-  const [selectedNewRole, setSelectedNewRole] = useState<AdminRole>('sales');
-  const [changingRole, setChangingRole] = useState(false);
-  const [roleError, setRoleError] = useState<string | null>(null);
-
-  // Status Modal
-  const [statusModalUser, setStatusModalUser] = useState<TeamMemberItem | null>(null);
-  const [targetStatus, setTargetStatus] = useState<'active' | 'inactive' | 'suspended'>('active');
-  const [updatingStatus, setUpdatingStatus] = useState(false);
-  const [statusError, setStatusError] = useState<string | null>(null);
 
   // Delete Modal
   const [deleteModalUser, setDeleteModalUser] = useState<TeamMemberItem | null>(null);
@@ -162,16 +199,18 @@ export const TeamManagementClient: React.FC<TeamManagementClientProps> = ({
     setActivityLogs(initialActivityLogs);
   }, [initialMembers, initialInvitations, initialDepartments, initialActivityLogs]);
 
-  // Dynamically calculate active member count per department
-  const departmentActiveCountMap = useMemo(() => {
-    const map = new Map<string, number>();
-    members.forEach((m) => {
-      if (m.department_id && m.is_active && m.status === 'active') {
-        map.set(m.department_id, (map.get(m.department_id) || 0) + 1);
-      }
-    });
-    return map;
-  }, [members]);
+  // Phone display formatter (+91 98765 43210)
+  const formatPhoneDisplay = (phoneRaw?: string | null) => {
+    if (!phoneRaw) return '—';
+    const digits = phoneRaw.replace(/\D/g, '');
+    if (digits.length === 10) {
+      return `+91 ${digits.slice(0, 5)} ${digits.slice(5)}`;
+    }
+    if (digits.length === 12 && digits.startsWith('91')) {
+      return `+91 ${digits.slice(2, 7)} ${digits.slice(7)}`;
+    }
+    return phoneRaw;
+  };
 
   const handleRefresh = async () => {
     setIsRefreshing(true);
@@ -196,7 +235,7 @@ export const TeamManagementClient: React.FC<TeamManagementClientProps> = ({
     });
   }, [members, searchQuery, roleFilter, deptFilter, statusFilter]);
 
-  // Invite member submit (Department selection REQUIRED)
+  // Invite member submit
   const handleSendInvite = async (e: React.FormEvent) => {
     e.preventDefault();
     setInviteError(null);
@@ -226,6 +265,7 @@ export const TeamManagementClient: React.FC<TeamManagementClientProps> = ({
         body: JSON.stringify({
           fullName: inviteName.trim(),
           email: inviteEmail.trim(),
+          phone: invitePhone.trim() || null,
           role: inviteRole,
           departmentId: inviteDept,
         }),
@@ -239,6 +279,7 @@ export const TeamManagementClient: React.FC<TeamManagementClientProps> = ({
       setInviteSuccess(data.message || `Invitation sent to ${inviteEmail.trim()}`);
       setInviteName('');
       setInviteEmail('');
+      setInvitePhone('');
 
       setTimeout(() => {
         setShowInviteModal(false);
@@ -249,6 +290,72 @@ export const TeamManagementClient: React.FC<TeamManagementClientProps> = ({
       setInviteError(err.message || 'Failed to send invitation.');
     } finally {
       setInviting(false);
+    }
+  };
+
+  // Edit Member Submit
+  const handleEditMemberSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editModalUser) return;
+    setEditError(null);
+    setSavingEdit(true);
+
+    try {
+      const res = await fetch('/api/admin/team/edit', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          targetUserId: editModalUser.id,
+          fullName: editName.trim(),
+          phone: editPhone.trim() || null,
+          departmentId: editDept || null,
+          role: editRole,
+          status: editStatus,
+        }),
+      });
+
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        throw new Error(data.error || 'Failed to update member profile.');
+      }
+
+      setEditModalUser(null);
+      handleRefresh();
+    } catch (err: any) {
+      setEditError(err.message || 'Could not update profile.');
+    } finally {
+      setSavingEdit(false);
+    }
+  };
+
+  // Assign Manager Submit
+  const handleAssignManagerSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!managerDept) return;
+    setManagerError(null);
+    setSavingManager(true);
+
+    try {
+      const res = await fetch('/api/admin/team/department-manager', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          departmentId: managerDept.id,
+          managerId: selectedManagerId || null,
+        }),
+      });
+
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        throw new Error(data.error || 'Failed to assign department manager.');
+      }
+
+      setManagerDept(null);
+      handleRefresh();
+    } catch (err: any) {
+      setManagerError(err.message || 'Could not assign manager.');
+    } finally {
+      setSavingManager(false);
     }
   };
 
@@ -293,6 +400,26 @@ export const TeamManagementClient: React.FC<TeamManagementClientProps> = ({
     }
   };
 
+  // Cancel Invitation
+  const handleCancelInvite = async (invId: string, email: string) => {
+    if (!confirm(`Are you sure you want to cancel the invitation for ${email}?`)) return;
+    try {
+      const res = await fetch('/api/admin/team/cancel-invite', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ invitationId: invId }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        alert(data.error || 'Failed to cancel invitation.');
+      } else {
+        handleRefresh();
+      }
+    } catch (err: any) {
+      alert(err.message || 'Could not cancel invitation.');
+    }
+  };
+
   // Save Department
   const handleSaveDepartment = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -329,73 +456,6 @@ export const TeamManagementClient: React.FC<TeamManagementClientProps> = ({
       setDeptError(err.message || 'Could not save department.');
     } finally {
       setSavingDept(false);
-    }
-  };
-
-  // Change Role submit
-  const handleChangeRoleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!roleModalUser) return;
-    setRoleError(null);
-
-    if (selectedNewRole === 'owner') {
-      setRoleError('Owner role cannot be assigned via role edit. Use Transfer Ownership.');
-      return;
-    }
-
-    setChangingRole(true);
-
-    try {
-      const res = await fetch('/api/admin/team/role', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          targetUserId: roleModalUser.id,
-          newRole: selectedNewRole,
-        }),
-      });
-
-      const data = await res.json();
-      if (!res.ok || !data.success) {
-        throw new Error(data.error || 'Failed to change role.');
-      }
-
-      setRoleModalUser(null);
-      handleRefresh();
-    } catch (err: any) {
-      setRoleError(err.message || 'Could not update role.');
-    } finally {
-      setChangingRole(false);
-    }
-  };
-
-  // Change Status submit
-  const handleStatusSubmit = async () => {
-    if (!statusModalUser) return;
-    setStatusError(null);
-    setUpdatingStatus(true);
-
-    try {
-      const res = await fetch('/api/admin/team/status', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          targetUserId: statusModalUser.id,
-          status: targetStatus,
-        }),
-      });
-
-      const data = await res.json();
-      if (!res.ok || !data.success) {
-        throw new Error(data.error || 'Failed to update status.');
-      }
-
-      setStatusModalUser(null);
-      handleRefresh();
-    } catch (err: any) {
-      setStatusError(err.message || 'Could not update status.');
-    } finally {
-      setUpdatingStatus(false);
     }
   };
 
@@ -451,6 +511,12 @@ export const TeamManagementClient: React.FC<TeamManagementClientProps> = ({
     } catch (err: any) {
       alert(err.message || 'Could not resend invitation.');
     }
+  };
+
+  const handleCopyInviteLink = (email: string) => {
+    const link = `${window.location.origin}/admin/set-password`;
+    navigator.clipboard.writeText(link);
+    alert(`Invitation setup link copied for ${email}: ${link}`);
   };
 
   // Color-coded role badges
@@ -510,10 +576,10 @@ export const TeamManagementClient: React.FC<TeamManagementClientProps> = ({
             Active
           </span>
         );
-      case 'inactive':
+      case 'pending':
         return (
-          <span className="px-2.5 py-1 text-xs font-bold rounded-full bg-slate-100 text-slate-800 font-mono">
-            Inactive
+          <span className="px-2.5 py-1 text-xs font-bold rounded-full bg-amber-100 text-amber-800 font-mono">
+            Pending
           </span>
         );
       case 'suspended':
@@ -522,10 +588,10 @@ export const TeamManagementClient: React.FC<TeamManagementClientProps> = ({
             Suspended
           </span>
         );
-      case 'invited':
+      case 'archived':
         return (
-          <span className="px-2.5 py-1 text-xs font-bold rounded-full bg-amber-100 text-amber-800 font-mono">
-            Invited
+          <span className="px-2.5 py-1 text-xs font-bold rounded-full bg-slate-200 text-slate-700 font-mono">
+            Archived
           </span>
         );
       default:
@@ -538,6 +604,7 @@ export const TeamManagementClient: React.FC<TeamManagementClientProps> = ({
   };
 
   const activeAdminsForTransfer = members.filter((m) => m.role === 'admin' && m.is_active);
+  const activeMembersForManager = members.filter((m) => m.is_active && m.status === 'active');
 
   return (
     <AdminLayout
@@ -654,7 +721,7 @@ export const TeamManagementClient: React.FC<TeamManagementClientProps> = ({
           </button>
         </div>
 
-        {/* TAB 1: MEMBERS TABLE WITH HORIZONTAL SCROLL & STICKY COLUMNS */}
+        {/* TAB 1: MEMBERS TABLE */}
         {activeTab === 'members' && (
           <div className="space-y-4">
             {/* Filter Bar */}
@@ -704,9 +771,9 @@ export const TeamManagementClient: React.FC<TeamManagementClientProps> = ({
                 >
                   <option value="all">All Statuses</option>
                   <option value="active">Active</option>
-                  <option value="inactive">Inactive</option>
+                  <option value="pending">Pending</option>
                   <option value="suspended">Suspended</option>
-                  <option value="invited">Invited</option>
+                  <option value="archived">Archived</option>
                 </select>
               </div>
             </div>
@@ -723,8 +790,8 @@ export const TeamManagementClient: React.FC<TeamManagementClientProps> = ({
                       <th className="sticky left-16 bg-brand-soft-navy/90 backdrop-blur-xs z-20 py-4 px-6 border-r border-brand-border/40 min-w-[200px] shadow-xs">
                         Name
                       </th>
+                      <th className="py-4 px-6 min-w-[180px]">Phone</th>
                       <th className="py-4 px-6 min-w-[220px]">Email</th>
-                      <th className="py-4 px-6 min-w-[140px]">Phone</th>
                       <th className="py-4 px-6 min-w-[150px]">Department</th>
                       <th className="py-4 px-6 min-w-[130px]">Role</th>
                       <th className="py-4 px-6 min-w-[120px]">Status</th>
@@ -740,8 +807,14 @@ export const TeamManagementClient: React.FC<TeamManagementClientProps> = ({
                       const isAdminUser = adminRole === 'admin';
 
                       return (
-                        <tr key={m.id} className="group hover:bg-brand-warm/60 transition-colors">
-                          <td className="sticky left-0 bg-white group-hover:bg-brand-warm/80 transition-colors z-10 py-4 px-6">
+                        <tr key={m.id} className="group hover:bg-brand-warm/60 transition-colors cursor-pointer">
+                          <td
+                            className="sticky left-0 bg-white group-hover:bg-brand-warm/80 transition-colors z-10 py-4 px-6"
+                            onClick={() => {
+                              setSelectedMember(m);
+                              setDrawerTab('overview');
+                            }}
+                          >
                             <div className="relative w-10 h-10 rounded-full bg-brand-navy text-white flex items-center justify-center font-bold text-sm uppercase shadow-xs">
                               {m.full_name.charAt(0)}
                               <span
@@ -752,16 +825,62 @@ export const TeamManagementClient: React.FC<TeamManagementClientProps> = ({
                             </div>
                           </td>
 
-                          <td className="sticky left-16 bg-white group-hover:bg-brand-warm/80 transition-colors z-10 py-4 px-6 border-r border-brand-border/40 font-bold text-brand-navy font-heading">
+                          <td
+                            className="sticky left-16 bg-white group-hover:bg-brand-warm/80 transition-colors z-10 py-4 px-6 border-r border-brand-border/40 font-bold text-brand-navy font-heading"
+                            onClick={() => {
+                              setSelectedMember(m);
+                              setDrawerTab('overview');
+                            }}
+                          >
                             <div className="flex items-center gap-1.5">
                               <span>{m.full_name}</span>
                               {isSelf && <span className="text-[10px] text-brand-orange font-mono font-bold">(You)</span>}
                             </div>
                           </td>
 
-                          <td className="py-4 px-6 font-mono text-xs text-brand-muted">{m.email}</td>
+                          {/* Phone Column with Call, WA, Copy */}
+                          <td className="py-4 px-6 font-mono text-xs text-brand-navy">
+                            {m.phone ? (
+                              <div className="flex items-center gap-2">
+                                <span>{formatPhoneDisplay(m.phone)}</span>
+                                <div className="flex items-center gap-1 opacity-70 group-hover:opacity-100 transition-opacity">
+                                  <a
+                                    href={`tel:+${m.phone}`}
+                                    className="p-1 hover:bg-brand-soft-navy rounded text-brand-navy"
+                                    title="Call Phone"
+                                    onClick={(e) => e.stopPropagation()}
+                                  >
+                                    <Phone className="w-3.5 h-3.5 text-blue-600" />
+                                  </a>
+                                  <a
+                                    href={`https://wa.me/${m.phone}`}
+                                    target="_blank"
+                                    rel="noreferrer"
+                                    className="p-1 hover:bg-emerald-50 rounded text-emerald-600"
+                                    title="WhatsApp Message"
+                                    onClick={(e) => e.stopPropagation()}
+                                  >
+                                    <MessageSquare className="w-3.5 h-3.5 text-emerald-600" />
+                                  </a>
+                                  <button
+                                    className="p-1 hover:bg-slate-100 rounded text-slate-600"
+                                    title="Copy Phone"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      navigator.clipboard.writeText(m.phone || '');
+                                      alert(`Copied phone: ${m.phone}`);
+                                    }}
+                                  >
+                                    <Copy className="w-3.5 h-3.5" />
+                                  </button>
+                                </div>
+                              </div>
+                            ) : (
+                              <span className="text-brand-muted">—</span>
+                            )}
+                          </td>
 
-                          <td className="py-4 px-6 font-mono text-xs text-brand-muted">{m.phone || '—'}</td>
+                          <td className="py-4 px-6 font-mono text-xs text-brand-muted">{m.email}</td>
 
                           <td className="py-4 px-6 text-xs font-semibold">
                             <span
@@ -794,7 +913,7 @@ export const TeamManagementClient: React.FC<TeamManagementClientProps> = ({
                             })}
                           </td>
 
-                          <td className="py-4 px-6 text-right">
+                          <td className="py-4 px-6 text-right" onClick={(e) => e.stopPropagation()}>
                             <div className="flex items-center justify-end gap-2">
                               {/* OWNER ON SELF ACTIONS */}
                               {isSelf && isTargetOwner && (
@@ -812,7 +931,7 @@ export const TeamManagementClient: React.FC<TeamManagementClientProps> = ({
                                 </Button>
                               )}
 
-                              {/* ADMIN LOOKING AT OWNER: READ-ONLY PROTECTED BADGE */}
+                              {/* ADMIN LOOKING AT OWNER */}
                               {isAdminUser && isTargetOwner && (
                                 <span className="text-[11px] font-mono text-brand-muted italic flex items-center gap-1">
                                   <Lock className="w-3 h-3 text-amber-600" />
@@ -820,32 +939,23 @@ export const TeamManagementClient: React.FC<TeamManagementClientProps> = ({
                                 </span>
                               )}
 
-                              {/* Standard non-self Actions for Owner & Admin */}
+                              {/* Standard non-self Actions */}
                               {!isSelf && (!isTargetOwner || adminRole === 'owner') && (
                                 <>
-                                  {can(adminRole, 'team.role.change', m.role) && !isTargetOwner && (
-                                    <button
-                                      onClick={() => {
-                                        setRoleModalUser(m);
-                                        setSelectedNewRole(m.role);
-                                      }}
-                                      className="px-2.5 py-1 text-xs font-bold text-brand-navy hover:text-brand-orange border border-brand-border rounded-lg transition-colors"
-                                    >
-                                      Role
-                                    </button>
-                                  )}
-
-                                  {can(adminRole, 'team.deactivate', m.role) && !isTargetOwner && (
-                                    <button
-                                      onClick={() => {
-                                        setStatusModalUser(m);
-                                        setTargetStatus(m.status === 'active' ? 'suspended' : 'active');
-                                      }}
-                                      className="px-2.5 py-1 text-xs font-bold text-brand-navy hover:text-amber-600 border border-brand-border rounded-lg transition-colors"
-                                    >
-                                      {m.status === 'active' ? 'Suspend' : 'Activate'}
-                                    </button>
-                                  )}
+                                  <button
+                                    onClick={() => {
+                                      setEditModalUser(m);
+                                      setEditName(m.full_name);
+                                      setEditPhone(m.phone || '');
+                                      setEditDept(m.department_id || '');
+                                      setEditRole(m.role);
+                                      setEditStatus(m.status);
+                                    }}
+                                    className="px-2.5 py-1 text-xs font-bold text-brand-navy hover:text-brand-orange border border-brand-border rounded-lg transition-colors flex items-center gap-1"
+                                  >
+                                    <Edit2 className="w-3 h-3" />
+                                    <span>Edit</span>
+                                  </button>
 
                                   {can(adminRole, 'team.delete', m.role) && !isTargetOwner && (
                                     <button
@@ -883,26 +993,40 @@ export const TeamManagementClient: React.FC<TeamManagementClientProps> = ({
                     key={inv.id}
                     className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 rounded-2xl border border-brand-border/60 bg-brand-warm/30"
                   >
-                    <div>
+                    <div className="space-y-1">
                       <div className="font-bold text-brand-navy font-heading">{inv.full_name}</div>
-                      <div className="text-xs text-brand-muted font-mono">{inv.email}</div>
-                      <div className="text-[11px] text-brand-muted mt-1">
-                        Role: <span className="font-bold uppercase">{inv.role}</span>
+                      <div className="text-xs text-brand-muted font-mono">{inv.email} {inv.phone && `• ${formatPhoneDisplay(inv.phone)}`}</div>
+                      <div className="text-[11px] text-brand-muted font-mono flex items-center gap-2">
+                        <span>Role: <strong className="uppercase text-brand-navy">{inv.role}</strong></span>
+                        <span>•</span>
+                        <span>Expires: {new Date(inv.expires_at).toLocaleDateString('en-IN')}</span>
                       </div>
                     </div>
 
-                    <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-2">
                       <span className="px-2.5 py-1 text-xs font-bold rounded-full bg-amber-100 text-amber-800 font-mono">
                         {inv.status.toUpperCase()}
                       </span>
-                      {can(adminRole, 'team.invite') && (
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => handleResendInvite(inv.id, inv.email)}
-                        >
-                          Resend
-                        </Button>
+                      {can(adminRole, 'team.invite') && inv.status === 'pending' && (
+                        <>
+                          <Button variant="outline" size="sm" onClick={() => handleResendInvite(inv.id, inv.email)}>
+                            Resend
+                          </Button>
+                          <button
+                            onClick={() => handleCopyInviteLink(inv.email)}
+                            className="p-2 text-brand-navy hover:bg-brand-soft-navy border border-brand-border rounded-xl"
+                            title="Copy Invite Setup Link"
+                          >
+                            <Copy className="w-4 h-4" />
+                          </button>
+                          <button
+                            onClick={() => handleCancelInvite(inv.id, inv.email)}
+                            className="p-2 text-red-600 hover:bg-red-50 rounded-xl"
+                            title="Cancel Invitation"
+                          >
+                            <X className="w-4 h-4" />
+                          </button>
+                        </>
                       )}
                     </div>
                   </div>
@@ -912,7 +1036,7 @@ export const TeamManagementClient: React.FC<TeamManagementClientProps> = ({
           </div>
         )}
 
-        {/* TAB 3: DEPARTMENTS WITH DYNAMIC ACTIVE MEMBER COUNTS */}
+        {/* TAB 3: DEPARTMENTS */}
         {activeTab === 'departments' && (
           <div className="space-y-4">
             <div className="flex items-center justify-between">
@@ -935,26 +1059,19 @@ export const TeamManagementClient: React.FC<TeamManagementClientProps> = ({
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {departments.map((dept) => {
-                const activeCount = departmentActiveCountMap.get(dept.id) || 0;
-                return (
-                  <div
-                    key={dept.id}
-                    className="bg-white rounded-2xl p-5 border border-brand-border/60 shadow-card flex items-center justify-between"
-                  >
-                    <div className="space-y-1">
-                      <div className="flex items-center gap-2">
-                        <span
-                          className="w-3 h-3 rounded-full"
-                          style={{ backgroundColor: dept.color }}
-                        />
-                        <h3 className="font-bold text-brand-navy font-heading">{dept.name}</h3>
-                      </div>
-                      <p className="text-xs text-brand-muted">
-                        <strong className="text-brand-navy">{activeCount}</strong> Active Members
-                      </p>
+              {departments.map((dept) => (
+                <div
+                  key={dept.id}
+                  className="bg-white rounded-2xl p-5 border border-brand-border/60 shadow-card space-y-3"
+                >
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <span
+                        className="w-3.5 h-3.5 rounded-full"
+                        style={{ backgroundColor: dept.color }}
+                      />
+                      <h3 className="font-bold text-brand-navy font-heading text-base">{dept.name}</h3>
                     </div>
-
                     {can(adminRole, 'team.department.change') && (
                       <button
                         onClick={() => {
@@ -963,19 +1080,48 @@ export const TeamManagementClient: React.FC<TeamManagementClientProps> = ({
                           setDeptColor(dept.color);
                           setShowDeptModal(true);
                         }}
-                        className="p-2 text-brand-muted hover:text-brand-navy hover:bg-brand-warm rounded-xl transition-colors"
+                        className="p-1.5 text-brand-muted hover:text-brand-navy rounded-lg"
                       >
-                        <Edit2 className="w-4 h-4" />
+                        <Edit2 className="w-3.5 h-3.5" />
                       </button>
                     )}
                   </div>
-                );
-              })}
+
+                  <div className="text-xs space-y-1.5 pt-2 border-t border-brand-border/40">
+                    <div className="flex justify-between">
+                      <span className="text-brand-muted">Manager:</span>
+                      <span className="font-bold text-brand-navy">{dept.manager_name || 'Unassigned'}</span>
+                    </div>
+                    <div className="flex justify-between font-mono">
+                      <span className="text-brand-muted">Active Members:</span>
+                      <strong className="text-emerald-600">{dept.active_members || 0}</strong>
+                    </div>
+                    <div className="flex justify-between font-mono">
+                      <span className="text-brand-muted">Pending Invitations:</span>
+                      <strong className="text-amber-600">{dept.pending_invitations_count || 0}</strong>
+                    </div>
+                  </div>
+
+                  {can(adminRole, 'team.department.change') && (
+                    <div className="pt-2">
+                      <button
+                        onClick={() => {
+                          setManagerDept(dept);
+                          setSelectedManagerId(dept.manager_id || '');
+                        }}
+                        className="w-full py-1.5 text-xs font-bold border border-brand-border text-brand-navy hover:bg-brand-warm rounded-xl transition-colors"
+                      >
+                        Assign Manager
+                      </button>
+                    </div>
+                  )}
+                </div>
+              ))}
             </div>
           </div>
         )}
 
-        {/* TAB 4: AUDIT ACTIVITY LOGS */}
+        {/* TAB 4: AUDIT LOGS */}
         {activeTab === 'activity' && (
           <div className="bg-white rounded-3xl border border-brand-border/60 shadow-card p-6 space-y-4">
             <h2 className="text-lg font-bold text-brand-navy font-heading">Security Audit Logs</h2>
@@ -1001,7 +1147,307 @@ export const TeamManagementClient: React.FC<TeamManagementClientProps> = ({
         )}
       </div>
 
-      {/* MODAL: TRANSFER OWNERSHIP (Owner Only) */}
+      {/* DRAWER: MEMBER DETAIL PROFILE */}
+      {selectedMember && (
+        <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex justify-end">
+          <div className="bg-white w-full max-w-xl h-full shadow-2xl overflow-y-auto flex flex-col justify-between">
+            <div>
+              {/* Drawer Header */}
+              <div className="p-6 bg-brand-navy text-white flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="w-12 h-12 rounded-full bg-brand-orange text-white flex items-center justify-center font-bold text-lg">
+                    {selectedMember.full_name.charAt(0)}
+                  </div>
+                  <div>
+                    <h2 className="text-lg font-bold font-heading">{selectedMember.full_name}</h2>
+                    <p className="text-xs text-brand-soft-navy font-mono">{selectedMember.email}</p>
+                  </div>
+                </div>
+                <button onClick={() => setSelectedMember(null)} className="p-2 text-white/80 hover:text-white">
+                  <X className="w-6 h-6" />
+                </button>
+              </div>
+
+              {/* Drawer Navigation Tabs */}
+              <div className="flex border-b border-brand-border/60 px-6 pt-3 gap-3 overflow-x-auto">
+                <button
+                  onClick={() => setDrawerTab('overview')}
+                  className={`pb-2.5 text-xs font-bold border-b-2 transition-all whitespace-nowrap ${
+                    drawerTab === 'overview' ? 'border-brand-orange text-brand-navy' : 'border-transparent text-brand-muted'
+                  }`}
+                >
+                  Overview
+                </button>
+                <button
+                  onClick={() => setDrawerTab('permissions')}
+                  className={`pb-2.5 text-xs font-bold border-b-2 transition-all whitespace-nowrap ${
+                    drawerTab === 'permissions' ? 'border-brand-orange text-brand-navy' : 'border-transparent text-brand-muted'
+                  }`}
+                >
+                  Permissions
+                </button>
+                <button
+                  onClick={() => setDrawerTab('leads')}
+                  className={`pb-2.5 text-xs font-bold border-b-2 transition-all whitespace-nowrap ${
+                    drawerTab === 'leads' ? 'border-brand-orange text-brand-navy' : 'border-transparent text-brand-muted'
+                  }`}
+                >
+                  Assigned Leads ({selectedMember.assigned_enquiries_count || 0})
+                </button>
+                <button
+                  onClick={() => setDrawerTab('audit')}
+                  className={`pb-2.5 text-xs font-bold border-b-2 transition-all whitespace-nowrap ${
+                    drawerTab === 'audit' ? 'border-brand-orange text-brand-navy' : 'border-transparent text-brand-muted'
+                  }`}
+                >
+                  Audit Trail
+                </button>
+              </div>
+
+              {/* Drawer Content */}
+              <div className="p-6 space-y-6">
+                {drawerTab === 'overview' && (
+                  <div className="space-y-4">
+                    <div className="grid grid-cols-2 gap-4 p-4 rounded-2xl bg-brand-warm/30 border border-brand-border/60">
+                      <div>
+                        <span className="text-[11px] text-brand-muted font-mono uppercase">Role</span>
+                        <div className="mt-1">{getRoleBadge(selectedMember.role)}</div>
+                      </div>
+                      <div>
+                        <span className="text-[11px] text-brand-muted font-mono uppercase">Department</span>
+                        <div className="mt-1 font-bold text-xs text-brand-navy">{selectedMember.department_name}</div>
+                      </div>
+                      <div>
+                        <span className="text-[11px] text-brand-muted font-mono uppercase">Status</span>
+                        <div className="mt-1">{getStatusBadge(selectedMember.status)}</div>
+                      </div>
+                      <div>
+                        <span className="text-[11px] text-brand-muted font-mono uppercase">Phone</span>
+                        <div className="mt-1 font-mono text-xs font-bold text-brand-navy">{formatPhoneDisplay(selectedMember.phone)}</div>
+                      </div>
+                    </div>
+
+                    <div className="space-y-2 text-xs border-t border-brand-border/40 pt-4">
+                      <div className="flex justify-between">
+                        <span className="text-brand-muted">Joined Date:</span>
+                        <span className="font-mono font-bold text-brand-navy">
+                          {new Date(selectedMember.created_at).toLocaleDateString('en-IN')}
+                        </span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-brand-muted">Last Active Sign-in:</span>
+                        <span className="font-mono font-bold text-brand-navy">
+                          {selectedMember.last_sign_in_at
+                            ? new Date(selectedMember.last_sign_in_at).toLocaleString('en-IN')
+                            : '—'}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {drawerTab === 'permissions' && (
+                  <div className="space-y-3">
+                    <h4 className="text-xs font-bold uppercase tracking-wider text-brand-navy font-mono">
+                      Granted Security Permissions ({selectedMember.role.toUpperCase()})
+                    </h4>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                      {getRolePermissions(selectedMember.role).map((perm) => (
+                        <div key={perm} className="p-2.5 rounded-xl border border-brand-border/40 bg-brand-soft-navy/30 text-xs font-mono font-semibold text-brand-navy flex items-center gap-1.5">
+                          <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                          <span>{perm}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {drawerTab === 'leads' && (
+                  <div className="space-y-3">
+                    <h4 className="text-xs font-bold uppercase tracking-wider text-brand-navy font-mono">
+                      Assigned Enquiry Workload
+                    </h4>
+                    <p className="text-xs text-brand-muted">
+                      This staff member currently has <strong className="text-brand-navy">{selectedMember.assigned_enquiries_count || 0}</strong> active enquiry leads assigned.
+                    </p>
+                  </div>
+                )}
+
+                {drawerTab === 'audit' && (
+                  <div className="space-y-3">
+                    <h4 className="text-xs font-bold uppercase tracking-wider text-brand-navy font-mono">
+                      Activity Logs for {selectedMember.full_name}
+                    </h4>
+                    {activityLogs.filter((a) => a.target_id === selectedMember.id || a.actor_id === selectedMember.id).length === 0 ? (
+                      <p className="text-xs text-brand-muted">No specific audit history recorded yet.</p>
+                    ) : (
+                      activityLogs.filter((a) => a.target_id === selectedMember.id || a.actor_id === selectedMember.id).map((a) => (
+                        <div key={a.id} className="p-3 rounded-xl border border-brand-border/40 bg-brand-soft-navy/20 text-xs">
+                          <div className="font-bold text-brand-navy uppercase font-mono">{a.action}</div>
+                          <div className="text-[11px] text-brand-muted font-mono mt-1">{new Date(a.created_at).toLocaleString('en-IN')}</div>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                )}
+              </div>
+            </div>
+
+            <div className="p-6 border-t border-brand-border/60 bg-brand-warm/30 flex justify-end">
+              <Button variant="outline" size="sm" onClick={() => setSelectedMember(null)}>
+                Close Profile
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL: EDIT MEMBER */}
+      {editModalUser && (
+        <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl p-6 sm:p-8 max-w-md w-full shadow-2xl border border-brand-border space-y-5">
+            <div className="flex items-center justify-between">
+              <h2 className="text-xl font-black text-brand-navy font-heading flex items-center gap-2">
+                <Edit2 className="w-5 h-5 text-brand-orange" />
+                <span>Edit Staff Profile</span>
+              </h2>
+              <button onClick={() => setEditModalUser(null)} className="text-brand-muted hover:text-brand-navy">
+                ✕
+              </button>
+            </div>
+
+            <form onSubmit={handleEditMemberSubmit} className="space-y-4">
+              {editError && <div className="p-3 bg-red-50 text-red-700 text-xs rounded-xl font-bold">{editError}</div>}
+
+              <div>
+                <label className="block text-xs font-bold uppercase tracking-wider text-brand-navy mb-1 font-mono">
+                  Full Name
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={editName}
+                  onChange={(e) => setEditName(e.target.value)}
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-brand-border text-sm font-medium outline-none focus:border-brand-orange"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold uppercase tracking-wider text-brand-navy mb-1 font-mono">
+                  Phone Number
+                </label>
+                <input
+                  type="text"
+                  placeholder="+91 98765 43210"
+                  value={editPhone}
+                  onChange={(e) => setEditPhone(e.target.value)}
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-brand-border text-sm font-medium outline-none focus:border-brand-orange"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold uppercase tracking-wider text-brand-navy mb-1 font-mono">
+                  Department
+                </label>
+                <select
+                  value={editDept}
+                  onChange={(e) => setEditDept(e.target.value)}
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-brand-border text-sm font-medium outline-none cursor-pointer bg-white"
+                >
+                  {departments.map((d) => (
+                    <option key={d.id} value={d.id}>
+                      {d.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold uppercase tracking-wider text-brand-navy mb-1 font-mono">
+                  Role (Owner excluded)
+                </label>
+                <select
+                  value={editRole}
+                  onChange={(e) => setEditRole(e.target.value as AdminRole)}
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-brand-border text-sm font-medium outline-none cursor-pointer bg-white"
+                >
+                  {ALL_ROLES.filter((r) => r.id !== 'owner').map((r) => (
+                    <option key={r.id} value={r.id}>
+                      {r.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold uppercase tracking-wider text-brand-navy mb-1 font-mono">
+                  Member Status
+                </label>
+                <select
+                  value={editStatus}
+                  onChange={(e) => setEditStatus(e.target.value as any)}
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-brand-border text-sm font-medium outline-none cursor-pointer bg-white"
+                >
+                  <option value="active">Active</option>
+                  <option value="suspended">Suspended</option>
+                  <option value="archived">Archived</option>
+                </select>
+              </div>
+
+              <div className="pt-2 flex justify-end gap-3">
+                <Button type="button" variant="ghost" size="sm" onClick={() => setEditModalUser(null)}>
+                  Cancel
+                </Button>
+                <Button type="submit" variant="primary" size="sm" disabled={savingEdit}>
+                  {savingEdit ? 'Saving...' : 'Save Profile'}
+                </Button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL: ASSIGN DEPARTMENT MANAGER */}
+      {managerDept && (
+        <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl p-6 sm:p-8 max-w-md w-full shadow-2xl border border-brand-border space-y-4">
+            <h2 className="text-lg font-bold text-brand-navy font-heading">
+              Assign Manager for {managerDept.name}
+            </h2>
+            <form onSubmit={handleAssignManagerSubmit} className="space-y-4">
+              {managerError && <div className="p-3 bg-red-50 text-red-700 text-xs rounded-xl font-bold">{managerError}</div>}
+              <div>
+                <label className="block text-xs font-bold text-brand-navy font-mono uppercase mb-1">
+                  Select Active Member
+                </label>
+                <select
+                  value={selectedManagerId}
+                  onChange={(e) => setSelectedManagerId(e.target.value)}
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-brand-border text-sm font-medium outline-none cursor-pointer bg-white"
+                >
+                  <option value="">No Manager (Unassigned)</option>
+                  {activeMembersForManager.map((m) => (
+                    <option key={m.id} value={m.id}>
+                      {m.full_name} ({m.role.toUpperCase()})
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="pt-2 flex justify-end gap-2">
+                <Button type="button" variant="ghost" size="sm" onClick={() => setManagerDept(null)}>
+                  Cancel
+                </Button>
+                <Button type="submit" variant="primary" size="sm" disabled={savingManager}>
+                  Save Manager
+                </Button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL: TRANSFER OWNERSHIP */}
       {showTransferModal && (
         <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
           <div className="bg-white rounded-3xl p-6 sm:p-8 max-w-md w-full shadow-2xl border border-brand-border space-y-5">
@@ -1076,7 +1522,7 @@ export const TeamManagementClient: React.FC<TeamManagementClientProps> = ({
         </div>
       )}
 
-      {/* MODAL: INVITE MEMBER (Department Required) */}
+      {/* MODAL: INVITE MEMBER */}
       {showInviteModal && (
         <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
           <div className="bg-white rounded-3xl p-6 sm:p-8 max-w-md w-full shadow-2xl border border-brand-border space-y-5">
@@ -1129,6 +1575,19 @@ export const TeamManagementClient: React.FC<TeamManagementClientProps> = ({
                   placeholder="e.g. ramesh@friendlitripz.com"
                   value={inviteEmail}
                   onChange={(e) => setInviteEmail(e.target.value)}
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-brand-border text-sm font-medium text-brand-navy outline-none focus:border-brand-orange"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold uppercase tracking-wider text-brand-navy mb-1 font-mono">
+                  Phone Number
+                </label>
+                <input
+                  type="text"
+                  placeholder="e.g. 9876543210"
+                  value={invitePhone}
+                  onChange={(e) => setInvitePhone(e.target.value)}
                   className="w-full px-3.5 py-2.5 rounded-xl border border-brand-border text-sm font-medium text-brand-navy outline-none focus:border-brand-orange"
                 />
               </div>
@@ -1224,72 +1683,6 @@ export const TeamManagementClient: React.FC<TeamManagementClientProps> = ({
                 </Button>
               </div>
             </form>
-          </div>
-        </div>
-      )}
-
-      {/* MODAL: CHANGE ROLE */}
-      {roleModalUser && (
-        <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl p-6 sm:p-8 max-w-md w-full shadow-2xl border border-brand-border space-y-4">
-            <h2 className="text-lg font-bold text-brand-navy font-heading">
-              Change Role for {roleModalUser.full_name}
-            </h2>
-            <form onSubmit={handleChangeRoleSubmit} className="space-y-4">
-              {roleError && <div className="p-3 bg-red-50 text-red-700 text-xs rounded-xl font-bold">{roleError}</div>}
-              <select
-                value={selectedNewRole}
-                onChange={(e) => setSelectedNewRole(e.target.value as AdminRole)}
-                className="w-full px-3.5 py-2.5 rounded-xl border border-brand-border text-sm font-medium outline-none cursor-pointer"
-              >
-                {ALL_ROLES.filter((r) => r.id !== 'owner' && can(adminRole, 'team.role.change', r.id)).map((r) => (
-                  <option key={r.id} value={r.id}>
-                    {r.label} — {r.description}
-                  </option>
-                ))}
-              </select>
-
-              <div className="pt-2 flex justify-end gap-2">
-                <Button type="button" variant="ghost" size="sm" onClick={() => setRoleModalUser(null)}>
-                  Cancel
-                </Button>
-                <Button type="submit" variant="primary" size="sm" disabled={changingRole}>
-                  Update Role
-                </Button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-
-      {/* MODAL: STATUS UPDATE */}
-      {statusModalUser && (
-        <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl p-6 sm:p-8 max-w-md w-full shadow-2xl border border-brand-border space-y-4">
-            <h2 className="text-lg font-bold text-brand-navy font-heading">
-              Update Status for {statusModalUser.full_name}
-            </h2>
-            {statusError && <div className="p-3 bg-red-50 text-red-700 text-xs rounded-xl font-bold">{statusError}</div>}
-            <div className="space-y-2">
-              <label className="block text-xs font-bold text-brand-navy font-mono uppercase">Target Status</label>
-              <select
-                value={targetStatus}
-                onChange={(e) => setTargetStatus(e.target.value as any)}
-                className="w-full px-3.5 py-2.5 rounded-xl border border-brand-border text-sm font-medium outline-none cursor-pointer"
-              >
-                <option value="active">Active</option>
-                <option value="suspended">Suspended</option>
-                <option value="inactive">Inactive</option>
-              </select>
-            </div>
-            <div className="flex justify-end gap-2 pt-2">
-              <Button variant="ghost" size="sm" onClick={() => setStatusModalUser(null)}>
-                Cancel
-              </Button>
-              <Button variant="primary" size="sm" disabled={updatingStatus} onClick={handleStatusSubmit}>
-                Confirm Status Change
-              </Button>
-            </div>
           </div>
         </div>
       )}
