@@ -86,8 +86,8 @@ export default async function AdminTeamPage() {
       avatar_url: m.avatar_url || null,
       role: m.role,
       department_id: m.department_id,
-      department_name: m.departments?.name || null,
-      department_color: m.departments?.color || null,
+      department_name: m.departments?.name || 'Admin',
+      department_color: m.departments?.color || '#8B5CF6',
       is_active: m.is_active,
       status: m.status || (m.is_active ? 'active' : 'inactive'),
       created_at: m.created_at,
@@ -95,6 +95,22 @@ export default async function AdminTeamPage() {
       assigned_enquiries_count: assignmentMap.get(m.id) || 0,
     };
   });
+
+  // Calculate active members count per department
+  const deptCountMap = new Map<string, number>();
+  allMembers.forEach((m) => {
+    if (m.department_id && m.is_active && m.status === 'active') {
+      deptCountMap.set(m.department_id, (deptCountMap.get(m.department_id) || 0) + 1);
+    }
+  });
+
+  const departments: DepartmentItem[] = (deptsRes.data || []).map((d: any) => ({
+    id: d.id,
+    name: d.name,
+    color: d.color,
+    active: d.active,
+    member_count: deptCountMap.get(d.id) || 0,
+  }));
 
   // TEAM VISIBILITY RULES:
   // Owner: sees ALL members
@@ -116,7 +132,6 @@ export default async function AdminTeamPage() {
     expires_at: inv.expires_at,
   }));
 
-  const departments: DepartmentItem[] = deptsRes.data || [];
   const activityLogs: AuditLogItem[] = activityRes.data || [];
   const initialNewCount = newCountRes.count || 0;
 

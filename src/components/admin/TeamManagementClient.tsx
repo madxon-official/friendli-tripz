@@ -10,12 +10,10 @@ import {
   Activity,
   RefreshCw,
   Search,
-  MoreVertical,
   Edit2,
   Trash2,
   Send,
   Plus,
-  Loader2,
   AlertCircle,
   CheckCircle2,
   Crown,
@@ -164,6 +162,17 @@ export const TeamManagementClient: React.FC<TeamManagementClientProps> = ({
     setActivityLogs(initialActivityLogs);
   }, [initialMembers, initialInvitations, initialDepartments, initialActivityLogs]);
 
+  // Dynamically calculate active member count per department
+  const departmentActiveCountMap = useMemo(() => {
+    const map = new Map<string, number>();
+    members.forEach((m) => {
+      if (m.department_id && m.is_active && m.status === 'active') {
+        map.set(m.department_id, (map.get(m.department_id) || 0) + 1);
+      }
+    });
+    return map;
+  }, [members]);
+
   const handleRefresh = async () => {
     setIsRefreshing(true);
     router.refresh();
@@ -187,7 +196,7 @@ export const TeamManagementClient: React.FC<TeamManagementClientProps> = ({
     });
   }, [members, searchQuery, roleFilter, deptFilter, statusFilter]);
 
-  // Invite member submit
+  // Invite member submit (Department selection REQUIRED)
   const handleSendInvite = async (e: React.FormEvent) => {
     e.preventDefault();
     setInviteError(null);
@@ -203,6 +212,11 @@ export const TeamManagementClient: React.FC<TeamManagementClientProps> = ({
       return;
     }
 
+    if (!inviteDept) {
+      setInviteError('Please select a Department for the invited member.');
+      return;
+    }
+
     setInviting(true);
 
     try {
@@ -213,7 +227,7 @@ export const TeamManagementClient: React.FC<TeamManagementClientProps> = ({
           fullName: inviteName.trim(),
           email: inviteEmail.trim(),
           role: inviteRole,
-          departmentId: inviteDept || null,
+          departmentId: inviteDept,
         }),
       });
 
@@ -439,7 +453,7 @@ export const TeamManagementClient: React.FC<TeamManagementClientProps> = ({
     }
   };
 
-  // Exact Role Badges requested
+  // Color-coded role badges
   const getRoleBadge = (role: AdminRole) => {
     switch (role) {
       case 'owner':
@@ -578,6 +592,7 @@ export const TeamManagementClient: React.FC<TeamManagementClientProps> = ({
                 onClick={() => {
                   setInviteError(null);
                   setInviteSuccess(null);
+                  setInviteDept(departments[0]?.id || '');
                   setShowInviteModal(true);
                 }}
                 icon={<UserPlus className="w-4 h-4" />}
@@ -639,7 +654,7 @@ export const TeamManagementClient: React.FC<TeamManagementClientProps> = ({
           </button>
         </div>
 
-        {/* TAB 1: MEMBERS TABLE */}
+        {/* TAB 1: MEMBERS TABLE WITH HORIZONTAL SCROLL & STICKY COLUMNS */}
         {activeTab === 'members' && (
           <div className="space-y-4">
             {/* Filter Bar */}
@@ -696,185 +711,161 @@ export const TeamManagementClient: React.FC<TeamManagementClientProps> = ({
               </div>
             </div>
 
-            {/* Comprehensive Enterprise Table View */}
-            <div className="hidden xl:block bg-white rounded-3xl border border-brand-border/60 shadow-card overflow-hidden">
-              <table className="w-full text-left text-sm border-collapse">
-                <thead>
-                  <tr className="bg-brand-soft-navy/50 border-b border-brand-border/60 text-xs font-bold text-brand-navy uppercase tracking-wider font-mono">
-                    <th className="py-4 px-6">Avatar</th>
-                    <th className="py-4 px-6">Name</th>
-                    <th className="py-4 px-6">Email</th>
-                    <th className="py-4 px-6">Phone</th>
-                    <th className="py-4 px-6">Department</th>
-                    <th className="py-4 px-6">Role</th>
-                    <th className="py-4 px-6">Status</th>
-                    <th className="py-4 px-6">Assigned Leads</th>
-                    <th className="py-4 px-6">Joined / Login</th>
-                    <th className="py-4 px-6 text-right">Actions</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-brand-border/40 font-medium text-brand-navy">
-                  {filteredMembers.map((m) => {
-                    const isSelf = m.id === currentUserId;
-                    const isTargetOwner = m.role === 'owner';
-                    const isAdminUser = adminRole === 'admin';
+            {/* Scrollable Table Container */}
+            <div className="bg-white rounded-3xl border border-brand-border/60 shadow-card overflow-hidden w-full">
+              <div className="overflow-x-auto w-full">
+                <table className="min-w-[1100px] w-full text-left text-sm border-collapse">
+                  <thead>
+                    <tr className="bg-brand-soft-navy/50 border-b border-brand-border/60 text-xs font-bold text-brand-navy uppercase tracking-wider font-mono">
+                      <th className="sticky left-0 bg-brand-soft-navy/90 backdrop-blur-xs z-20 py-4 px-6 w-16 shadow-xs">
+                        Avatar
+                      </th>
+                      <th className="sticky left-16 bg-brand-soft-navy/90 backdrop-blur-xs z-20 py-4 px-6 border-r border-brand-border/40 min-w-[200px] shadow-xs">
+                        Name
+                      </th>
+                      <th className="py-4 px-6 min-w-[220px]">Email</th>
+                      <th className="py-4 px-6 min-w-[140px]">Phone</th>
+                      <th className="py-4 px-6 min-w-[150px]">Department</th>
+                      <th className="py-4 px-6 min-w-[130px]">Role</th>
+                      <th className="py-4 px-6 min-w-[120px]">Status</th>
+                      <th className="py-4 px-6 min-w-[140px]">Assigned Leads</th>
+                      <th className="py-4 px-6 min-w-[150px]">Joined / Login</th>
+                      <th className="py-4 px-6 text-right min-w-[180px]">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-brand-border/40 font-medium text-brand-navy">
+                    {filteredMembers.map((m) => {
+                      const isSelf = m.id === currentUserId;
+                      const isTargetOwner = m.role === 'owner';
+                      const isAdminUser = adminRole === 'admin';
 
-                    return (
-                      <tr key={m.id} className="hover:bg-brand-warm/60 transition-colors">
-                        <td className="py-4 px-6">
-                          <div className="relative w-10 h-10 rounded-full bg-brand-navy text-white flex items-center justify-center font-bold text-sm uppercase shadow-xs">
-                            {m.full_name.charAt(0)}
-                            <span
-                              className={`absolute bottom-0 right-0 w-3 h-3 rounded-full border-2 border-white ${
-                                m.status === 'active' ? 'bg-emerald-500' : 'bg-slate-400'
-                              }`}
-                            />
-                          </div>
-                        </td>
+                      return (
+                        <tr key={m.id} className="group hover:bg-brand-warm/60 transition-colors">
+                          <td className="sticky left-0 bg-white group-hover:bg-brand-warm/80 transition-colors z-10 py-4 px-6">
+                            <div className="relative w-10 h-10 rounded-full bg-brand-navy text-white flex items-center justify-center font-bold text-sm uppercase shadow-xs">
+                              {m.full_name.charAt(0)}
+                              <span
+                                className={`absolute bottom-0 right-0 w-3 h-3 rounded-full border-2 border-white ${
+                                  m.status === 'active' ? 'bg-emerald-500' : 'bg-slate-400'
+                                }`}
+                              />
+                            </div>
+                          </td>
 
-                        <td className="py-4 px-6 font-bold text-brand-navy font-heading">
-                          {m.full_name}
-                          {isSelf && <span className="ml-1.5 text-[10px] text-brand-orange font-mono font-bold">(You)</span>}
-                        </td>
+                          <td className="sticky left-16 bg-white group-hover:bg-brand-warm/80 transition-colors z-10 py-4 px-6 border-r border-brand-border/40 font-bold text-brand-navy font-heading">
+                            <div className="flex items-center gap-1.5">
+                              <span>{m.full_name}</span>
+                              {isSelf && <span className="text-[10px] text-brand-orange font-mono font-bold">(You)</span>}
+                            </div>
+                          </td>
 
-                        <td className="py-4 px-6 font-mono text-xs text-brand-muted">{m.email}</td>
+                          <td className="py-4 px-6 font-mono text-xs text-brand-muted">{m.email}</td>
 
-                        <td className="py-4 px-6 font-mono text-xs text-brand-muted">{m.phone || '—'}</td>
+                          <td className="py-4 px-6 font-mono text-xs text-brand-muted">{m.phone || '—'}</td>
 
-                        <td className="py-4 px-6 text-xs font-semibold">
-                          {m.department_name ? (
+                          <td className="py-4 px-6 text-xs font-semibold">
                             <span
                               className="px-2.5 py-1 rounded-full text-xs font-bold"
                               style={{
-                                backgroundColor: `${m.department_color || '#F97316'}15`,
-                                color: m.department_color || '#F97316',
+                                backgroundColor: `${m.department_color || '#8B5CF6'}15`,
+                                color: m.department_color || '#8B5CF6',
                               }}
                             >
-                              {m.department_name}
+                              {m.department_name || 'Admin'}
                             </span>
-                          ) : (
-                            <span className="text-brand-muted font-mono text-[11px]">General</span>
-                          )}
-                        </td>
+                          </td>
 
-                        <td className="py-4 px-6">{getRoleBadge(m.role)}</td>
+                          <td className="py-4 px-6">{getRoleBadge(m.role)}</td>
 
-                        <td className="py-4 px-6">{getStatusBadge(m.status)}</td>
+                          <td className="py-4 px-6">{getStatusBadge(m.status)}</td>
 
-                        <td className="py-4 px-6">
-                          <span className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-bold rounded-lg bg-brand-soft-navy text-brand-navy font-mono">
-                            <Briefcase className="w-3 h-3 text-brand-orange" />
-                            <span>{m.assigned_enquiries_count || 0}</span>
-                          </span>
-                        </td>
+                          <td className="py-4 px-6">
+                            <span className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-bold rounded-lg bg-brand-soft-navy text-brand-navy font-mono">
+                              <Briefcase className="w-3 h-3 text-brand-orange" />
+                              <span>{m.assigned_enquiries_count || 0}</span>
+                            </span>
+                          </td>
 
-                        <td className="py-4 px-6 text-xs text-brand-muted font-mono">
-                          {new Date(m.created_at).toLocaleDateString('en-IN', {
-                            day: 'numeric',
-                            month: 'short',
-                            year: 'numeric',
-                          })}
-                        </td>
+                          <td className="py-4 px-6 text-xs text-brand-muted font-mono">
+                            {new Date(m.created_at).toLocaleDateString('en-IN', {
+                              day: 'numeric',
+                              month: 'short',
+                              year: 'numeric',
+                            })}
+                          </td>
 
-                        <td className="py-4 px-6 text-right">
-                          <div className="flex items-center justify-end gap-2">
-                            {/* OWNER ON SELF ACTIONS */}
-                            {isSelf && isTargetOwner && (
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() => {
-                                  setTransferError(null);
-                                  setConfirmText('');
-                                  setTargetAdminId('');
-                                  setShowTransferModal(true);
-                                }}
-                              >
-                                Transfer Ownership
-                              </Button>
-                            )}
+                          <td className="py-4 px-6 text-right">
+                            <div className="flex items-center justify-end gap-2">
+                              {/* OWNER ON SELF ACTIONS */}
+                              {isSelf && isTargetOwner && (
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => {
+                                    setTransferError(null);
+                                    setConfirmText('');
+                                    setTargetAdminId('');
+                                    setShowTransferModal(true);
+                                  }}
+                                >
+                                  Transfer Ownership
+                                </Button>
+                              )}
 
-                            {/* ADMIN LOOKING AT OWNER: READ-ONLY PROTECTED BADGE */}
-                            {isAdminUser && isTargetOwner && (
-                              <span className="text-[11px] font-mono text-brand-muted italic flex items-center gap-1">
-                                <Lock className="w-3 h-3 text-amber-600" />
-                                <span>Owner Protected</span>
-                              </span>
-                            )}
+                              {/* ADMIN LOOKING AT OWNER: READ-ONLY PROTECTED BADGE */}
+                              {isAdminUser && isTargetOwner && (
+                                <span className="text-[11px] font-mono text-brand-muted italic flex items-center gap-1">
+                                  <Lock className="w-3 h-3 text-amber-600" />
+                                  <span>Owner Protected</span>
+                                </span>
+                              )}
 
-                            {/* Standard non-self Actions for Owner & Admin */}
-                            {!isSelf && (!isTargetOwner || adminRole === 'owner') && (
-                              <>
-                                {can(adminRole, 'team.role.change', m.role) && !isTargetOwner && (
-                                  <button
-                                    onClick={() => {
-                                      setRoleModalUser(m);
-                                      setSelectedNewRole(m.role);
-                                    }}
-                                    className="px-2.5 py-1 text-xs font-bold text-brand-navy hover:text-brand-orange border border-brand-border rounded-lg transition-colors"
-                                  >
-                                    Role
-                                  </button>
-                                )}
+                              {/* Standard non-self Actions for Owner & Admin */}
+                              {!isSelf && (!isTargetOwner || adminRole === 'owner') && (
+                                <>
+                                  {can(adminRole, 'team.role.change', m.role) && !isTargetOwner && (
+                                    <button
+                                      onClick={() => {
+                                        setRoleModalUser(m);
+                                        setSelectedNewRole(m.role);
+                                      }}
+                                      className="px-2.5 py-1 text-xs font-bold text-brand-navy hover:text-brand-orange border border-brand-border rounded-lg transition-colors"
+                                    >
+                                      Role
+                                    </button>
+                                  )}
 
-                                {can(adminRole, 'team.deactivate', m.role) && !isTargetOwner && (
-                                  <button
-                                    onClick={() => {
-                                      setStatusModalUser(m);
-                                      setTargetStatus(m.status === 'active' ? 'suspended' : 'active');
-                                    }}
-                                    className="px-2.5 py-1 text-xs font-bold text-brand-navy hover:text-amber-600 border border-brand-border rounded-lg transition-colors"
-                                  >
-                                    {m.status === 'active' ? 'Suspend' : 'Activate'}
-                                  </button>
-                                )}
+                                  {can(adminRole, 'team.deactivate', m.role) && !isTargetOwner && (
+                                    <button
+                                      onClick={() => {
+                                        setStatusModalUser(m);
+                                        setTargetStatus(m.status === 'active' ? 'suspended' : 'active');
+                                      }}
+                                      className="px-2.5 py-1 text-xs font-bold text-brand-navy hover:text-amber-600 border border-brand-border rounded-lg transition-colors"
+                                    >
+                                      {m.status === 'active' ? 'Suspend' : 'Activate'}
+                                    </button>
+                                  )}
 
-                                {can(adminRole, 'team.delete', m.role) && !isTargetOwner && (
-                                  <button
-                                    onClick={() => setDeleteModalUser(m)}
-                                    className="p-1.5 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                                    title="Delete Member"
-                                  >
-                                    <Trash2 className="w-4 h-4" />
-                                  </button>
-                                )}
-                              </>
-                            )}
-                          </div>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
-
-            {/* Mobile & Tablet Card Layout */}
-            <div className="xl:hidden space-y-3">
-              {filteredMembers.map((m) => (
-                <div
-                  key={m.id}
-                  className="bg-white rounded-2xl p-5 border border-brand-border/60 shadow-card space-y-3"
-                >
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-full bg-brand-navy text-white flex items-center justify-center font-bold text-sm uppercase">
-                        {m.full_name.charAt(0)}
-                      </div>
-                      <div>
-                        <h3 className="font-bold text-brand-navy font-heading">{m.full_name}</h3>
-                        <p className="text-xs text-brand-muted font-mono">{m.email}</p>
-                      </div>
-                    </div>
-                    {getStatusBadge(m.status)}
-                  </div>
-
-                  <div className="flex items-center justify-between text-xs pt-2 border-t border-brand-border/40">
-                    <div>{getRoleBadge(m.role)}</div>
-                    <span className="font-semibold text-brand-navy">{m.department_name || 'General'}</span>
-                  </div>
-                </div>
-              ))}
+                                  {can(adminRole, 'team.delete', m.role) && !isTargetOwner && (
+                                    <button
+                                      onClick={() => setDeleteModalUser(m)}
+                                      className="p-1.5 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                                      title="Delete Member"
+                                    >
+                                      <Trash2 className="w-4 h-4" />
+                                    </button>
+                                  )}
+                                </>
+                              )}
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
             </div>
           </div>
         )}
@@ -921,7 +912,7 @@ export const TeamManagementClient: React.FC<TeamManagementClientProps> = ({
           </div>
         )}
 
-        {/* TAB 3: DEPARTMENTS */}
+        {/* TAB 3: DEPARTMENTS WITH DYNAMIC ACTIVE MEMBER COUNTS */}
         {activeTab === 'departments' && (
           <div className="space-y-4">
             <div className="flex items-center justify-between">
@@ -944,39 +935,42 @@ export const TeamManagementClient: React.FC<TeamManagementClientProps> = ({
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {departments.map((dept) => (
-                <div
-                  key={dept.id}
-                  className="bg-white rounded-2xl p-5 border border-brand-border/60 shadow-card flex items-center justify-between"
-                >
-                  <div className="space-y-1">
-                    <div className="flex items-center gap-2">
-                      <span
-                        className="w-3 h-3 rounded-full"
-                        style={{ backgroundColor: dept.color }}
-                      />
-                      <h3 className="font-bold text-brand-navy font-heading">{dept.name}</h3>
+              {departments.map((dept) => {
+                const activeCount = departmentActiveCountMap.get(dept.id) || 0;
+                return (
+                  <div
+                    key={dept.id}
+                    className="bg-white rounded-2xl p-5 border border-brand-border/60 shadow-card flex items-center justify-between"
+                  >
+                    <div className="space-y-1">
+                      <div className="flex items-center gap-2">
+                        <span
+                          className="w-3 h-3 rounded-full"
+                          style={{ backgroundColor: dept.color }}
+                        />
+                        <h3 className="font-bold text-brand-navy font-heading">{dept.name}</h3>
+                      </div>
+                      <p className="text-xs text-brand-muted">
+                        <strong className="text-brand-navy">{activeCount}</strong> Active Members
+                      </p>
                     </div>
-                    <p className="text-xs text-brand-muted">
-                      {members.filter((m) => m.department_id === dept.id).length} Active Members
-                    </p>
-                  </div>
 
-                  {can(adminRole, 'team.department.change') && (
-                    <button
-                      onClick={() => {
-                        setEditingDept(dept);
-                        setDeptName(dept.name);
-                        setDeptColor(dept.color);
-                        setShowDeptModal(true);
-                      }}
-                      className="p-2 text-brand-muted hover:text-brand-navy hover:bg-brand-warm rounded-xl transition-colors"
-                    >
-                      <Edit2 className="w-4 h-4" />
-                    </button>
-                  )}
-                </div>
-              ))}
+                    {can(adminRole, 'team.department.change') && (
+                      <button
+                        onClick={() => {
+                          setEditingDept(dept);
+                          setDeptName(dept.name);
+                          setDeptColor(dept.color);
+                          setShowDeptModal(true);
+                        }}
+                        className="p-2 text-brand-muted hover:text-brand-navy hover:bg-brand-warm rounded-xl transition-colors"
+                      >
+                        <Edit2 className="w-4 h-4" />
+                      </button>
+                    )}
+                  </div>
+                );
+              })}
             </div>
           </div>
         )}
@@ -1082,7 +1076,7 @@ export const TeamManagementClient: React.FC<TeamManagementClientProps> = ({
         </div>
       )}
 
-      {/* MODAL: INVITE MEMBER (Owner & Admin) */}
+      {/* MODAL: INVITE MEMBER (Department Required) */}
       {showInviteModal && (
         <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
           <div className="bg-white rounded-3xl p-6 sm:p-8 max-w-md w-full shadow-2xl border border-brand-border space-y-5">
@@ -1158,14 +1152,14 @@ export const TeamManagementClient: React.FC<TeamManagementClientProps> = ({
 
               <div>
                 <label className="block text-xs font-bold uppercase tracking-wider text-brand-navy mb-1 font-mono">
-                  Department
+                  Department <span className="text-red-500">*</span>
                 </label>
                 <select
+                  required
                   value={inviteDept}
                   onChange={(e) => setInviteDept(e.target.value)}
                   className="w-full px-3.5 py-2.5 rounded-xl border border-brand-border text-sm font-medium text-brand-navy outline-none focus:border-brand-orange bg-white cursor-pointer"
                 >
-                  <option value="">No Department (General)</option>
                   {departments.map((d) => (
                     <option key={d.id} value={d.id}>
                       {d.name}
