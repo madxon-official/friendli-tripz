@@ -17,6 +17,7 @@ export interface AuditLogInput {
     | 'restored'
     | 'deleted'
     | 'transfer_ownership'
+    | 'member_edited'
     | 'login'
     | 'logout';
   oldData?: Record<string, any>;

@@ -208,9 +208,9 @@ function SetPasswordForm() {
         throw updateError;
       }
 
-      // Trigger Atomic Invitation Acceptance API
+      // Finalize invitation acceptance lifecycle
       try {
-        await fetch('/api/admin/team/accept-invite', {
+        await fetch('/api/auth/invitation-accepted', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -218,8 +218,8 @@ function SetPasswordForm() {
             email: userData.user.email,
           }),
         });
-      } catch (acceptErr) {
-        console.error('Failed to notify invitation acceptance API:', acceptErr);
+      } catch (finalizeErr) {
+        console.warn('Finalize invitation warning:', finalizeErr);
       }
 
       setSuccessMessage('Password created successfully.');

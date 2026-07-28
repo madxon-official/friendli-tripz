@@ -6,7 +6,6 @@ import { logActivity } from '@/lib/rbac/audit';
 export async function POST(req: NextRequest) {
   try {
     const caller = await requirePermission('team.invite');
-
     const body = await req.json();
     const { invitationId } = body;
 
@@ -27,14 +26,14 @@ export async function POST(req: NextRequest) {
 
     if (fetchErr || !inv) {
       return NextResponse.json(
-        { success: false, error: 'Invitation record not found.' },
+        { success: false, error: 'Invitation not found.' },
         { status: 404 }
       );
     }
 
-    if (inv.status === 'accepted') {
+    if (inv.status !== 'pending') {
       return NextResponse.json(
-        { success: false, error: 'Cannot cancel an accepted invitation.' },
+        { success: false, error: `Only pending invitations can be cancelled. Current status is ${inv.status}.` },
         { status: 400 }
       );
     }
@@ -43,7 +42,6 @@ export async function POST(req: NextRequest) {
       .from('admin_invitations')
       .update({
         status: 'cancelled',
-        cancelled_at: new Date().toISOString(),
       })
       .eq('id', invitationId);
 
@@ -60,8 +58,8 @@ export async function POST(req: NextRequest) {
       targetType: 'invitation',
       targetId: invitationId,
       action: 'status_changed',
-      oldData: { status: inv.status },
-      newData: { status: 'cancelled', cancelled_at: new Date().toISOString() },
+      oldData: { status: 'pending' },
+      newData: { status: 'cancelled', email: inv.email },
       req,
     });
 
@@ -73,7 +71,7 @@ export async function POST(req: NextRequest) {
     if (error instanceof AuthorizationError) {
       return NextResponse.json({ success: false, error: error.message }, { status: error.status });
     }
-    console.error('Cancel invite API error:', error);
+    console.error('Cancel invitation API error:', error);
     return NextResponse.json(
       { success: false, error: 'An unexpected server error occurred.' },
       { status: 500 }

@@ -11,6 +11,7 @@ export async function GET() {
     const { data: depts, error } = await serviceClient
       .from('departments')
       .select('*')
+      .is('archived_at', null)
       .order('name', { ascending: true });
 
     if (error) throw error;
@@ -29,26 +30,75 @@ export async function POST(req: NextRequest) {
     const caller = await requirePermission('team.department.change');
 
     const body = await req.json();
-    const { id, name, color, active } = body;
+    const { id, name, color, active, manager_id, action } = body;
+
+    const serviceClient = createServiceRoleClient();
+
+    // Archive action handling
+    if (action === 'archive' && id) {
+      // Verify no members exist in this department
+      const { count, error: countErr } = await serviceClient
+        .from('admin_profiles')
+        .select('id', { count: 'exact', head: true })
+        .eq('department_id', id)
+        .eq('is_active', true);
+
+      if (countErr) throw countErr;
+
+      if (count && count > 0) {
+        return NextResponse.json(
+          { success: false, error: `Cannot archive department containing ${count} active member(s). Reassign them first.` },
+          { status: 400 }
+        );
+      }
+
+      const { data, error } = await serviceClient
+        .from('departments')
+        .update({
+          active: false,
+          archived_at: new Date().toISOString(),
+        })
+        .eq('id', id)
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      await logActivity({
+        actorId: caller.userId,
+        targetType: 'department',
+        targetId: id,
+        action: 'department_changed',
+        newData: { action: 'archive', archived_at: new Date().toISOString() },
+        req,
+      });
+
+      return NextResponse.json({
+        success: true,
+        message: 'Department archived successfully.',
+        department: data,
+      });
+    }
 
     if (!name || typeof name !== 'string' || !name.trim()) {
       return NextResponse.json({ success: false, error: 'Department name is required.' }, { status: 400 });
     }
 
-    const serviceClient = createServiceRoleClient();
     const trimmedName = name.trim();
     const deptColor = color || '#F97316';
+    const managerId = manager_id || null;
 
     let resultData;
 
     if (id) {
-      // Update existing
+      // Update existing department
       const { data, error } = await serviceClient
         .from('departments')
         .update({
           name: trimmedName,
           color: deptColor,
           active: active !== undefined ? Boolean(active) : true,
+          manager_id: managerId,
         })
         .eq('id', id)
         .select()
@@ -57,13 +107,14 @@ export async function POST(req: NextRequest) {
       if (error) throw error;
       resultData = data;
     } else {
-      // Insert new
+      // Insert new department
       const { data, error } = await serviceClient
         .from('departments')
         .insert({
           name: trimmedName,
           color: deptColor,
           active: active !== undefined ? Boolean(active) : true,
+          manager_id: managerId,
         })
         .select()
         .single();
@@ -77,7 +128,7 @@ export async function POST(req: NextRequest) {
       targetType: 'department',
       targetId: resultData.id,
       action: 'department_changed',
-      newData: { name: trimmedName, color: deptColor },
+      newData: { name: trimmedName, color: deptColor, manager_id: managerId },
       req,
     });
 
