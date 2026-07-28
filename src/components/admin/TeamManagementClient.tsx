@@ -20,19 +20,13 @@ import {
   Briefcase,
   ArrowRightLeft,
   Lock,
-  Phone,
   PhoneCall,
   MessageSquare,
   Copy,
   Check,
   X,
-  User,
-  Calendar,
-  Clock,
-  ExternalLink,
-  ChevronRight,
   Archive,
-  Ban,
+  RotateCcw,
 } from 'lucide-react';
 import { AdminLayout } from '@/components/admin/AdminLayout';
 import { Button } from '@/components/ui/Button';
@@ -45,6 +39,7 @@ export interface DepartmentItem {
   name: string;
   color: string;
   active: boolean;
+  archived_at?: string | null;
   manager_id?: string | null;
   manager_name?: string | null;
   total_members?: number;
@@ -139,6 +134,7 @@ export const TeamManagementClient: React.FC<TeamManagementClientProps> = ({
   const [deptFilter, setDeptFilter] = useState<string>('all');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [invitationStatusFilter, setInvitationStatusFilter] = useState<string>('all');
+  const [deptStatusFilter, setDeptStatusFilter] = useState<'active' | 'archived' | 'all'>('active');
 
   // Slide-Over Profile Drawer State
   const [drawerUser, setDrawerUser] = useState<TeamMemberItem | null>(null);
@@ -205,7 +201,7 @@ export const TeamManagementClient: React.FC<TeamManagementClientProps> = ({
     setActivityLogs(initialActivityLogs);
   }, [initialMembers, initialInvitations, initialDepartments, initialActivityLogs]);
 
-  // Dynamically calculate department statistics
+  // SINGLE SOURCE OF TRUTH: Dynamically calculate department statistics directly from members & invitations
   const departmentStatsMap = useMemo(() => {
     const map = new Map<string, { total: number; active: number; suspended: number; pendingInvites: number }>();
 
@@ -278,6 +274,14 @@ export const TeamManagementClient: React.FC<TeamManagementClientProps> = ({
       return matchesSearch && matchesStatus;
     });
   }, [invitations, searchQuery, invitationStatusFilter]);
+
+  const filteredDepartments = useMemo(() => {
+    return departments.filter((dept) => {
+      if (deptStatusFilter === 'active') return dept.active && !dept.archived_at;
+      if (deptStatusFilter === 'archived') return !dept.active || Boolean(dept.archived_at);
+      return true;
+    });
+  }, [departments, deptStatusFilter]);
 
   // Invite member submit
   const handleSendInvite = async (e: React.FormEvent) => {
@@ -488,6 +492,30 @@ export const TeamManagementClient: React.FC<TeamManagementClientProps> = ({
       }
     } catch (err: any) {
       alert(err.message || 'Could not archive department.');
+    }
+  };
+
+  // Restore Department
+  const handleRestoreDepartment = async (dept: DepartmentItem) => {
+    try {
+      const res = await fetch('/api/admin/team/departments', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          id: dept.id,
+          action: 'restore',
+        }),
+      });
+
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        alert(data.error || 'Failed to restore department.');
+      } else {
+        alert(`Department '${dept.name}' restored successfully.`);
+        handleRefresh();
+      }
+    } catch (err: any) {
+      alert(err.message || 'Could not restore department.');
     }
   };
 
@@ -900,220 +928,229 @@ export const TeamManagementClient: React.FC<TeamManagementClientProps> = ({
               </div>
             </div>
 
-            {/* Scrollable Table Container */}
-            <div className="bg-white rounded-3xl border border-brand-border/60 shadow-card overflow-hidden w-full">
-              <div className="overflow-x-auto w-full">
-                <table className="min-w-[1200px] w-full text-left text-sm border-collapse">
-                  <thead>
-                    <tr className="bg-brand-soft-navy/50 border-b border-brand-border/60 text-xs font-bold text-brand-navy uppercase tracking-wider font-mono">
-                      <th className="sticky left-0 bg-brand-soft-navy/90 backdrop-blur-xs z-20 py-4 px-6 w-16 shadow-xs">
-                        Avatar
-                      </th>
-                      <th className="sticky left-16 bg-brand-soft-navy/90 backdrop-blur-xs z-20 py-4 px-6 border-r border-brand-border/40 min-w-[200px] shadow-xs">
-                        Name
-                      </th>
-                      <th className="py-4 px-6 min-w-[220px]">Email</th>
-                      <th className="py-4 px-6 min-w-[180px]">Phone & Actions</th>
-                      <th className="py-4 px-6 min-w-[150px]">Department</th>
-                      <th className="py-4 px-6 min-w-[130px]">Role</th>
-                      <th className="py-4 px-6 min-w-[130px]">Status</th>
-                      <th className="py-4 px-6 min-w-[140px]">Assigned Leads</th>
-                      <th className="py-4 px-6 min-w-[150px]">Joined / Login</th>
-                      <th className="py-4 px-6 text-right min-w-[200px]">Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-brand-border/40 font-medium text-brand-navy">
-                    {filteredMembers.map((m) => {
-                      const isSelf = m.id === currentUserId;
-                      const isTargetOwner = m.role === 'owner';
-                      const isAdminUser = adminRole === 'admin';
-                      const cleanPhone = m.phone ? m.phone.replace(/[^0-9]/g, '') : '';
-
-                      return (
-                        <tr
-                          key={m.id}
-                          className="group hover:bg-brand-warm/60 transition-colors cursor-pointer"
-                          onClick={(e) => {
-                            // Don't open drawer if clicking button/action inside
-                            if ((e.target as HTMLElement).closest('button, a, select')) return;
-                            setDrawerUser(m);
-                          }}
-                        >
-                          <td className="sticky left-0 bg-white group-hover:bg-brand-warm/80 transition-colors z-10 py-4 px-6">
-                            <div className="relative w-10 h-10 rounded-full bg-brand-navy text-white flex items-center justify-center font-bold text-sm uppercase shadow-xs">
-                              {m.full_name.charAt(0)}
-                              <span
-                                className={`absolute bottom-0 right-0 w-3 h-3 rounded-full border-2 border-white ${
-                                  m.status === 'active' ? 'bg-emerald-500' : 'bg-slate-400'
-                                }`}
-                              />
-                            </div>
-                          </td>
-
-                          <td className="sticky left-16 bg-white group-hover:bg-brand-warm/80 transition-colors z-10 py-4 px-6 border-r border-brand-border/40 font-bold text-brand-navy font-heading">
-                            <div className="flex items-center gap-1.5">
-                              <span>{m.full_name}</span>
-                              {isSelf && <span className="text-[10px] text-brand-orange font-mono font-bold">(You)</span>}
-                            </div>
-                          </td>
-
-                          <td className="py-4 px-6 font-mono text-xs text-brand-muted">{m.email}</td>
-
-                          <td className="py-4 px-6 font-mono text-xs text-brand-muted">
-                            {m.phone ? (
-                              <div className="flex items-center gap-2">
-                                <span>{m.phone}</span>
-                                <a
-                                  href={`tel:${m.phone}`}
-                                  onClick={(e) => e.stopPropagation()}
-                                  className="p-1 rounded text-brand-navy hover:text-brand-orange hover:bg-brand-warm"
-                                  title="Call Phone"
-                                >
-                                  <PhoneCall className="w-3.5 h-3.5" />
-                                </a>
-                                {cleanPhone && (
-                                  <a
-                                    href={`https://wa.me/${cleanPhone}`}
-                                    target="_blank"
-                                    rel="noreferrer"
-                                    onClick={(e) => e.stopPropagation()}
-                                    className="p-1 rounded text-emerald-600 hover:bg-emerald-50"
-                                    title="WhatsApp Message"
-                                  >
-                                    <MessageSquare className="w-3.5 h-3.5" />
-                                  </a>
-                                )}
-                                <button
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    copyToClipboard(m.phone!, m.id);
-                                  }}
-                                  className="p-1 rounded text-brand-muted hover:text-brand-navy"
-                                  title="Copy Phone"
-                                >
-                                  {copiedPhoneId === m.id ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5" />}
-                                </button>
-                              </div>
-                            ) : (
-                              <span className="text-brand-muted text-[11px]">No Phone</span>
-                            )}
-                          </td>
-
-                          <td className="py-4 px-6 text-xs font-semibold">
-                            <span
-                              className="px-2.5 py-1 rounded-full text-xs font-bold"
-                              style={{
-                                backgroundColor: `${m.department_color || '#8B5CF6'}15`,
-                                color: m.department_color || '#8B5CF6',
-                              }}
-                            >
-                              {m.department_name || 'Admin'}
-                            </span>
-                          </td>
-
-                          <td className="py-4 px-6">{getRoleBadge(m.role)}</td>
-
-                          <td className="py-4 px-6">{getStatusBadge(m.status)}</td>
-
-                          <td className="py-4 px-6">
-                            <span className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-bold rounded-lg bg-brand-soft-navy text-brand-navy font-mono">
-                              <Briefcase className="w-3 h-3 text-brand-orange" />
-                              <span>{m.assigned_enquiries_count || 0}</span>
-                            </span>
-                          </td>
-
-                          <td className="py-4 px-6 text-xs text-brand-muted font-mono">
-                            {new Date(m.created_at).toLocaleDateString('en-IN', {
-                              day: 'numeric',
-                              month: 'short',
-                              year: 'numeric',
-                            })}
-                          </td>
-
-                          <td className="py-4 px-6 text-right">
-                            <div className="flex items-center justify-end gap-2">
-                              {/* EDIT MEMBER BUTTON */}
-                              {(!isTargetOwner || adminRole === 'owner') && (
-                                <button
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    openEditModal(m);
-                                  }}
-                                  className="p-1.5 text-brand-navy hover:text-brand-orange border border-brand-border rounded-lg transition-colors"
-                                  title="Edit Member Profile"
-                                >
-                                  <Edit2 className="w-3.5 h-3.5" />
-                                </button>
-                              )}
-
-                              {/* OWNER ON SELF ACTIONS */}
-                              {isSelf && isTargetOwner && (
-                                <Button
-                                  variant="outline"
-                                  size="sm"
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    setTransferError(null);
-                                    setConfirmText('');
-                                    setTargetAdminId('');
-                                    setShowTransferModal(true);
-                                  }}
-                                >
-                                  Transfer Ownership
-                                </Button>
-                              )}
-
-                              {/* ADMIN LOOKING AT OWNER: READ-ONLY PROTECTED BADGE */}
-                              {isAdminUser && isTargetOwner && (
-                                <span className="text-[11px] font-mono text-brand-muted italic flex items-center gap-1">
-                                  <Lock className="w-3 h-3 text-amber-600" />
-                                  <span>Owner Protected</span>
-                                </span>
-                              )}
-
-                              {/* Standard non-self Actions for Owner & Admin */}
-                              {!isSelf && (!isTargetOwner || adminRole === 'owner') && (
-                                <>
-                                  {can(adminRole, 'team.deactivate', m.role) && !isTargetOwner && (
-                                    <button
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        setStatusModalUser(m);
-                                        setTargetStatus(m.status === 'active' ? 'suspended' : 'active');
-                                      }}
-                                      className="px-2.5 py-1 text-xs font-bold text-brand-navy hover:text-amber-600 border border-brand-border rounded-lg transition-colors"
-                                    >
-                                      {m.status === 'active' ? 'Suspend' : 'Activate'}
-                                    </button>
-                                  )}
-
-                                  {can(adminRole, 'team.delete', m.role) && !isTargetOwner && (
-                                    <button
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        setDeleteModalUser(m);
-                                      }}
-                                      className="p-1.5 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                                      title="Delete Member"
-                                    >
-                                      <Trash2 className="w-4 h-4" />
-                                    </button>
-                                  )}
-                                </>
-                              )}
-                            </div>
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
+            {/* Members List or Clean Empty State */}
+            {filteredMembers.length === 0 ? (
+              <div className="bg-white rounded-3xl p-12 border border-brand-border/60 shadow-card text-center space-y-3">
+                <Users className="w-10 h-10 text-brand-muted mx-auto" />
+                <h3 className="text-base font-bold text-brand-navy font-heading">No Team Members Found</h3>
+                <p className="text-xs text-brand-muted max-w-sm mx-auto">
+                  No team members matched your search query or filter criteria. Try clearing search filters.
+                </p>
               </div>
-            </div>
+            ) : (
+              <div className="bg-white rounded-3xl border border-brand-border/60 shadow-card overflow-hidden w-full">
+                <div className="overflow-x-auto w-full">
+                  <table className="min-w-[1200px] w-full text-left text-sm border-collapse">
+                    <thead>
+                      <tr className="bg-brand-soft-navy/50 border-b border-brand-border/60 text-xs font-bold text-brand-navy uppercase tracking-wider font-mono">
+                        <th className="sticky left-0 bg-brand-soft-navy/90 backdrop-blur-xs z-20 py-4 px-6 w-16 shadow-xs">
+                          Avatar
+                        </th>
+                        <th className="sticky left-16 bg-brand-soft-navy/90 backdrop-blur-xs z-20 py-4 px-6 border-r border-brand-border/40 min-w-[200px] shadow-xs">
+                          Name
+                        </th>
+                        <th className="py-4 px-6 min-w-[220px]">Email</th>
+                        <th className="py-4 px-6 min-w-[180px]">Phone & Actions</th>
+                        <th className="py-4 px-6 min-w-[150px]">Department</th>
+                        <th className="py-4 px-6 min-w-[130px]">Role</th>
+                        <th className="py-4 px-6 min-w-[130px]">Status</th>
+                        <th className="py-4 px-6 min-w-[140px]">Assigned Leads</th>
+                        <th className="py-4 px-6 min-w-[150px]">Joined / Login</th>
+                        <th className="py-4 px-6 text-right min-w-[200px]">Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-brand-border/40 font-medium text-brand-navy">
+                      {filteredMembers.map((m) => {
+                        const isSelf = m.id === currentUserId;
+                        const isTargetOwner = m.role === 'owner';
+                        const isAdminUser = adminRole === 'admin';
+                        const cleanPhone = m.phone ? m.phone.replace(/[^0-9]/g, '') : '';
+
+                        return (
+                          <tr
+                            key={m.id}
+                            className="group hover:bg-brand-warm/60 transition-colors cursor-pointer"
+                            onClick={(e) => {
+                              if ((e.target as HTMLElement).closest('button, a, select')) return;
+                              setDrawerUser(m);
+                            }}
+                          >
+                            <td className="sticky left-0 bg-white group-hover:bg-brand-warm/80 transition-colors z-10 py-4 px-6">
+                              <div className="relative w-10 h-10 rounded-full bg-brand-navy text-white flex items-center justify-center font-bold text-sm uppercase shadow-xs">
+                                {m.full_name.charAt(0)}
+                                <span
+                                  className={`absolute bottom-0 right-0 w-3 h-3 rounded-full border-2 border-white ${
+                                    m.status === 'active' ? 'bg-emerald-500' : 'bg-slate-400'
+                                  }`}
+                                />
+                              </div>
+                            </td>
+
+                            <td className="sticky left-16 bg-white group-hover:bg-brand-warm/80 transition-colors z-10 py-4 px-6 border-r border-brand-border/40 font-bold text-brand-navy font-heading">
+                              <div className="flex items-center gap-1.5">
+                                <span>{m.full_name}</span>
+                                {isSelf && <span className="text-[10px] text-brand-orange font-mono font-bold">(You)</span>}
+                              </div>
+                            </td>
+
+                            <td className="py-4 px-6 font-mono text-xs text-brand-muted">{m.email}</td>
+
+                            <td className="py-4 px-6 font-mono text-xs text-brand-muted">
+                              {m.phone ? (
+                                <div className="flex items-center gap-2">
+                                  <span>{m.phone}</span>
+                                  <a
+                                    href={`tel:${m.phone}`}
+                                    onClick={(e) => e.stopPropagation()}
+                                    className="p-1 rounded text-brand-navy hover:text-brand-orange hover:bg-brand-warm"
+                                    title="Call Phone"
+                                  >
+                                    <PhoneCall className="w-3.5 h-3.5" />
+                                  </a>
+                                  {cleanPhone && (
+                                    <a
+                                      href={`https://wa.me/${cleanPhone}`}
+                                      target="_blank"
+                                      rel="noreferrer"
+                                      onClick={(e) => e.stopPropagation()}
+                                      className="p-1 rounded text-emerald-600 hover:bg-emerald-50"
+                                      title="WhatsApp Message"
+                                    >
+                                      <MessageSquare className="w-3.5 h-3.5" />
+                                    </a>
+                                  )}
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      copyToClipboard(m.phone!, m.id);
+                                    }}
+                                    className="p-1 rounded text-brand-muted hover:text-brand-navy"
+                                    title="Copy Phone"
+                                  >
+                                    {copiedPhoneId === m.id ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5" />}
+                                  </button>
+                                </div>
+                              ) : (
+                                <span className="text-brand-muted text-[11px]">No Phone</span>
+                              )}
+                            </td>
+
+                            <td className="py-4 px-6 text-xs font-semibold">
+                              <span
+                                className="px-2.5 py-1 rounded-full text-xs font-bold"
+                                style={{
+                                  backgroundColor: `${m.department_color || '#8B5CF6'}15`,
+                                  color: m.department_color || '#8B5CF6',
+                                }}
+                              >
+                                {m.department_name || 'Admin'}
+                              </span>
+                            </td>
+
+                            <td className="py-4 px-6">{getRoleBadge(m.role)}</td>
+
+                            <td className="py-4 px-6">{getStatusBadge(m.status)}</td>
+
+                            <td className="py-4 px-6">
+                              <span className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-bold rounded-lg bg-brand-soft-navy text-brand-navy font-mono">
+                                <Briefcase className="w-3 h-3 text-brand-orange" />
+                                <span>{m.assigned_enquiries_count || 0}</span>
+                              </span>
+                            </td>
+
+                            <td className="py-4 px-6 text-xs text-brand-muted font-mono">
+                              {new Date(m.created_at).toLocaleDateString('en-IN', {
+                                day: 'numeric',
+                                month: 'short',
+                                year: 'numeric',
+                              })}
+                            </td>
+
+                            <td className="py-4 px-6 text-right">
+                              <div className="flex items-center justify-end gap-2">
+                                {/* EDIT MEMBER BUTTON */}
+                                {(!isTargetOwner || adminRole === 'owner') && (
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      openEditModal(m);
+                                    }}
+                                    className="p-1.5 text-brand-navy hover:text-brand-orange border border-brand-border rounded-lg transition-colors"
+                                    title="Edit Member Profile"
+                                  >
+                                    <Edit2 className="w-3.5 h-3.5" />
+                                  </button>
+                                )}
+
+                                {/* OWNER ON SELF ACTIONS */}
+                                {isSelf && isTargetOwner && (
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      setTransferError(null);
+                                      setConfirmText('');
+                                      setTargetAdminId('');
+                                      setShowTransferModal(true);
+                                    }}
+                                  >
+                                    Transfer Ownership
+                                  </Button>
+                                )}
+
+                                {/* ADMIN LOOKING AT OWNER: READ-ONLY PROTECTED BADGE */}
+                                {isAdminUser && isTargetOwner && (
+                                  <span className="text-[11px] font-mono text-brand-muted italic flex items-center gap-1">
+                                    <Lock className="w-3 h-3 text-amber-600" />
+                                    <span>Owner Protected</span>
+                                  </span>
+                                )}
+
+                                {/* Standard non-self Actions for Owner & Admin */}
+                                {!isSelf && (!isTargetOwner || adminRole === 'owner') && (
+                                  <>
+                                    {can(adminRole, 'team.deactivate', m.role) && !isTargetOwner && (
+                                      <button
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          setStatusModalUser(m);
+                                          setTargetStatus(m.status === 'active' ? 'suspended' : 'active');
+                                        }}
+                                        className="px-2.5 py-1 text-xs font-bold text-brand-navy hover:text-amber-600 border border-brand-border rounded-lg transition-colors"
+                                      >
+                                        {m.status === 'active' ? 'Suspend' : 'Activate'}
+                                      </button>
+                                    )}
+
+                                    {can(adminRole, 'team.delete', m.role) && !isTargetOwner && (
+                                      <button
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          setDeleteModalUser(m);
+                                        }}
+                                        className="p-1.5 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                                        title="Delete Member"
+                                      >
+                                        <Trash2 className="w-4 h-4" />
+                                      </button>
+                                    )}
+                                  </>
+                                )}
+                              </div>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
           </div>
         )}
 
-        {/* TAB 2: INVITATIONS CARDS WITH ENHANCED METADATA & FILTERS */}
+        {/* TAB 2: INVITATIONS */}
         {activeTab === 'invitations' && (
           <div className="space-y-4">
             <div className="bg-white rounded-2xl p-4 border border-brand-border/60 shadow-sm flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3">
@@ -1220,11 +1257,23 @@ export const TeamManagementClient: React.FC<TeamManagementClientProps> = ({
           </div>
         )}
 
-        {/* TAB 3: DEPARTMENTS WITH MANAGERS & EXTENDED STATS */}
+        {/* TAB 3: DEPARTMENTS WITH ARCHIVED DEPARTMENT FILTER & RESTORE ACTION */}
         {activeTab === 'departments' && (
           <div className="space-y-4">
-            <div className="flex items-center justify-between">
-              <h2 className="text-lg font-bold text-brand-navy font-heading">Enterprise Departments & Managers</h2>
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div className="flex items-center gap-3">
+                <h2 className="text-lg font-bold text-brand-navy font-heading">Enterprise Departments</h2>
+                <select
+                  value={deptStatusFilter}
+                  onChange={(e) => setDeptStatusFilter(e.target.value as any)}
+                  className="px-3 py-1.5 rounded-xl border border-brand-border text-xs font-bold text-brand-navy outline-none bg-white cursor-pointer"
+                >
+                  <option value="active">Active Departments</option>
+                  <option value="archived">Archived Departments</option>
+                  <option value="all">All Departments</option>
+                </select>
+              </div>
+
               {can(adminRole, 'team.department.change') && (
                 <Button
                   variant="primary"
@@ -1243,83 +1292,117 @@ export const TeamManagementClient: React.FC<TeamManagementClientProps> = ({
               )}
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {departments.map((dept) => {
-                const stats = departmentStatsMap.get(dept.id) || {
-                  total: 0,
-                  active: 0,
-                  suspended: 0,
-                  pendingInvites: 0,
-                };
-                return (
-                  <div
-                    key={dept.id}
-                    className="bg-white rounded-2xl p-5 border border-brand-border/60 shadow-card space-y-4 flex flex-col justify-between"
-                  >
-                    <div className="space-y-3">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-2">
-                          <span className="w-3.5 h-3.5 rounded-full" style={{ backgroundColor: dept.color }} />
-                          <h3 className="font-bold text-brand-navy font-heading text-base">{dept.name}</h3>
-                        </div>
-                        {can(adminRole, 'team.department.change') && (
-                          <div className="flex items-center gap-1">
-                            <button
-                              onClick={() => {
-                                setEditingDept(dept);
-                                setDeptName(dept.name);
-                                setDeptColor(dept.color);
-                                setDeptManager(dept.manager_id || '');
-                                setShowDeptModal(true);
-                              }}
-                              className="p-1.5 text-brand-muted hover:text-brand-navy hover:bg-brand-warm rounded-lg transition-colors"
-                              title="Edit Department"
-                            >
-                              <Edit2 className="w-4 h-4" />
-                            </button>
-                            <button
-                              onClick={() => handleArchiveDepartment(dept)}
-                              className="p-1.5 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                              title="Archive Department"
-                            >
-                              <Archive className="w-4 h-4" />
-                            </button>
+            {filteredDepartments.length === 0 ? (
+              <div className="bg-white rounded-3xl p-12 border border-brand-border/60 shadow-card text-center space-y-3">
+                <Building2 className="w-10 h-10 text-brand-muted mx-auto" />
+                <h3 className="text-base font-bold text-brand-navy font-heading">No Departments Found</h3>
+                <p className="text-xs text-brand-muted max-w-sm mx-auto">
+                  No departments found matching status filter &quot;{deptStatusFilter}&quot;.
+                </p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {filteredDepartments.map((dept) => {
+                  const stats = departmentStatsMap.get(dept.id) || {
+                    total: 0,
+                    active: 0,
+                    suspended: 0,
+                    pendingInvites: 0,
+                  };
+                  const isArchived = !dept.active || Boolean(dept.archived_at);
+                  const managerProfile = members.find((m) => m.id === dept.manager_id);
+                  const managerDisplayName = dept.manager_name || (managerProfile ? managerProfile.full_name : null);
+
+                  return (
+                    <div
+                      key={dept.id}
+                      className={`bg-white rounded-2xl p-5 border shadow-card space-y-4 flex flex-col justify-between ${
+                        isArchived ? 'border-gray-300 bg-gray-50/50 opacity-90' : 'border-brand-border/60'
+                      }`}
+                    >
+                      <div className="space-y-3">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <span className="w-3.5 h-3.5 rounded-full" style={{ backgroundColor: dept.color }} />
+                            <h3 className="font-bold text-brand-navy font-heading text-base">{dept.name}</h3>
+                            {isArchived && (
+                              <span className="px-2 py-0.5 text-[10px] font-bold rounded-full bg-gray-200 text-gray-700 font-mono">
+                                Archived
+                              </span>
+                            )}
                           </div>
-                        )}
-                      </div>
+                          {can(adminRole, 'team.department.change') && (
+                            <div className="flex items-center gap-1">
+                              {!isArchived ? (
+                                <>
+                                  <button
+                                    onClick={() => {
+                                      setEditingDept(dept);
+                                      setDeptName(dept.name);
+                                      setDeptColor(dept.color);
+                                      setDeptManager(dept.manager_id || '');
+                                      setShowDeptModal(true);
+                                    }}
+                                    className="p-1.5 text-brand-muted hover:text-brand-navy hover:bg-brand-warm rounded-lg transition-colors"
+                                    title="Edit Department"
+                                  >
+                                    <Edit2 className="w-4 h-4" />
+                                  </button>
+                                  <button
+                                    onClick={() => handleArchiveDepartment(dept)}
+                                    className="p-1.5 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                                    title="Archive Department"
+                                  >
+                                    <Archive className="w-4 h-4" />
+                                  </button>
+                                </>
+                              ) : (
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => handleRestoreDepartment(dept)}
+                                  icon={<RotateCcw className="w-3.5 h-3.5 text-emerald-600" />}
+                                >
+                                  Restore
+                                </Button>
+                              )}
+                            </div>
+                          )}
+                        </div>
 
-                      {/* Department Manager */}
-                      <div className="p-2.5 rounded-xl bg-brand-soft-navy/50 text-xs flex items-center justify-between border border-brand-border/40">
-                        <span className="text-brand-muted font-mono font-bold uppercase text-[10px]">Manager:</span>
-                        <span className="font-bold text-brand-navy">
-                          {dept.manager_name ? dept.manager_name : <span className="text-brand-muted italic">Unassigned</span>}
-                        </span>
-                      </div>
+                        {/* Department Manager */}
+                        <div className="p-2.5 rounded-xl bg-brand-soft-navy/50 text-xs flex items-center justify-between border border-brand-border/40">
+                          <span className="text-brand-muted font-mono font-bold uppercase text-[10px]">Manager:</span>
+                          <span className="font-bold text-brand-navy">
+                            {managerDisplayName ? managerDisplayName : <span className="text-brand-muted italic">Unassigned</span>}
+                          </span>
+                        </div>
 
-                      {/* Department Statistics Grid */}
-                      <div className="grid grid-cols-2 gap-2 text-xs font-mono pt-1">
-                        <div className="p-2 rounded-xl bg-brand-warm/40 border border-brand-border/30">
-                          <span className="text-brand-muted block text-[10px]">Active Members</span>
-                          <span className="text-base font-bold text-emerald-700">{stats.active}</span>
-                        </div>
-                        <div className="p-2 rounded-xl bg-brand-warm/40 border border-brand-border/30">
-                          <span className="text-brand-muted block text-[10px]">Total Staff</span>
-                          <span className="text-base font-bold text-brand-navy">{stats.total}</span>
-                        </div>
-                        <div className="p-2 rounded-xl bg-brand-warm/40 border border-brand-border/30">
-                          <span className="text-brand-muted block text-[10px]">Suspended</span>
-                          <span className="text-base font-bold text-red-600">{stats.suspended}</span>
-                        </div>
-                        <div className="p-2 rounded-xl bg-brand-warm/40 border border-brand-border/30">
-                          <span className="text-brand-muted block text-[10px]">Pending Invites</span>
-                          <span className="text-base font-bold text-amber-600">{stats.pendingInvites}</span>
+                        {/* Department Statistics Grid */}
+                        <div className="grid grid-cols-2 gap-2 text-xs font-mono pt-1">
+                          <div className="p-2 rounded-xl bg-brand-warm/40 border border-brand-border/30">
+                            <span className="text-brand-muted block text-[10px]">Active Members</span>
+                            <span className="text-base font-bold text-emerald-700">{stats.active}</span>
+                          </div>
+                          <div className="p-2 rounded-xl bg-brand-warm/40 border border-brand-border/30">
+                            <span className="text-brand-muted block text-[10px]">Total Staff</span>
+                            <span className="text-base font-bold text-brand-navy">{stats.total}</span>
+                          </div>
+                          <div className="p-2 rounded-xl bg-brand-warm/40 border border-brand-border/30">
+                            <span className="text-brand-muted block text-[10px]">Suspended</span>
+                            <span className="text-base font-bold text-red-600">{stats.suspended}</span>
+                          </div>
+                          <div className="p-2 rounded-xl bg-brand-warm/40 border border-brand-border/30">
+                            <span className="text-brand-muted block text-[10px]">Pending Invites</span>
+                            <span className="text-base font-bold text-amber-600">{stats.pendingInvites}</span>
+                          </div>
                         </div>
                       </div>
                     </div>
-                  </div>
-                );
-              })}
-            </div>
+                  );
+                })}
+              </div>
+            )}
           </div>
         )}
 
@@ -1811,7 +1894,7 @@ export const TeamManagementClient: React.FC<TeamManagementClientProps> = ({
                   className="w-full px-3.5 py-2.5 rounded-xl border border-brand-border text-sm font-medium outline-none cursor-pointer bg-white"
                 >
                   <option value="">No Manager Assigned</option>
-                  {members.map((m) => (
+                  {members.filter((m) => m.is_active && m.status === 'active').map((m) => (
                     <option key={m.id} value={m.id}>
                       {m.full_name} ({m.role.toUpperCase()})
                     </option>

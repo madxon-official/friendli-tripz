@@ -3,16 +3,21 @@ import { requirePermission, AuthorizationError } from '@/lib/rbac/authorize';
 import { createServiceRoleClient } from '@/lib/supabase/service';
 import { logActivity } from '@/lib/rbac/audit';
 
-export async function GET() {
+export async function GET(req: NextRequest) {
   try {
     await requirePermission('team.view');
     const serviceClient = createServiceRoleClient();
 
-    const { data: depts, error } = await serviceClient
-      .from('departments')
-      .select('*')
-      .is('archived_at', null)
-      .order('name', { ascending: true });
+    const url = new URL(req.url);
+    const includeArchived = url.searchParams.get('includeArchived') === 'true';
+
+    let query = serviceClient.from('departments').select('*').order('name', { ascending: true });
+
+    if (!includeArchived) {
+      query = query.is('archived_at', null);
+    }
+
+    const { data: depts, error } = await query;
 
     if (error) throw error;
 
@@ -33,6 +38,36 @@ export async function POST(req: NextRequest) {
     const { id, name, color, active, manager_id, action } = body;
 
     const serviceClient = createServiceRoleClient();
+
+    // Restore action handling
+    if (action === 'restore' && id) {
+      const { data, error } = await serviceClient
+        .from('departments')
+        .update({
+          active: true,
+          archived_at: null,
+        })
+        .eq('id', id)
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      await logActivity({
+        actorId: caller.userId,
+        targetType: 'department',
+        targetId: id,
+        action: 'department_changed',
+        newData: { action: 'restore', active: true },
+        req,
+      });
+
+      return NextResponse.json({
+        success: true,
+        message: `Department '${data.name}' restored successfully.`,
+        department: data,
+      });
+    }
 
     // Archive action handling
     if (action === 'archive' && id) {

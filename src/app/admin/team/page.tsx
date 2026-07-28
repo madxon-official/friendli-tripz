@@ -40,7 +40,6 @@ export default async function AdminTeamPage() {
     serviceClient
       .from('departments')
       .select('id, name, color, active, manager_id, archived_at')
-      .is('archived_at', null)
       .order('name', { ascending: true }),
     serviceClient
       .from('admin_activity_logs')
