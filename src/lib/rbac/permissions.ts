@@ -18,6 +18,12 @@ export type Permission =
   | 'enquiry.archive'
   | 'enquiry.assign'
   | 'enquiry.notes'
+  | 'destination.view'
+  | 'destination.create'
+  | 'destination.update'
+  | 'destination.delete'
+  | 'destination.publish'
+  | 'destination.archive'
   | 'trip.view'
   | 'trip.create'
   | 'trip.update'
@@ -49,6 +55,12 @@ export const ROLE_PERMISSIONS: Record<AdminRole, Permission[]> = {
     'enquiry.archive',
     'enquiry.assign',
     'enquiry.notes',
+    'destination.view',
+    'destination.create',
+    'destination.update',
+    'destination.delete',
+    'destination.publish',
+    'destination.archive',
     'trip.view',
     'trip.create',
     'trip.update',
@@ -77,6 +89,12 @@ export const ROLE_PERMISSIONS: Record<AdminRole, Permission[]> = {
     'enquiry.archive',
     'enquiry.assign',
     'enquiry.notes',
+    'destination.view',
+    'destination.create',
+    'destination.update',
+    'destination.delete',
+    'destination.publish',
+    'destination.archive',
     'trip.view',
     'trip.create',
     'trip.update',
@@ -90,6 +108,8 @@ export const ROLE_PERMISSIONS: Record<AdminRole, Permission[]> = {
     'enquiry.view',
     'enquiry.update',
     'enquiry.notes',
+    'destination.view',
+    'destination.update',
     'trip.view',
     'trip.update',
     'booking.view',
@@ -101,16 +121,19 @@ export const ROLE_PERMISSIONS: Record<AdminRole, Permission[]> = {
     'enquiry.update',
     'enquiry.assign',
     'enquiry.notes',
+    'destination.view',
   ],
   support: [
     'dashboard.view',
     'enquiry.view',
     'enquiry.notes',
+    'destination.view',
     'booking.view',
   ],
   viewer: [
     'dashboard.view',
     'enquiry.view',
+    'destination.view',
     'trip.view',
     'booking.view',
     'payment.view',
