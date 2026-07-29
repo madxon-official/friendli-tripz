@@ -103,6 +103,14 @@ export const AdminSidebar: React.FC<AdminSidebarProps> = ({
               <Link
                 key={item.label}
                 href={item.href}
+                prefetch={true}
+                onMouseEnter={() => {
+                  try {
+                    router.prefetch(item.href);
+                  } catch {
+                    // Ignore prefetch failures
+                  }
+                }}
                 className={`flex items-center justify-between px-3.5 py-3 rounded-xl font-semibold text-sm transition-colors ${
                   item.active
                     ? 'bg-brand-orange text-white shadow-button'
