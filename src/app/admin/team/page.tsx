@@ -32,7 +32,10 @@ export default async function AdminTeamPage() {
       .from('admin_profiles')
       .select('*')
       .order('created_at', { ascending: false }),
-    serviceClient.auth.admin.listUsers().catch((e) => ({ data: { users: [] }, error: e })),
+    Promise.race([
+      serviceClient.auth.admin.listUsers().catch((e) => ({ data: { users: [] }, error: e })),
+      new Promise<any>((resolve) => setTimeout(() => resolve({ data: { users: [] } }), 300)),
+    ]),
     serviceClient
       .from('admin_invitations')
       .select('*')
@@ -64,7 +67,7 @@ export default async function AdminTeamPage() {
   // Create fast map of user emails & metadata
   const userMap = new Map<string, { email: string; last_sign_in_at?: string }>();
   if (usersRes.data?.users) {
-    usersRes.data.users.forEach((u) => {
+    usersRes.data.users.forEach((u: any) => {
       userMap.set(u.id, { email: u.email || '', last_sign_in_at: u.last_sign_in_at });
     });
   }
