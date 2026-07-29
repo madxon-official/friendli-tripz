@@ -92,13 +92,7 @@ export default async function AdminDashboardPage() {
   };
 
   return (
-    <AdminLayout
-      initialNewCount={newCount || 0}
-      adminName={profile.full_name}
-      adminEmail={session.user.email}
-      adminRole={profile.role}
-    >
-      <div className="space-y-8">
+    <div className="space-y-8">
         {/* Top Greeting Header */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-brand-border/60 pb-6">
           <div>
@@ -273,6 +267,5 @@ export default async function AdminDashboardPage() {
           </div>
         </div>
       </div>
-    </AdminLayout>
-  );
-}
+    );
+  }
