@@ -38,6 +38,55 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({
   // Memoize Supabase browser client to avoid recreating instance on every re-render
   const supabase = useMemo(() => createClient(), []);
 
+  const [profileState, setProfileState] = useState<{
+    name: string;
+    email: string;
+    role: AdminRole | string;
+  }>({
+    name: adminName,
+    email: adminEmail,
+    role: adminRole,
+  });
+
+  // Sync profileState if props change
+  useEffect(() => {
+    if (adminName !== 'Admin' || adminEmail || adminRole !== 'operations') {
+      setProfileState({
+        name: adminName,
+        email: adminEmail,
+        role: adminRole,
+      });
+    }
+  }, [adminName, adminEmail, adminRole]);
+
+  // Dynamically load authenticated user's actual profile & role from Supabase
+  useEffect(() => {
+    async function syncAdminProfile() {
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session?.user) {
+          const { data: prof } = await supabase
+            .from('admin_profiles')
+            .select('full_name, role')
+            .eq('id', session.user.id)
+            .single();
+
+          if (prof) {
+            setProfileState({
+              name: prof.full_name || 'Admin',
+              email: session.user.email || '',
+              role: prof.role || 'operations',
+            });
+          }
+        }
+      } catch {
+        // ignore error
+      }
+    }
+
+    syncAdminProfile();
+  }, [supabase]);
+
   // Fetch current new active enquiry count from Supabase
   const fetchNewCount = useCallback(async () => {
     try {
@@ -158,9 +207,9 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({
       <aside className="hidden lg:block w-64 lg:w-72 shrink-0">
         <AdminSidebar
           newEnquiriesCount={newCount}
-          adminName={adminName}
-          adminEmail={adminEmail}
-          adminRole={adminRole}
+          adminName={profileState.name}
+          adminEmail={profileState.email}
+          adminRole={profileState.role}
           notificationsEnabled={notificationsEnabled}
           onEnableNotifications={handleEnableNotifications}
         />
@@ -171,9 +220,9 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({
         {/* Top Header Bar (spans full main column width) */}
         <AdminHeader
           newEnquiriesCount={newCount}
-          adminName={adminName}
-          adminEmail={adminEmail}
-          adminRole={adminRole}
+          adminName={profileState.name}
+          adminEmail={profileState.email}
+          adminRole={profileState.role}
           notificationsEnabled={notificationsEnabled}
           onEnableNotifications={handleEnableNotifications}
         />
