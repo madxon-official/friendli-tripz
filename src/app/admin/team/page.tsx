@@ -30,20 +30,20 @@ export default async function AdminTeamPage() {
   const [profilesRes, usersRes, invitationsRes, deptsRes, activityRes, enquiriesRes, newCountRes] = await Promise.all([
     serviceClient
       .from('admin_profiles')
-      .select('id, full_name, role, is_active, status, created_at, created_by, phone, avatar_url, department_id')
+      .select('*')
       .order('created_at', { ascending: false }),
     serviceClient.auth.admin.listUsers().catch((e) => ({ data: { users: [] }, error: e })),
     serviceClient
       .from('admin_invitations')
-      .select('id, email, full_name, role, department_id, invited_by, phone, status, created_at, expires_at, accepted_at')
+      .select('*')
       .order('created_at', { ascending: false }),
     serviceClient
       .from('departments')
-      .select('id, name, color, active, manager_id, archived_at')
+      .select('*')
       .order('name', { ascending: true }),
     serviceClient
       .from('admin_activity_logs')
-      .select('id, actor_id, target_type, action, old_data, new_data, created_at')
+      .select('*')
       .order('created_at', { ascending: false })
       .limit(50),
     serviceClient

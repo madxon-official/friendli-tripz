@@ -95,8 +95,10 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({
     }
 
     // Subscribe to Supabase Realtime for new enquiries
-    const channel = supabase
-      .channel('admin_realtime_enquiries')
+    const channelName = `admin_realtime_enquiries_${Math.random().toString(36).substring(2, 9)}`;
+    const channel = supabase.channel(channelName);
+
+    channel
       .on(
         'postgres_changes',
         {

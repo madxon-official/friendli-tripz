@@ -72,8 +72,10 @@ export const AdminHeader: React.FC<AdminHeaderProps> = ({
     fetchNotifications();
 
     // Supabase Realtime Listener for new notifications
-    const channel = supabase
-      .channel('admin-notifications-header')
+    const channelName = `admin-notifications-header-${Math.random().toString(36).substring(2, 9)}`;
+    const channel = supabase.channel(channelName);
+
+    channel
       .on(
         'postgres_changes',
         { event: 'INSERT', schema: 'public', table: 'admin_notifications' },

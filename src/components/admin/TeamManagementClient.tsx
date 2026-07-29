@@ -1549,7 +1549,11 @@ export const TeamManagementClient: React.FC<TeamManagementClientProps> = ({
                   </div>
                 </div>
 
-                <div className="grid grid-cols-2 gap-4 text-xs font-mono">
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 text-xs font-mono">
+                  <div className="p-4 rounded-2xl border border-brand-border/40 bg-white shadow-2xs space-y-1">
+                    <span className="text-brand-muted block text-[10px] uppercase font-bold">Email Address</span>
+                    <span className="font-bold text-brand-navy block truncate" title={drawerUser.email}>{drawerUser.email}</span>
+                  </div>
                   <div className="p-4 rounded-2xl border border-brand-border/40 bg-white shadow-2xs space-y-1">
                     <span className="text-brand-muted block text-[10px] uppercase font-bold">Phone Number</span>
                     <span className="font-bold text-brand-navy block truncate">{drawerUser.phone || '—'}</span>
@@ -1557,6 +1561,10 @@ export const TeamManagementClient: React.FC<TeamManagementClientProps> = ({
                   <div className="p-4 rounded-2xl border border-brand-border/40 bg-white shadow-2xs space-y-1">
                     <span className="text-brand-muted block text-[10px] uppercase font-bold">Department</span>
                     <span className="font-bold text-brand-navy block truncate">{drawerUser.department_name || 'Admin'}</span>
+                  </div>
+                  <div className="p-4 rounded-2xl border border-brand-border/40 bg-white shadow-2xs space-y-1">
+                    <span className="text-brand-muted block text-[10px] uppercase font-bold">Assigned Leads</span>
+                    <span className="font-bold text-brand-orange block truncate">{drawerUser.assigned_enquiries_count || 0} Leads</span>
                   </div>
                   <div className="p-4 rounded-2xl border border-brand-border/40 bg-white shadow-2xs space-y-1">
                     <span className="text-brand-muted block text-[10px] uppercase font-bold">Created By</span>
@@ -1570,6 +1578,14 @@ export const TeamManagementClient: React.FC<TeamManagementClientProps> = ({
                         month: 'short',
                         year: 'numeric',
                       })}
+                    </span>
+                  </div>
+                  <div className="p-4 rounded-2xl border border-brand-border/40 bg-white shadow-2xs space-y-1 col-span-2 sm:col-span-3">
+                    <span className="text-brand-muted block text-[10px] uppercase font-bold">Last Sign In</span>
+                    <span className="font-bold text-brand-navy block truncate">
+                      {drawerUser.last_sign_in_at
+                        ? new Date(drawerUser.last_sign_in_at).toLocaleString('en-IN')
+                        : 'Never signed in'}
                     </span>
                   </div>
                 </div>
