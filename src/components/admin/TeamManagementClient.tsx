@@ -128,17 +128,38 @@ export const TeamManagementClient: React.FC<TeamManagementClientProps> = ({
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [copiedPhoneId, setCopiedPhoneId] = useState<string | null>(null);
 
-  // Filters
+  // 300ms Client-Side Debounced Search
+  const [debouncedSearchQuery, setDebouncedSearchQuery] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearchQuery(searchQuery);
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
+
+  // Slide-Over Profile Drawer State & Lazy Tab Caching
+  const [drawerUser, setDrawerUser] = useState<TeamMemberItem | null>(null);
+  const [drawerHrTab, setDrawerHrTab] = useState<'profile' | 'permissions' | 'audit' | 'attendance' | 'payroll' | 'leave'>('profile');
+  const [loadedDrawerTabs, setLoadedDrawerTabs] = useState<Set<string>>(new Set(['profile']));
+
+  const handleSelectDrawerTab = (tab: 'profile' | 'permissions' | 'audit' | 'attendance' | 'payroll' | 'leave') => {
+    setDrawerHrTab(tab);
+    setLoadedDrawerTabs((prev) => new Set(prev).add(tab));
+  };
+
+  const handleOpenDrawer = (member: TeamMemberItem) => {
+    setDrawerUser(member);
+    setDrawerHrTab('profile');
+    setLoadedDrawerTabs(new Set(['profile']));
+  };
+
   const [roleFilter, setRoleFilter] = useState<string>('all');
   const [deptFilter, setDeptFilter] = useState<string>('all');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [invitationStatusFilter, setInvitationStatusFilter] = useState<string>('all');
   const [deptStatusFilter, setDeptStatusFilter] = useState<'active' | 'archived' | 'all'>('active');
-
-  // Slide-Over Profile Drawer State
-  const [drawerUser, setDrawerUser] = useState<TeamMemberItem | null>(null);
-  const [drawerHrTab, setDrawerHrTab] = useState<'profile' | 'permissions' | 'audit' | 'attendance' | 'payroll' | 'leave'>('profile');
 
   // Modals state
   const [showInviteModal, setShowInviteModal] = useState(false);
@@ -244,7 +265,7 @@ export const TeamManagementClient: React.FC<TeamManagementClientProps> = ({
 
   const filteredMembers = useMemo(() => {
     return members.filter((m) => {
-      const q = searchQuery.toLowerCase().trim();
+      const q = debouncedSearchQuery.toLowerCase().trim();
       const matchesSearch =
         !q ||
         m.full_name.toLowerCase().includes(q) ||
@@ -258,11 +279,11 @@ export const TeamManagementClient: React.FC<TeamManagementClientProps> = ({
 
       return matchesSearch && matchesRole && matchesDept && matchesStatus;
     });
-  }, [members, searchQuery, roleFilter, deptFilter, statusFilter]);
+  }, [members, debouncedSearchQuery, roleFilter, deptFilter, statusFilter]);
 
   const filteredInvitations = useMemo(() => {
     return invitations.filter((inv) => {
-      const q = searchQuery.toLowerCase().trim();
+      const q = debouncedSearchQuery.toLowerCase().trim();
       const matchesSearch =
         !q ||
         inv.full_name.toLowerCase().includes(q) ||
@@ -273,7 +294,7 @@ export const TeamManagementClient: React.FC<TeamManagementClientProps> = ({
 
       return matchesSearch && matchesStatus;
     });
-  }, [invitations, searchQuery, invitationStatusFilter]);
+  }, [invitations, debouncedSearchQuery, invitationStatusFilter]);
 
   const filteredDepartments = useMemo(() => {
     return departments.filter((dept) => {
@@ -972,7 +993,7 @@ export const TeamManagementClient: React.FC<TeamManagementClientProps> = ({
                             className="group hover:bg-brand-warm/60 transition-colors cursor-pointer"
                             onClick={(e) => {
                               if ((e.target as HTMLElement).closest('button, a, select')) return;
-                              setDrawerUser(m);
+                              handleOpenDrawer(m);
                             }}
                           >
                             <td className="sticky left-0 bg-white group-hover:bg-brand-warm/80 transition-colors z-10 py-4 px-6">
@@ -1462,7 +1483,7 @@ export const TeamManagementClient: React.FC<TeamManagementClientProps> = ({
             {/* Drawer Navigation Tabs (Equal spacing, Orange underline for active tab) */}
             <div className="flex border-b border-brand-border/60 bg-white px-6 pt-3 gap-6 overflow-x-hidden text-xs">
               <button
-                onClick={() => setDrawerHrTab('profile')}
+                onClick={() => handleSelectDrawerTab('profile')}
                 className={`pb-3 transition-colors relative whitespace-nowrap ${
                   drawerHrTab === 'profile'
                     ? 'text-brand-navy font-bold border-b-2 border-brand-orange'
@@ -1472,7 +1493,7 @@ export const TeamManagementClient: React.FC<TeamManagementClientProps> = ({
                 Overview
               </button>
               <button
-                onClick={() => setDrawerHrTab('permissions')}
+                onClick={() => handleSelectDrawerTab('permissions')}
                 className={`pb-3 transition-colors relative whitespace-nowrap ${
                   drawerHrTab === 'permissions'
                     ? 'text-brand-navy font-bold border-b-2 border-brand-orange'
@@ -1482,7 +1503,7 @@ export const TeamManagementClient: React.FC<TeamManagementClientProps> = ({
                 Permissions ({getRolePermissions(drawerUser.role).length})
               </button>
               <button
-                onClick={() => setDrawerHrTab('attendance')}
+                onClick={() => handleSelectDrawerTab('attendance')}
                 className={`pb-3 transition-colors relative whitespace-nowrap opacity-60 cursor-not-allowed ${
                   drawerHrTab === 'attendance'
                     ? 'text-brand-navy font-bold border-b-2 border-brand-orange'
@@ -1493,7 +1514,7 @@ export const TeamManagementClient: React.FC<TeamManagementClientProps> = ({
                 Attendance
               </button>
               <button
-                onClick={() => setDrawerHrTab('payroll')}
+                onClick={() => handleSelectDrawerTab('payroll')}
                 className={`pb-3 transition-colors relative whitespace-nowrap opacity-60 cursor-not-allowed ${
                   drawerHrTab === 'payroll'
                     ? 'text-brand-navy font-bold border-b-2 border-brand-orange'

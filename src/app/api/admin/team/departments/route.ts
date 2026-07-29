@@ -11,7 +11,10 @@ export async function GET(req: NextRequest) {
     const url = new URL(req.url);
     const includeArchived = url.searchParams.get('includeArchived') === 'true';
 
-    let query = serviceClient.from('departments').select('*').order('name', { ascending: true });
+    let query = serviceClient
+      .from('departments')
+      .select('id, name, color, active, manager_id, archived_at')
+      .order('name', { ascending: true });
 
     if (!includeArchived) {
       query = query.is('archived_at', null);
