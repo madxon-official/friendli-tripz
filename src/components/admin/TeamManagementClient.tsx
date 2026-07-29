@@ -1434,67 +1434,79 @@ export const TeamManagementClient: React.FC<TeamManagementClientProps> = ({
 
       {/* SLIDE-OVER MEMBER PROFILE DRAWER */}
       {drawerUser && (
-        <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex justify-end">
-          <div className="bg-white w-full max-w-xl h-full shadow-2xl overflow-y-auto flex flex-col border-l border-brand-border">
-            {/* Drawer Header */}
-            <div className="p-6 bg-brand-navy text-white flex items-center justify-between sticky top-0 z-10 shadow-md">
-              <div className="flex items-center gap-3">
-                <div className="w-12 h-12 rounded-full bg-brand-orange text-white flex items-center justify-center font-bold text-lg uppercase shadow-sm">
+        <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex justify-end overflow-hidden">
+          <div className="bg-white w-full max-w-[650px] sm:w-[540px] md:w-[580px] lg:w-[600px] h-full shadow-2xl flex flex-col border-l border-brand-border/60 overflow-hidden">
+            {/* Drawer Header (Sticky) */}
+            <div className="p-6 bg-brand-navy text-white flex items-center justify-between sticky top-0 z-20 shadow-md">
+              <div className="flex items-center gap-3.5 min-w-0">
+                <div className="w-12 h-12 rounded-full bg-brand-orange text-white flex items-center justify-center font-bold text-lg uppercase shadow-sm shrink-0 font-heading">
                   {drawerUser.full_name.charAt(0)}
                 </div>
-                <div>
-                  <h2 className="text-lg font-bold font-heading">{drawerUser.full_name}</h2>
-                  <p className="text-xs text-brand-muted font-mono">{drawerUser.email}</p>
+                <div className="min-w-0 space-y-1">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <h2 className="text-lg font-bold font-heading truncate leading-tight">{drawerUser.full_name}</h2>
+                    <div className="shrink-0">{getRoleBadge(drawerUser.role)}</div>
+                  </div>
+                  <p className="text-xs text-brand-muted font-mono truncate">{drawerUser.email}</p>
                 </div>
               </div>
               <button
                 onClick={() => setDrawerUser(null)}
-                className="p-2 text-brand-muted hover:text-white rounded-xl hover:bg-white/10"
+                className="p-2 text-brand-muted hover:text-white rounded-xl hover:bg-white/10 transition-colors shrink-0"
+                title="Close Drawer"
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
 
-            {/* Drawer Navigation Tabs */}
-            <div className="flex border-b border-brand-border/60 bg-brand-warm/40 px-6 pt-3 gap-2 overflow-x-auto no-scrollbar">
+            {/* Drawer Navigation Tabs (Equal spacing, Orange underline for active tab) */}
+            <div className="flex border-b border-brand-border/60 bg-white px-6 pt-3 gap-6 overflow-x-hidden text-xs">
               <button
                 onClick={() => setDrawerHrTab('profile')}
-                className={`px-3 py-2 text-xs font-bold rounded-t-xl transition-all whitespace-nowrap ${
-                  drawerHrTab === 'profile' ? 'bg-white text-brand-navy border-t-2 border-brand-orange shadow-2xs' : 'text-brand-muted'
+                className={`pb-3 transition-colors relative whitespace-nowrap ${
+                  drawerHrTab === 'profile'
+                    ? 'text-brand-navy font-bold border-b-2 border-brand-orange'
+                    : 'text-brand-muted hover:text-brand-navy font-medium'
                 }`}
               >
                 Overview
               </button>
               <button
                 onClick={() => setDrawerHrTab('permissions')}
-                className={`px-3 py-2 text-xs font-bold rounded-t-xl transition-all whitespace-nowrap ${
-                  drawerHrTab === 'permissions' ? 'bg-white text-brand-navy border-t-2 border-brand-orange shadow-2xs' : 'text-brand-muted'
+                className={`pb-3 transition-colors relative whitespace-nowrap ${
+                  drawerHrTab === 'permissions'
+                    ? 'text-brand-navy font-bold border-b-2 border-brand-orange'
+                    : 'text-brand-muted hover:text-brand-navy font-medium'
                 }`}
               >
                 Permissions ({getRolePermissions(drawerUser.role).length})
               </button>
               <button
                 onClick={() => setDrawerHrTab('attendance')}
-                className={`px-3 py-2 text-xs font-bold rounded-t-xl transition-all whitespace-nowrap opacity-60 cursor-not-allowed ${
-                  drawerHrTab === 'attendance' ? 'bg-white text-brand-navy' : 'text-brand-muted'
+                className={`pb-3 transition-colors relative whitespace-nowrap opacity-60 cursor-not-allowed ${
+                  drawerHrTab === 'attendance'
+                    ? 'text-brand-navy font-bold border-b-2 border-brand-orange'
+                    : 'text-brand-muted hover:text-brand-navy font-medium'
                 }`}
-                title="Future HR Module Placeholder"
+                title="Future HR Extension"
               >
-                Attendance (HR Extension)
+                Attendance
               </button>
               <button
                 onClick={() => setDrawerHrTab('payroll')}
-                className={`px-3 py-2 text-xs font-bold rounded-t-xl transition-all whitespace-nowrap opacity-60 cursor-not-allowed ${
-                  drawerHrTab === 'payroll' ? 'bg-white text-brand-navy' : 'text-brand-muted'
+                className={`pb-3 transition-colors relative whitespace-nowrap opacity-60 cursor-not-allowed ${
+                  drawerHrTab === 'payroll'
+                    ? 'text-brand-navy font-bold border-b-2 border-brand-orange'
+                    : 'text-brand-muted hover:text-brand-navy font-medium'
                 }`}
-                title="Future HR Module Placeholder"
+                title="Future HR Extension"
               >
-                Payroll (HR Extension)
+                Payroll
               </button>
             </div>
 
-            {/* Drawer Body */}
-            <div className="p-6 space-y-6 flex-1">
+            {/* Drawer Body (Vertical Scroll Only) */}
+            <div className="p-6 space-y-6 flex-1 overflow-y-auto overflow-x-hidden">
               {drawerHrTab === 'profile' && (
                 <div className="space-y-6">
                   {/* Status & Role Summary Card */}
@@ -1511,22 +1523,26 @@ export const TeamManagementClient: React.FC<TeamManagementClientProps> = ({
 
                   {/* Metadata Grid */}
                   <div className="grid grid-cols-2 gap-4 text-xs font-mono">
-                    <div className="p-3.5 rounded-xl border border-brand-border/40 bg-white">
-                      <span className="text-brand-muted block text-[10px]">Phone Number</span>
-                      <span className="font-bold text-brand-navy">{drawerUser.phone || 'Not Provided'}</span>
+                    <div className="p-4 rounded-2xl border border-brand-border/40 bg-white shadow-2xs space-y-1">
+                      <span className="text-brand-muted block text-[10px] uppercase font-bold">Phone Number</span>
+                      <span className="font-bold text-brand-navy block truncate">{drawerUser.phone || '—'}</span>
                     </div>
-                    <div className="p-3.5 rounded-xl border border-brand-border/40 bg-white">
-                      <span className="text-brand-muted block text-[10px]">Department</span>
-                      <span className="font-bold text-brand-navy">{drawerUser.department_name || 'Admin'}</span>
+                    <div className="p-4 rounded-2xl border border-brand-border/40 bg-white shadow-2xs space-y-1">
+                      <span className="text-brand-muted block text-[10px] uppercase font-bold">Department</span>
+                      <span className="font-bold text-brand-navy block truncate">{drawerUser.department_name || 'Admin'}</span>
                     </div>
-                    <div className="p-3.5 rounded-xl border border-brand-border/40 bg-white">
-                      <span className="text-brand-muted block text-[10px]">Created By</span>
-                      <span className="font-bold text-brand-navy">{drawerUser.created_by || 'System'}</span>
+                    <div className="p-4 rounded-2xl border border-brand-border/40 bg-white shadow-2xs space-y-1">
+                      <span className="text-brand-muted block text-[10px] uppercase font-bold">Created By</span>
+                      <span className="font-bold text-brand-navy block truncate">{drawerUser.created_by || 'System'}</span>
                     </div>
-                    <div className="p-3.5 rounded-xl border border-brand-border/40 bg-white">
-                      <span className="text-brand-muted block text-[10px]">Joined Date</span>
-                      <span className="font-bold text-brand-navy">
-                        {new Date(drawerUser.created_at).toLocaleDateString('en-IN')}
+                    <div className="p-4 rounded-2xl border border-brand-border/40 bg-white shadow-2xs space-y-1">
+                      <span className="text-brand-muted block text-[10px] uppercase font-bold">Joined Date</span>
+                      <span className="font-bold text-brand-navy block truncate">
+                        {new Date(drawerUser.created_at).toLocaleDateString('en-IN', {
+                          day: 'numeric',
+                          month: 'short',
+                          year: 'numeric',
+                        })}
                       </span>
                     </div>
                   </div>
@@ -1534,18 +1550,87 @@ export const TeamManagementClient: React.FC<TeamManagementClientProps> = ({
               )}
 
               {drawerHrTab === 'permissions' && (
-                <div className="space-y-3">
-                  <h3 className="font-bold text-sm text-brand-navy font-heading">
-                    Active Permissions for {getRoleLabel(drawerUser.role)}
-                  </h3>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                    {getRolePermissions(drawerUser.role).map((p) => (
-                      <div key={p} className="p-2.5 rounded-xl border border-brand-border/40 bg-brand-soft-navy/40 text-xs font-mono flex items-center gap-2">
-                        <Check className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
-                        <span>{p}</span>
-                      </div>
-                    ))}
+                <div className="space-y-6">
+                  <div>
+                    <h3 className="font-bold text-sm text-brand-navy font-heading">
+                      Active Permissions Matrix ({getRoleLabel(drawerUser.role)})
+                    </h3>
+                    <p className="text-xs text-brand-muted mt-0.5">
+                      Permissions assigned based on system role policies.
+                    </p>
                   </div>
+
+                  {/* Grouped Permissions by Module */}
+                  {(() => {
+                    const activePerms = getRolePermissions(drawerUser.role);
+                    const PERM_MODULES: Record<string, { module: string; label: string }> = {
+                      'dashboard.view': { module: 'Dashboard', label: 'View Dashboard' },
+                      'team.view': { module: 'Team', label: 'View Team Directory' },
+                      'team.invite': { module: 'Team', label: 'Invite Staff Members' },
+                      'team.edit': { module: 'Team', label: 'Edit Member Profiles' },
+                      'team.archive': { module: 'Team', label: 'Archive Accounts' },
+                      'team.activate': { module: 'Team', label: 'Activate Accounts' },
+                      'team.deactivate': { module: 'Team', label: 'Deactivate / Suspend' },
+                      'team.role.change': { module: 'Team', label: 'Change Staff Roles' },
+                      'team.department.change': { module: 'Team', label: 'Manage Departments' },
+                      'team.delete': { module: 'Team', label: 'Delete Staff Accounts' },
+                      'team.transfer_ownership': { module: 'Team', label: 'Transfer Ownership' },
+                      'enquiry.view': { module: 'Enquiries', label: 'View Assigned Leads' },
+                      'enquiry.view_all': { module: 'Enquiries', label: 'View All Enquiries' },
+                      'enquiry.update': { module: 'Enquiries', label: 'Update Lead Status' },
+                      'enquiry.archive': { module: 'Enquiries', label: 'Archive Enquiries' },
+                      'enquiry.assign': { module: 'Enquiries', label: 'Assign Leads to Staff' },
+                      'enquiry.notes': { module: 'Enquiries', label: 'Manage Internal Notes' },
+                      'trip.view': { module: 'Trips', label: 'View Trips & Itineraries' },
+                      'trip.create': { module: 'Trips', label: 'Create New Trips' },
+                      'trip.update': { module: 'Trips', label: 'Update Trip Content' },
+                      'trip.delete': { module: 'Trips', label: 'Delete Trips' },
+                      'booking.view': { module: 'Bookings', label: 'View Customer Bookings' },
+                      'booking.update': { module: 'Bookings', label: 'Update Booking Details' },
+                      'payment.view': { module: 'Payments', label: 'View Payment Records' },
+                      'payment.update': { module: 'Payments', label: 'Manage Transactions' },
+                      'settings.security': { module: 'Settings', label: 'Security & Access Rules' },
+                      'settings.website': { module: 'Settings', label: 'Website Configuration' },
+                      'settings.team': { module: 'Settings', label: 'Team Configuration' },
+                    };
+
+                    const grouped: Record<string, { key: string; label: string }[]> = {};
+                    const order = ['Dashboard', 'Team', 'Enquiries', 'Trips', 'Bookings', 'Payments', 'Settings'];
+
+                    activePerms.forEach((p) => {
+                      const meta = PERM_MODULES[p] || { module: 'Other', label: p };
+                      if (!grouped[meta.module]) grouped[meta.module] = [];
+                      grouped[meta.module].push({ key: p, label: meta.label });
+                    });
+
+                    return (
+                      <div className="space-y-4">
+                        {order.map((modName) => {
+                          const items = grouped[modName];
+                          if (!items || items.length === 0) return null;
+
+                          return (
+                            <div key={modName} className="space-y-2">
+                              <h4 className="text-xs font-mono font-bold uppercase tracking-wider text-brand-navy">
+                                {modName}
+                              </h4>
+                              <div className="flex flex-wrap gap-2">
+                                {items.map((item) => (
+                                  <div
+                                    key={item.key}
+                                    className="px-3 py-1.5 rounded-xl border border-brand-border/40 bg-brand-soft-navy/40 text-xs font-mono text-brand-navy flex items-center gap-1.5"
+                                  >
+                                    <Check className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                                    <span>{item.label}</span>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    );
+                  })()}
                 </div>
               )}
 
@@ -1557,6 +1642,51 @@ export const TeamManagementClient: React.FC<TeamManagementClientProps> = ({
                     This module placeholder is prepared for future HR system integration without requiring breaking code changes.
                   </p>
                 </div>
+              )}
+            </div>
+
+            {/* Quick Actions Footer (Sticky) */}
+            <div className="sticky bottom-0 z-20 bg-white border-t border-brand-border/60 p-4 sm:p-6 flex items-center justify-end gap-3 flex-wrap shadow-lg">
+              {can(adminRole, 'team.edit', drawerUser.role) && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    openEditModal(drawerUser);
+                    setDrawerUser(null);
+                  }}
+                  icon={<Edit2 className="w-3.5 h-3.5" />}
+                >
+                  Edit Profile
+                </Button>
+              )}
+
+              {can(adminRole, 'team.department.change', drawerUser.role) && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    openEditModal(drawerUser);
+                    setDrawerUser(null);
+                  }}
+                  icon={<Building2 className="w-3.5 h-3.5" />}
+                >
+                  Change Dept
+                </Button>
+              )}
+
+              {can(adminRole, 'team.deactivate', drawerUser.role) && drawerUser.id !== currentUserId && drawerUser.role !== 'owner' && (
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  onClick={() => {
+                    setStatusModalUser(drawerUser);
+                    setTargetStatus(drawerUser.status === 'active' ? 'suspended' : 'active');
+                    setDrawerUser(null);
+                  }}
+                >
+                  {drawerUser.status === 'active' ? 'Deactivate' : 'Activate'}
+                </Button>
               )}
             </div>
           </div>
