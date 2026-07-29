@@ -181,12 +181,7 @@ export const EnquiryListClient: React.FC<EnquiryListClientProps> = ({
   };
 
   return (
-    <AdminLayout
-      initialNewCount={newCount}
-      adminName={adminName}
-      adminEmail={adminEmail}
-      adminRole={adminRole}
-    >
+    <>
       <div className="space-y-6">
         {/* Header Title */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-brand-border/60 pb-5">
@@ -418,6 +413,6 @@ export const EnquiryListClient: React.FC<EnquiryListClientProps> = ({
           </div>
         )}
       </div>
-    </AdminLayout>
+    </>
   );
 };

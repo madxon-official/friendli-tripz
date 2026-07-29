@@ -46,24 +46,22 @@ export default async function EnquiryDetailPage({
 
   if (enqError || !enquiry) {
     return (
-      <AdminLayout>
-        <div className="bg-white rounded-3xl p-10 text-center space-y-4 border border-brand-border/60 max-w-md mx-auto my-12">
-          <AlertCircle className="w-10 h-10 text-red-500 mx-auto" />
-          <h2 className="text-xl font-bold text-brand-navy font-heading">
-            Enquiry Not Found
-          </h2>
-          <p className="text-xs text-brand-muted leading-relaxed">
-            The requested enquiry could not be found or has been removed.
-          </p>
-          <div className="pt-2 flex items-center justify-center gap-3">
-            <Link href="/admin/enquiries">
-              <Button variant="primary" size="sm">
-                Back to Enquiries
-              </Button>
-            </Link>
-          </div>
+      <div className="bg-white rounded-3xl p-10 text-center space-y-4 border border-brand-border/60 max-w-md mx-auto my-12">
+        <AlertCircle className="w-10 h-10 text-red-500 mx-auto" />
+        <h2 className="text-xl font-bold text-brand-navy font-heading">
+          Enquiry Not Found
+        </h2>
+        <p className="text-xs text-brand-muted leading-relaxed">
+          The requested enquiry could not be found or has been removed.
+        </p>
+        <div className="pt-2 flex items-center justify-center gap-3">
+          <Link href="/admin/enquiries">
+            <Button variant="primary" size="sm">
+              Back to Enquiries
+            </Button>
+          </Link>
         </div>
-      </AdminLayout>
+      </div>
     );
   }
 

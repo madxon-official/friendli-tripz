@@ -273,12 +273,7 @@ export const TeamListClient: React.FC<TeamListClientProps> = ({
   };
 
   return (
-    <AdminLayout
-      initialNewCount={initialNewCount}
-      adminName={adminName}
-      adminEmail={adminEmail}
-      adminRole={adminRole}
-    >
+    <>
       <div className="space-y-6">
         {/* Header Bar */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-brand-border/60 pb-5">
@@ -735,6 +730,6 @@ export const TeamListClient: React.FC<TeamListClientProps> = ({
           </div>
         )}
       </div>
-    </AdminLayout>
+    </>
   );
 };

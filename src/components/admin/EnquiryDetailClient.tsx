@@ -251,12 +251,7 @@ export const EnquiryDetailClient: React.FC<EnquiryDetailClientProps> = ({
   const canArchive = hasPermission(adminUser?.role || 'operations', 'enquiries.archive');
 
   return (
-    <AdminLayout
-      initialNewCount={initialNewCount}
-      adminName={adminUser?.name}
-      adminEmail={adminUser?.email}
-      adminRole={adminUser?.role}
-    >
+    <>
       <div className="space-y-6 pb-12">
         {/* Back Link & Header */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-brand-border/60 pb-4">
@@ -666,6 +661,6 @@ export const EnquiryDetailClient: React.FC<EnquiryDetailClientProps> = ({
           </div>
         )}
       </div>
-    </AdminLayout>
+    </>
   );
 };
