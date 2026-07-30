@@ -1,0 +1,30 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "Friendli Tripz Public API Platform",
+    "version": "1.0.0",
+    "description": "Enterprise Travel API for package discovery, booking status checks, and partner webhook integrations."
+  },
+  "paths": {
+    "/api/v1/packages": {
+      "get": {
+        "summary": "List active travel packages",
+        "responses": {
+          "200": {
+            "description": "A list of available tour packages"
+          }
+        }
+      }
+    },
+    "/api/v1/bookings": {
+      "get": {
+        "summary": "Fetch booking details by booking code",
+        "responses": {
+          "200": {
+            "description": "Booking payload"
+          }
+        }
+      }
+    }
+  }
+}

@@ -1,5 +1,5 @@
-'use me';
 'use server';
+
 
 import { createServerSupabaseClient } from '@/lib/supabase/server';
 import { DomainEvent } from '@/lib/types/platform';

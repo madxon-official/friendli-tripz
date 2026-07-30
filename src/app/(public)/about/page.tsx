@@ -1,74 +1,63 @@
 import React from 'react';
 import Image from 'next/image';
-import { ShieldCheck } from 'lucide-react';
-import { Container } from '@/components/ui/Container';
-import { Section } from '@/components/ui/Section';
-import { Button } from '@/components/ui/Button';
-import { ROUTES } from '@/lib/routes';
+import { ShieldCheck, HeartHandshake, Sparkles, Compass, Users } from 'lucide-react';
 
 export const metadata = {
   title: 'About Us | Friendli Tripz',
-  description: 'Learn about Friendli Tripz — the social travel brand built around the idea that travel feels better with friends.',
+  description: 'Learn about Friendli Tripz, India’s first constraint-graph powered social travel platform.',
 };
 
 export default function AboutPage() {
   return (
-    <main className="min-h-screen">
-      <section className="bg-brand-navy text-white pt-20 pb-14 sm:pt-24 sm:pb-18 relative overflow-hidden">
-        <Container>
-          <div className="max-w-3xl space-y-4">
-            <span className="text-brand-orange font-bold text-xs tracking-wider uppercase font-mono">
-              Brand Positioning
-            </span>
-            <h1 className="text-3xl sm:text-5xl font-extrabold font-heading text-white">
-              Travel feels better with friends.
-            </h1>
-            <p className="text-base sm:text-lg text-slate-200 leading-relaxed">
-              Friendli Tripz was created to make travelling together simpler, more social and more memorable. We thoughtfully organize experiences for people who want to explore great places without spending weeks coordinating every detail.
+    <main className="min-h-screen bg-slate-50 py-12 px-4 sm:px-6 lg:px-8">
+      <div className="max-w-5xl mx-auto space-y-12">
+        {/* Hero Banner */}
+        <div className="text-center space-y-4 max-w-3xl mx-auto">
+          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-amber-100 text-amber-800">
+            <Sparkles className="w-3.5 h-3.5" />
+            Social Travel Engine
+          </span>
+          <h1 className="font-heading text-3xl sm:text-5xl font-extrabold text-slate-900 leading-tight">
+            Redefining Travel with Constraint AI & Social Connections
+          </h1>
+          <p className="text-slate-600 text-base sm:text-lg">
+            Friendli Tripz bridges natural language traveller preferences with real-time commercial inventory, verified vendor safety, and transparent pricing.
+          </p>
+        </div>
+
+        {/* Pillars */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm space-y-3">
+            <div className="w-10 h-10 rounded-2xl bg-amber-50 flex items-center justify-center text-amber-600">
+              <Compass className="w-5 h-5" />
+            </div>
+            <h3 className="font-heading font-bold text-slate-900 text-lg">Constraint Graph AI</h3>
+            <p className="text-slate-600 text-xs leading-relaxed">
+              We never generate vague markdown. Our deterministic Constraint Engine recalculates exact route timings, hotel costs, and activity slots.
             </p>
           </div>
-        </Container>
-      </section>
 
-      <Section variant="warm">
-        <Container>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-12 items-center">
-            <div className="space-y-6">
-              <h2 className="text-2xl sm:text-3xl font-extrabold text-brand-navy font-heading">
-                Our First Chapter: Kodaikanal
-              </h2>
-              <p className="text-brand-muted leading-relaxed">
-                We are starting our journey with one destination — Kodaikanal — and focusing on doing it properly. Kodaikanal is the beginning of the Friendli Tripz journey, establishing our approach to unhurried, human-first travel.
-              </p>
-              <p className="text-brand-muted leading-relaxed">
-                As our community grows, more Friendli adventures across different landscapes will follow.
-              </p>
-              <Button href={ROUTES.KODAIKANAL} variant="primary" size="md">
-                Explore Kodaikanal Trip
-              </Button>
+          <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm space-y-3">
+            <div className="w-10 h-10 rounded-2xl bg-emerald-50 flex items-center justify-center text-emerald-600">
+              <ShieldCheck className="w-5 h-5" />
             </div>
-
-            <div className="bg-white rounded-3xl p-8 border border-brand-border/60 shadow-card space-y-6">
-              <div className="flex items-center gap-4">
-                <div className="relative w-14 h-14 rounded-2xl overflow-hidden shadow-sm border border-brand-navy/10 flex items-center justify-center bg-white">
-                  <Image src="/logo.jpeg" alt="Friendli Tripz Logo" width={56} height={56} className="w-full h-full object-cover" />
-                </div>
-                <div>
-                  <h3 className="font-heading font-extrabold text-xl text-brand-navy">Friendli Tripz</h3>
-                  <p className="text-xs font-semibold text-brand-orange">Modern Social Travel</p>
-                </div>
-              </div>
-              <p className="text-sm text-brand-muted italic">
-                &ldquo;Friendli Tripz should feel like the friend who takes care of the difficult parts of planning a trip.&rdquo;
-              </p>
-              <div className="pt-2 border-t border-brand-border/60 text-xs text-brand-navy font-semibold flex items-center gap-2">
-                <ShieldCheck className="w-4 h-4 text-brand-orange" />
-                <span>Human-first travel curation</span>
-              </div>
-            </div>
+            <h3 className="font-heading font-bold text-slate-900 text-lg">Verified Safety & Vendors</h3>
+            <p className="text-slate-600 text-xs leading-relaxed">
+              Every transport vehicle, driver, and hotel partner is pre-screened with mandatory background checks and compliance audits.
+            </p>
           </div>
-        </Container>
-      </Section>
+
+          <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm space-y-3">
+            <div className="w-10 h-10 rounded-2xl bg-indigo-50 flex items-center justify-center text-indigo-600">
+              <HeartHandshake className="w-5 h-5" />
+            </div>
+            <h3 className="font-heading font-bold text-slate-900 text-lg">Transparent Pricing</h3>
+            <p className="text-slate-600 text-xs leading-relaxed">
+              No hidden fees or surge pricing. You get a clear breakdown of room rates, transport charges, tax, and included vouchers.
+            </p>
+          </div>
+        </div>
+      </div>
     </main>
   );
 }

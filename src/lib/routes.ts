@@ -1,21 +1,33 @@
 export const ROUTES = {
   HOME: '/',
-  KODAIKANAL: '/trips/kodaikanal',
+  KODAIKANAL: '/packages/misty-kodaikanal-escape',
   WHY_FRIENDLI: '/#why-friendli',
+  DESTINATIONS: '/destinations',
+  PACKAGES: '/packages',
+  ACTIVITIES: '/activities',
+  PLANNER: '/planner',
+  BLOGS: '/blogs',
+  FAQS: '/faqs',
   ABOUT: '/about',
   CONTACT: '/contact',
   CUSTOMIZE: '/customize',
-  ENQUIRY_SUCCESS: '/enquiry/success',
+  DASHBOARD: '/dashboard',
+  REVIEWS: '/reviews',
+  LOYALTY: '/loyalty',
+  SUPPORT: '/support',
+  KNOWLEDGE_BASE: '/knowledge-base',
 } as const;
 
 export const NAV_LINKS = [
-  { label: 'Kodaikanal', href: ROUTES.KODAIKANAL },
-  { label: 'Why Friendli', href: ROUTES.WHY_FRIENDLI },
+  { label: 'Destinations', href: ROUTES.DESTINATIONS },
+  { label: 'Packages', href: ROUTES.PACKAGES },
+  { label: 'AI Planner', href: ROUTES.PLANNER },
+  { label: 'Blogs', href: ROUTES.BLOGS },
+  { label: 'FAQs', href: ROUTES.FAQS },
   { label: 'About', href: ROUTES.ABOUT },
-  { label: 'Contact', href: ROUTES.CONTACT },
 ] as const;
 
 export const PRIMARY_CTA = {
-  label: 'Join the Trip',
-  href: ROUTES.CUSTOMIZE,
+  label: 'AI Trip Planner',
+  href: ROUTES.PLANNER,
 } as const;
