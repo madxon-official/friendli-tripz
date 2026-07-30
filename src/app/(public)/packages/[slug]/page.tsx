@@ -41,7 +41,7 @@ export default async function PackageDetailPage({ params }: { params: Promise<{ 
         title,
         duration_days,
         duration_nights,
-        base_pricing_tree_json,
+ base_pricing_tree_json,
         commercial_terms_text,
         status
       )
@@ -51,42 +51,95 @@ export default async function PackageDetailPage({ params }: { params: Promise<{ 
 
   const release = family?.package_releases?.find((r: any) => r.status === 'active') || family?.package_releases?.[0];
 
-  const title = release?.title || '4-Day Misty Kodaikanal Escape';
+  // Fetch real package instance if available
+  const { data: realInstance } = release?.id
+    ? await supabase
+        .from('package_instances')
+        .select('id, title, custom_pricing_tree_json')
+        .eq('release_id', release.id)
+        .limit(1)
+        .maybeSingle()
+    : { data: null };
+
+  // Fetch real itinerary days and segments if available
+  const { data: dbItineraryDays } = release?.id
+    ? await supabase
+        .from('itinerary_days')
+        .select(`
+          id,
+          day_number,
+          theme_title,
+          description,
+          itinerary_day_segments (
+            id,
+            sequence_order,
+            segment_type,
+            planned_start_time,
+            planned_end_time,
+            duration_mins,
+            segment_title,
+            cost_override,
+            is_included_in_package
+          )
+        `)
+        .eq('release_id', release.id)
+        .order('day_number', { ascending: true })
+    : { data: null };
+
+  const title = release?.title || family?.name || '4-Day Signature Escape';
   const durationDays = release?.duration_days || 4;
   const durationNights = release?.duration_nights || 3;
   const pricing = release?.base_pricing_tree_json || {};
   const startingPrice = pricing.base_adult_price || 14500;
 
   const destObj = Array.isArray(family?.destinations) ? family?.destinations[0] : (family?.destinations as any);
-  const destName = destObj?.name || 'Kodaikanal';
+  const destName = destObj?.name || 'Hill Station';
   const heroUrl = destObj?.hero_banner_url || 'https://images.unsplash.com/photo-1589182373726-e4f658ab50f0';
-  const instanceId = '44444444-4444-4444-4444-444444444401';
+  const instanceId = realInstance?.id || release?.id || family?.id || '44444444-4444-4444-4444-444444444401';
 
-  const mockItinerary = [
-    {
-      dayNumber: 1,
-      title: 'Arrival & Lake Promenade Walk',
-      description: 'Resort check-in, refreshment drink, and evening Kodai Lake promenade stroll.',
-      segments: [
-        { sequenceOrder: 1, type: 'lodging' as const, title: 'Hilltop Resort Check-In', startTime: '12:00', endTime: '13:00', durationMins: 60, cost: 0, isIncluded: true },
-        { sequenceOrder: 2, type: 'attraction' as const, title: 'Kodai Lake Promenade Walk', startTime: '15:00', endTime: '17:00', durationMins: 120, cost: 0, isIncluded: true },
-        { sequenceOrder: 3, type: 'activity' as const, title: 'Kodai Lake 4-Seater Boat Ride', startTime: '17:15', endTime: '18:00', durationMins: 45, cost: 350, isIncluded: true }
-      ]
-    },
-    {
-      dayNumber: 2,
-      title: 'Pillar Rocks & Pine Forest Exploration',
-      description: 'Private SUV sightseeing covering Pillar Rocks, Guna Caves, and Pine Forest trails.',
-      segments: [
-        { sequenceOrder: 1, type: 'attraction' as const, title: 'Pine Forest Trail Walk', startTime: '09:30', endTime: '11:00', durationMins: 90, cost: 50, isIncluded: true },
-        { sequenceOrder: 2, type: 'attraction' as const, title: 'Pillar Rocks Cliff Viewpoint', startTime: '11:30', endTime: '13:00', durationMins: 90, cost: 100, isIncluded: true }
-      ]
-    }
-  ];
+  const mappedItinerary = dbItineraryDays && dbItineraryDays.length > 0
+    ? dbItineraryDays.map((d: any) => ({
+        dayNumber: d.day_number,
+        title: d.theme_title || `Day ${d.day_number}: Exploration`,
+        description: d.description || `Sightseeing & activity schedule for day ${d.day_number}.`,
+        segments: (d.itinerary_day_segments || [])
+          .sort((a: any, b: any) => a.sequence_order - b.sequence_order)
+          .map((s: any) => ({
+            sequenceOrder: s.sequence_order,
+            type: (s.segment_type === 'lodging' || s.segment_type === 'activity' ? s.segment_type : 'attraction') as 'lodging' | 'attraction' | 'activity',
+            title: s.segment_title,
+            startTime: s.planned_start_time || '09:00',
+            endTime: s.planned_end_time || '10:30',
+            durationMins: s.duration_mins || 90,
+            cost: Number(s.cost_override || 0),
+            isIncluded: s.is_included_in_package ?? true,
+          })),
+      }))
+    : [
+        {
+          dayNumber: 1,
+          title: `Arrival & ${destName} Sightseeing`,
+          description: `Check-in, refreshment drink, and evening promenade stroll in ${destName}.`,
+          segments: [
+            { sequenceOrder: 1, type: 'lodging' as const, title: 'Resort Check-In & Welcome', startTime: '12:00', endTime: '13:00', durationMins: 60, cost: 0, isIncluded: true },
+            { sequenceOrder: 2, type: 'attraction' as const, title: `${destName} Viewpoint Walk`, startTime: '15:00', endTime: '17:00', durationMins: 120, cost: 0, isIncluded: true },
+            { sequenceOrder: 3, type: 'activity' as const, title: 'Signature Sightseeing Experience', startTime: '17:15', endTime: '18:00', durationMins: 45, cost: 350, isIncluded: true }
+          ]
+        },
+        {
+          dayNumber: 2,
+          title: 'Forest Trails & Cliff Viewpoint Exploration',
+          description: `Dedicated sightseeing covering local nature trails and scenic cliffs.`,
+          segments: [
+            { sequenceOrder: 1, type: 'attraction' as const, title: 'Pine Forest & Nature Trail', startTime: '09:30', endTime: '11:00', durationMins: 90, cost: 50, isIncluded: true },
+            { sequenceOrder: 2, type: 'attraction' as const, title: 'Valley Cliff Viewpoint', startTime: '11:30', endTime: '13:00', durationMins: 90, cost: 100, isIncluded: true }
+          ]
+        }
+      ];
 
   const sampleExplanations = [
     { reasoningType: 'budget_match' as const, explanationText: 'Optimized commercial pricing tree for 3-star MAP hilltop hotel inclusions.', confidenceScore: 0.98 },
-    { reasoningType: 'timing_optimization' as const, explanationText: 'Sequenced Kodai lake boating at 5:15 PM during golden hour sunset.', confidenceScore: 0.95 }
+    { reasoningType: 'timing_optimization' as const, explanationText: 'Sequenced sightseeing activities during golden hour for maximum experience.', confidenceScore: 0.95 }
   ];
 
   const jsonLd = {
@@ -174,7 +227,7 @@ export default async function PackageDetailPage({ params }: { params: Promise<{ 
               <h2 className="font-heading text-xl font-bold text-slate-900">
                 Interactive Trip Itinerary
               </h2>
-              <ItineraryTimeline itinerary={mockItinerary} />
+              <ItineraryTimeline itinerary={mappedItinerary} />
             </div>
 
             {/* Inclusions & Exclusions */}

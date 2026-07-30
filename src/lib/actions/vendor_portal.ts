@@ -73,6 +73,13 @@ export async function validateVendorQRVoucher(voucherCode: string): Promise<{ su
     .maybeSingle();
 
   if (voucher) {
+    if (voucher.redemption_status === 'verified_offline' || voucher.redemption_status === 'redeemed') {
+      return {
+        success: false,
+        message: `Voucher ${voucherCode} has already been redeemed/validated.`,
+      };
+    }
+
     await supabase
       .from('vendor_vouchers')
       .update({ redemption_status: 'verified_offline', redeemed_at: new Date().toISOString() })
@@ -85,7 +92,7 @@ export async function validateVendorQRVoucher(voucherCode: string): Promise<{ su
   }
 
   return {
-    success: true,
-    message: `Voucher ${voucherCode} successfully validated! Verified for 2 Passengers.`,
+    success: false,
+    message: `Invalid or non-existent voucher code: ${voucherCode}. Validation rejected.`,
   };
 }

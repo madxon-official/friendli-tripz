@@ -7,12 +7,13 @@
 - Sprint 4: Customer Platform & Offline Trip Vault ✅
 - Sprint 5: Enterprise Portals & Operational Logistics (5.1 - 5.8) ✅
 - Sprint 6: Advanced Infrastructure & Scale Platform (6.1 - 6.6) ✅ (Full Supabase Queries Connected)
+- Hardening Sprint: P0/P1 Security, Fail-Fast Env, Ledger Immutability & Probing Health Endpoint ✅
 
 ## Build Status
 ✅ **Passing** (Next.js 15.5.22, 71/71 routes compiled cleanly)
 
 ## Architectural Integrity
-- 32 migrations in chronological order
+- 33 migrations in chronological order
 - 36 Server Actions
 - 71 App Router endpoints
 - 0 TypeScript errors

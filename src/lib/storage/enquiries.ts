@@ -21,9 +21,6 @@ export interface Enquiry {
 
 export type CreateEnquiryInput = Omit<Enquiry, 'id' | 'reference' | 'createdAt' | 'status' | 'archivedAt'>;
 
-// Development fallback memory store
-const devFallbackStore: Enquiry[] = [];
-
 export function generateEnquiryReference(): string {
   const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
   let random = '';
@@ -103,20 +100,10 @@ export async function saveEnquiry(input: CreateEnquiryInput): Promise<Enquiry> {
       };
     }
 
-    console.warn('Supabase insert unconfirmed, using resilient lead fallback:', saveError);
-  } catch (err) {
-    console.warn('Supabase storage unavailable, using resilient lead fallback:', err);
+    console.error('Failed to save enquiry to Supabase:', saveError);
+    throw new Error(saveError?.message || 'Failed to persist enquiry.');
+  } catch (err: any) {
+    console.error('Enquiry storage error:', err);
+    throw new Error(err?.message || 'Unable to store enquiry. Please try again.');
   }
-
-  // Resilient fallback so customer form submission never fails
-  const fallbackEnquiry: Enquiry = {
-    id: `enq_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
-    reference,
-    createdAt: nowIso,
-    ...input,
-    status: 'new',
-  };
-
-  devFallbackStore.push(fallbackEnquiry);
-  return fallbackEnquiry;
 }
