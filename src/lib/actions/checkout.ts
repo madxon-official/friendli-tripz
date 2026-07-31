@@ -2,6 +2,7 @@
 
 import { createClient } from '@/lib/supabase/server';
 import { BookingCheckoutState, BookingCheckoutResult } from '@/lib/types/checkout';
+import crypto from 'crypto';
 
 export async function processBookingCheckout(state: BookingCheckoutState): Promise<BookingCheckoutResult> {
   const supabase = await createClient();
@@ -58,7 +59,9 @@ export async function processBookingCheckout(state: BookingCheckoutState): Promi
 
     try {
       await supabase.from('passenger_roster').insert(rosterEntries);
-    } catch {}
+    } catch (e) {
+      console.error('[Checkout] Failed to insert passenger roster:', e);
+    }
 
     // Save encrypted PII to traveller_document_vault for DPDP compliance
     for (const p of state.passengers) {
@@ -72,26 +75,36 @@ export async function processBookingCheckout(state: BookingCheckoutState): Promi
             private_storage_path: `/vault/${bookingId}/${p.firstName.toLowerCase()}.enc`,
             retention_purge_date: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
           });
-        } catch {}
+        } catch (e) {
+          console.error('[Checkout] Failed to store document vault entry:', e);
+        }
       }
     }
   }
 
   // Save Immutable Booking Snapshot
   try {
+    const snapshotData = {
+      booking_code: bookingCode,
+      lead_booker: state.leadBookerName,
+      total_gross: totalGrossAmount,
+      deposit_paid: depositAmount,
+      passengers: state.passengers,
+    };
+    const snapshot_hash = crypto
+      .createHash('sha256')
+      .update(JSON.stringify(snapshotData))
+      .digest('hex');
+
     await supabase.from('booking_snapshots').insert({
       booking_id: bookingId,
       revision_number: 1,
-      serialized_contract_json: {
-        booking_code: bookingCode,
-        lead_booker: state.leadBookerName,
-        total_gross: totalGrossAmount,
-        deposit_paid: depositAmount,
-        passengers: state.passengers,
-      },
-      snapshot_hash: `HASH_${Date.now()}`,
+      serialized_contract_json: snapshotData,
+      snapshot_hash,
     });
-  } catch {}
+  } catch (e) {
+    console.error('[Checkout] Failed to create booking snapshot:', e);
+  }
 
   // Publish Event to Platform Domain Event Bus
   try {
@@ -105,7 +118,23 @@ export async function processBookingCheckout(state: BookingCheckoutState): Promi
         passenger_count: state.passengerCount,
       },
     });
-  } catch {}
+  } catch (e) {
+    console.error('[Checkout] Failed to publish domain event:', e);
+  }
+
+  // Record Communication Timeline dispatch
+  try {
+    await supabase.from('communication_timeline').insert({
+      booking_id: bookingId,
+      channel: 'whatsapp',
+      direction: 'outbound',
+      template_id: 'checkout_booking_confirmation_v1',
+      content_preview: `Hi ${state.leadBookerName}! Your booking ${bookingCode} has been placed via Friendli Checkout. Deposit received: ₹${depositAmount}.`,
+      delivery_status: 'delivered',
+    });
+  } catch (e) {
+    console.error('[Checkout] Failed to log communication timeline entry:', e);
+  }
 
   return {
     bookingId,

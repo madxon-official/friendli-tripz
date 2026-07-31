@@ -63,7 +63,7 @@ export const Footer: React.FC = () => {
             <ul className="space-y-2 text-sm text-slate-300">
               <li>
                 <Link
-                  href="#"
+                  href={ROUTES.PRIVACY_POLICY}
                   className="hover:text-slate-100 transition-colors text-slate-400"
                 >
                   Privacy Policy
@@ -71,18 +71,18 @@ export const Footer: React.FC = () => {
               </li>
               <li>
                 <Link
-                  href="#"
+                  href={ROUTES.TERMS}
                   className="hover:text-slate-100 transition-colors text-slate-400"
                 >
-                  Terms
+                  Terms of Service
                 </Link>
               </li>
               <li>
                 <Link
-                  href="#"
+                  href={ROUTES.CANCELLATION_POLICY}
                   className="hover:text-slate-100 transition-colors text-slate-400"
                 >
-                  Cancellation Policy
+                  Cancellation &amp; Refund Policy
                 </Link>
               </li>
             </ul>

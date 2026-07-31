@@ -161,7 +161,10 @@ export async function assignVehicleAndDriver(deploymentId: string, vehicleModel:
       .from('operational_deployments')
       .update({ readiness_score: 100, status: 'ready' })
       .eq('id', deploymentId);
-  } catch (e) {}
+  } catch (e) {
+    console.error('[Operations] Failed to assign vehicle/driver:', e);
+    return { success: false };
+  }
 
   return { success: true };
 }

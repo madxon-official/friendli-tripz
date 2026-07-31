@@ -271,10 +271,10 @@ export default function CheckoutPage({ params }: { params: Promise<{ instanceId:
 
             <div className="flex justify-center gap-4 pt-4">
               <Link
-                href="/dashboard/bookings"
+                href="/trip"
                 className="px-6 py-3 rounded-2xl bg-slate-900 text-white font-bold text-xs hover:bg-amber-600 transition-colors"
               >
-                Go to Customer Dashboard
+                Track Booking Details
               </Link>
               <Link
                 href={`/trip/${result.bookingId}/live`}

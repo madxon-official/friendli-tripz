@@ -1,13 +1,14 @@
 'use client';
 
 import React from 'react';
-import { Filter, RotateCcw, Compass, Calendar, DollarSign, Award, Users, Heart } from 'lucide-react';
+import { useRouter, usePathname, useSearchParams } from 'next/navigation';
+import { Filter, RotateCcw, Calendar, DollarSign, Award } from 'lucide-react';
 import { PackageFilterState } from '@/lib/types/discovery';
 
 interface FilterSidebarProps {
   filters: PackageFilterState;
-  onFilterChange: (newFilters: PackageFilterState) => void;
-  onReset: () => void;
+  onFilterChange?: (newFilters: PackageFilterState) => void;
+  onReset?: () => void;
 }
 
 export const PackageFilterSidebar: React.FC<FilterSidebarProps> = ({
@@ -15,6 +16,42 @@ export const PackageFilterSidebar: React.FC<FilterSidebarProps> = ({
   onFilterChange,
   onReset,
 }) => {
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+
+  const handleUpdate = (updated: PackageFilterState) => {
+    if (onFilterChange) {
+      onFilterChange(updated);
+      return;
+    }
+    const params = new URLSearchParams(searchParams ? searchParams.toString() : '');
+    if (updated.minDuration) params.set('minDuration', String(updated.minDuration));
+    else params.delete('minDuration');
+    if (updated.maxDuration) params.set('maxDuration', String(updated.maxDuration));
+    else params.delete('maxDuration');
+    if (updated.maxBudget) params.set('maxBudget', String(updated.maxBudget));
+    else params.delete('maxBudget');
+    if (updated.difficulty) params.set('difficulty', updated.difficulty);
+    else params.delete('difficulty');
+    if (updated.familyFriendly) params.set('familyFriendly', 'true');
+    else params.delete('familyFriendly');
+    if (updated.honeymoon) params.set('honeymoon', 'true');
+    else params.delete('honeymoon');
+    if (updated.adventure) params.set('adventure', 'true');
+    else params.delete('adventure');
+
+    router.push(`${pathname}?${params.toString()}`);
+  };
+
+  const handleResetClick = () => {
+    if (onReset) {
+      onReset();
+      return;
+    }
+    router.push(pathname);
+  };
+
   return (
     <aside className="bg-white rounded-2xl border border-slate-200/80 p-5 shadow-sm space-y-6">
       <div className="flex items-center justify-between pb-4 border-b border-slate-100">
@@ -23,7 +60,7 @@ export const PackageFilterSidebar: React.FC<FilterSidebarProps> = ({
           <h3 className="font-heading font-bold text-slate-900 text-sm">Filter Packages</h3>
         </div>
         <button
-          onClick={onReset}
+          onClick={handleResetClick}
           className="text-xs font-semibold text-slate-500 hover:text-amber-600 flex items-center gap-1 transition-colors"
         >
           <RotateCcw className="w-3 h-3" />
@@ -42,14 +79,14 @@ export const PackageFilterSidebar: React.FC<FilterSidebarProps> = ({
             type="number"
             placeholder="Min Days"
             value={filters.minDuration || ''}
-            onChange={(e) => onFilterChange({ ...filters, minDuration: e.target.value ? Number(e.target.value) : undefined })}
+            onChange={(e) => handleUpdate({ ...filters, minDuration: e.target.value ? Number(e.target.value) : undefined })}
             className="w-full text-xs p-2.5 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500"
           />
           <input
             type="number"
             placeholder="Max Days"
             value={filters.maxDuration || ''}
-            onChange={(e) => onFilterChange({ ...filters, maxDuration: e.target.value ? Number(e.target.value) : undefined })}
+            onChange={(e) => handleUpdate({ ...filters, maxDuration: e.target.value ? Number(e.target.value) : undefined })}
             className="w-full text-xs p-2.5 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500"
           />
         </div>
@@ -65,7 +102,7 @@ export const PackageFilterSidebar: React.FC<FilterSidebarProps> = ({
           type="number"
           placeholder="e.g. 25000"
           value={filters.maxBudget || ''}
-          onChange={(e) => onFilterChange({ ...filters, maxBudget: e.target.value ? Number(e.target.value) : undefined })}
+          onChange={(e) => handleUpdate({ ...filters, maxBudget: e.target.value ? Number(e.target.value) : undefined })}
           className="w-full text-xs p-2.5 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500"
         />
       </div>
@@ -78,7 +115,7 @@ export const PackageFilterSidebar: React.FC<FilterSidebarProps> = ({
         </label>
         <select
           value={filters.difficulty || ''}
-          onChange={(e) => onFilterChange({ ...filters, difficulty: e.target.value || undefined })}
+          onChange={(e) => handleUpdate({ ...filters, difficulty: e.target.value || undefined })}
           className="w-full text-xs p-2.5 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 bg-white"
         >
           <option value="">All Difficulties</option>
@@ -100,7 +137,7 @@ export const PackageFilterSidebar: React.FC<FilterSidebarProps> = ({
             <input
               type="checkbox"
               checked={!!filters.familyFriendly}
-              onChange={(e) => onFilterChange({ ...filters, familyFriendly: e.target.checked })}
+              onChange={(e) => handleUpdate({ ...filters, familyFriendly: e.target.checked })}
               className="rounded text-amber-600 focus:ring-amber-500"
             />
             <span>Family Friendly</span>
@@ -109,7 +146,7 @@ export const PackageFilterSidebar: React.FC<FilterSidebarProps> = ({
             <input
               type="checkbox"
               checked={!!filters.honeymoon}
-              onChange={(e) => onFilterChange({ ...filters, honeymoon: e.target.checked })}
+              onChange={(e) => handleUpdate({ ...filters, honeymoon: e.target.checked })}
               className="rounded text-amber-600 focus:ring-amber-500"
             />
             <span>Honeymoon & Romantic</span>
@@ -118,7 +155,7 @@ export const PackageFilterSidebar: React.FC<FilterSidebarProps> = ({
             <input
               type="checkbox"
               checked={!!filters.adventure}
-              onChange={(e) => onFilterChange({ ...filters, adventure: e.target.checked })}
+              onChange={(e) => handleUpdate({ ...filters, adventure: e.target.checked })}
               className="rounded text-amber-600 focus:ring-amber-500"
             />
             <span>Adventure & Outdoors</span>

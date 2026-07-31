@@ -19,11 +19,13 @@ import {
   FileText,
   X,
   RefreshCw,
+  Calendar,
 } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { AdminLayout } from '@/components/admin/AdminLayout';
 import { createClient } from '@/lib/supabase/client';
 import { hasPermission } from '@/lib/auth/permissions';
+import { convertEnquiryToBooking } from '@/lib/actions/booking';
 
 export interface EnquiryDetail {
   id: string;
@@ -93,11 +95,25 @@ export const EnquiryDetailClient: React.FC<EnquiryDetailClientProps> = ({
   const [newNote, setNewNote] = useState('');
   const [addingNote, setAddingNote] = useState(false);
   const [updatingStatus, setUpdatingStatus] = useState(false);
+  const [converting, setConverting] = useState(false);
   const [copied, setCopied] = useState(false);
-
-  // Archive modal state
   const [showArchiveModal, setShowArchiveModal] = useState(false);
   const [archiving, setArchiving] = useState(false);
+
+  const handleConvertToBooking = async () => {
+    if (converting) return;
+    setConverting(true);
+    try {
+      const newBooking = await convertEnquiryToBooking(enquiry.id);
+      alert(`Enquiry successfully converted to confirmed booking! Booking code: ${newBooking.booking_code}`);
+      router.push('/admin/bookings');
+    } catch (err: any) {
+      console.error('Conversion failed:', err);
+      alert(`Could not convert enquiry: ${err.message || 'Please try again.'}`);
+    } finally {
+      setConverting(false);
+    }
+  };
 
   const supabase = useMemo(() => createClient(), []);
 
@@ -324,6 +340,15 @@ export const EnquiryDetailClient: React.FC<EnquiryDetailClientProps> = ({
           </span>
 
           <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+            <button
+              onClick={handleConvertToBooking}
+              disabled={converting || enquiry.status === 'confirmed'}
+              className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-brand-orange hover:bg-brand-orange-hover text-white font-bold text-xs shadow-button transition-colors min-h-[44px] disabled:opacity-50"
+            >
+              {converting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Calendar className="w-4 h-4" />}
+              <span>{enquiry.status === 'confirmed' ? 'Already Converted' : 'Convert to Booking'}</span>
+            </button>
+
             <a
               href={waHref}
               target="_blank"

@@ -23,10 +23,10 @@ export const KODAIKANAL_TRIP: Trip = {
   country: 'India',
   heroHeadline: 'Kodaikanal hits different with the right people.',
   heroSubheadline: "Misty roads, mountain views and a trip worth remembering. We've planned the Kodaikanal escape — you just have to show up.",
-  duration: 'To be announced',
-  departureCity: 'To be announced',
-  startingPrice: 'Coming soon',
-  nextTripDate: 'Date announcing soon',
+  duration: '4 Days / 3 Nights',
+  departureCity: 'Madurai',
+  startingPrice: '₹14,500 per person',
+  nextTripDate: 'October 15, 2026',
   // Official supplied local Kodaikanal photography (WebP format)
   heroImage: '/images/kodaikanal/kodaikanal-hero.webp',
   galleryImages: [

@@ -16,6 +16,13 @@ export async function middleware(request: NextRequest) {
   const isAdminSubdomain = hostname.startsWith('admin.');
   const isAdminPath = url.pathname.startsWith('/admin') || isAdminSubdomain;
 
+  // Partner portal paths that require authentication
+  const isPartnerPortal =
+    url.pathname.startsWith('/driver') ||
+    url.pathname.startsWith('/hotel-portal') ||
+    url.pathname.startsWith('/vendor-portal') ||
+    url.pathname.startsWith('/tour-leader');
+
   // Skip middleware for static assets, public API, etc.
   if (
     url.pathname.startsWith('/_next') ||
@@ -31,12 +38,12 @@ export async function middleware(request: NextRequest) {
     return response;
   }
 
-  // If requesting admin routes (/admin, /admin/enquiries, /admin/team, etc.)
-  if (isAdminPath) {
+  // Helper: create Supabase client for session verification
+  const createSupabaseMiddlewareClient = () => {
     const supabaseUrl = sanitizeSupabaseUrl(process.env.NEXT_PUBLIC_SUPABASE_URL);
     const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
 
-    const supabase = createServerClient(supabaseUrl, supabaseAnonKey, {
+    return createServerClient(supabaseUrl, supabaseAnonKey, {
       cookies: {
         getAll() {
           return request.cookies.getAll();
@@ -52,6 +59,29 @@ export async function middleware(request: NextRequest) {
         },
       },
     });
+  };
+
+  // Partner portal route protection (driver, hotel, vendor, tour-leader)
+  if (isPartnerPortal) {
+    const supabase = createSupabaseMiddlewareClient();
+
+    const {
+      data: { session },
+    } = await supabase.auth.getSession();
+
+    if (!session) {
+      // Redirect unauthenticated partner users to admin login with return URL
+      const loginUrl = new URL('/admin/login', request.url);
+      loginUrl.searchParams.set('returnTo', url.pathname);
+      return NextResponse.redirect(loginUrl);
+    }
+
+    return response;
+  }
+
+  // Admin route protection
+  if (isAdminPath) {
+    const supabase = createSupabaseMiddlewareClient();
 
     const {
       data: { session },
@@ -88,5 +118,6 @@ export async function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ['/admin/:path*'],
+  matcher: ['/admin/:path*', '/driver/:path*', '/hotel-portal/:path*', '/vendor-portal/:path*', '/tour-leader/:path*'],
 };
+

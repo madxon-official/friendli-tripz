@@ -2,11 +2,13 @@
 
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 import { AdminSidebar } from './AdminSidebar';
 import { AdminHeader } from './AdminHeader';
 import { createClient } from '@/lib/supabase/client';
 import { X, ArrowRight } from 'lucide-react';
 import { AdminRole } from '@/lib/auth/roles';
+import { CommandPalette } from '@/components/ui/CommandPalette';
 
 interface AdminLayoutProps {
   children: React.ReactNode;
@@ -31,9 +33,12 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({
   adminEmail = '',
   adminRole = 'operations',
 }) => {
+  const pathname = usePathname();
   const [newCount, setNewCount] = useState<number>(initialNewCount);
   const [notificationsEnabled, setNotificationsEnabled] = useState<boolean>(false);
   const [toast, setToast] = useState<ToastNotification | null>(null);
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [isNavigating, setIsNavigating] = useState(false);
 
   // Memoize Supabase browser client to avoid recreating instance on every re-render
   const supabase = useMemo(() => createClient(), []);
@@ -47,6 +52,13 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({
     email: adminEmail,
     role: adminRole,
   });
+
+  // Top progress bar effect on route change
+  useEffect(() => {
+    setIsNavigating(true);
+    const timer = setTimeout(() => setIsNavigating(false), 250);
+    return () => clearTimeout(timer);
+  }, [pathname]);
 
   // Sync profileState if props change
   useEffect(() => {
@@ -119,7 +131,6 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({
   };
 
   useEffect(() => {
-    // Prevent raw DOM Event unhandled rejections (e.g. WebSocket connection errors) from triggering Next.js dev overlay
     const handleUnhandledRejection = (event: PromiseRejectionEvent) => {
       if (
         event.reason &&
@@ -134,7 +145,6 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({
 
     fetchNewCount();
 
-    // Check existing browser notification permission
     if (
       typeof window !== 'undefined' &&
       'Notification' in window &&
@@ -143,7 +153,6 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({
       setNotificationsEnabled(true);
     }
 
-    // Subscribe to Supabase Realtime for new enquiries
     const channelName = `admin_realtime_enquiries_${Math.random().toString(36).substring(2, 9)}`;
     const channel = supabase.channel(channelName);
 
@@ -158,10 +167,8 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({
         (payload) => {
           const newEnquiry = payload.new;
 
-          // 1. Increment new count
           setNewCount((prev) => prev + 1);
 
-          // 2. Trigger in-app toast notification
           setToast({
             id: newEnquiry.id,
             reference: newEnquiry.reference || 'FT-KOD-NEW',
@@ -170,7 +177,6 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({
             destination: newEnquiry.destination || 'Kodaikanal',
           });
 
-          // 3. Trigger Browser Notification if enabled
           try {
             if ('Notification' in window && Notification.permission === 'granted') {
               const notif = new Notification('Friendli Tripz — New Enquiry!', {
@@ -202,7 +208,15 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({
   }, [fetchNewCount, supabase]);
 
   return (
-    <div className="min-h-screen bg-brand-warm flex flex-col lg:flex-row">
+    <div className="min-h-screen bg-slate-50 flex flex-col lg:flex-row font-sans relative">
+      {/* Top Instant Navigation Progress Loading Bar */}
+      {isNavigating && (
+        <div className="fixed top-0 left-0 right-0 h-1 bg-brand-orange z-50 animate-pulse transition-all" />
+      )}
+
+      {/* Universal Cmd+K Search Modal */}
+      <CommandPalette />
+
       {/* Persistent Desktop Sidebar Column */}
       <aside className="hidden lg:block w-64 lg:w-72 shrink-0">
         <AdminSidebar
@@ -212,12 +226,13 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({
           adminRole={profileState.role}
           notificationsEnabled={notificationsEnabled}
           onEnableNotifications={handleEnableNotifications}
+          onOpenSearch={() => setSearchOpen(true)}
         />
       </aside>
 
-      {/* Main Column (takes 100% of remaining width) */}
+      {/* Main Column */}
       <div className="flex-1 flex flex-col min-w-0">
-        {/* Top Header Bar (spans full main column width) */}
+        {/* Top Header Bar */}
         <AdminHeader
           newEnquiriesCount={newCount}
           adminName={profileState.name}
@@ -225,6 +240,7 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({
           adminRole={profileState.role}
           notificationsEnabled={notificationsEnabled}
           onEnableNotifications={handleEnableNotifications}
+          onOpenSearch={() => setSearchOpen(true)}
         />
 
         {/* Inner Page Content Area */}

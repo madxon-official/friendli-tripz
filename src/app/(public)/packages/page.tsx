@@ -55,11 +55,7 @@ export default async function PackagesPage({
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
           {/* Sidebar */}
           <div className="lg:col-span-1">
-            <PackageFilterSidebar
-              filters={filters}
-              onFilterChange={() => {}}
-              onReset={() => {}}
-            />
+            <PackageFilterSidebar filters={filters} />
           </div>
 
           {/* Grid */}

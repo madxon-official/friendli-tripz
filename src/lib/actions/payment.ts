@@ -1,4 +1,3 @@
-'use me';
 'use server';
 
 import { createServerSupabaseClient } from '@/lib/supabase/server';
@@ -15,6 +14,23 @@ async function checkPermission(requiredPermission: string) {
   if (!user) {
     throw new Error('Unauthorized: Authentication required');
   }
+
+  // Verify RBAC permission against user's admin profile role
+  const { data: profile } = await supabase
+    .from('admin_profiles')
+    .select('role, is_active')
+    .eq('id', user.id)
+    .single();
+
+  if (!profile || !profile.is_active) {
+    throw new Error('Unauthorized: Admin profile not found or inactive');
+  }
+
+  const { hasPermission } = await import('@/lib/rbac/permissions');
+  if (!hasPermission(profile.role, requiredPermission as any)) {
+    throw new Error(`Forbidden: Missing required permission '${requiredPermission}'`);
+  }
+
   return { supabase, user };
 }
 
