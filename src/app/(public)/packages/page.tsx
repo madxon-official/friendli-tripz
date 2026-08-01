@@ -1,81 +1,203 @@
-import React, { Suspense } from 'react';
-import { searchPackages } from '@/lib/actions/discovery';
-import { PackageCard } from '@/components/public/PackageCard';
-import { PackageFilterSidebar } from '@/components/public/PackageFilterSidebar';
-import { PackageFilterState } from '@/lib/types/discovery';
-import { Compass, Sparkles } from 'lucide-react';
+'use client';
 
-export const metadata = {
-  title: 'Explore Tour Packages & Itineraries | Friendli Tripz',
-  description: 'Filter and discover fixed departures, private tour quotes, and customized hill station packages.',
-};
+import React, { useState, useMemo } from 'react';
+import Image from 'next/image';
+import Link from 'next/link';
+import { motion } from 'framer-motion';
+import {
+  MapPin, Clock, Star, ArrowRight, Search, SlidersHorizontal, X,
+  Compass, Users, Filter,
+} from 'lucide-react';
+import { Container } from '@/components/v3/ui/Container';
+import { Badge } from '@/components/v3/ui/Badge';
+import { Tabs } from '@/components/v3/ui/Tabs';
+import { Input } from '@/components/v3/ui/Input';
+import { Button } from '@/components/v3/ui/Button';
+import { GradientButton } from '@/components/v3/ui/GradientButton';
+import { TRENDING_TRIPS, VIBE_CATEGORIES } from '@/lib/data/trips';
+import { ROUTES } from '@/lib/routes';
 
-export default async function PackagesPage({
-  searchParams,
-}: {
-  searchParams: Promise<{ [key: string]: string | undefined }>;
-}) {
-  const resolvedParams = await searchParams;
-  const filters: PackageFilterState = {
-    searchQuery: resolvedParams.searchQuery,
-    destinationSlug: resolvedParams.destinationSlug,
-    minDuration: resolvedParams.minDuration ? Number(resolvedParams.minDuration) : undefined,
-    maxDuration: resolvedParams.maxDuration ? Number(resolvedParams.maxDuration) : undefined,
-    maxBudget: resolvedParams.maxBudget ? Number(resolvedParams.maxBudget) : undefined,
-    difficulty: resolvedParams.difficulty,
-    familyFriendly: resolvedParams.familyFriendly === 'true',
-    honeymoon: resolvedParams.honeymoon === 'true',
-    adventure: resolvedParams.adventure === 'true',
-    sortBy: (resolvedParams.sortBy as any) || 'popular',
-    page: resolvedParams.page ? Number(resolvedParams.page) : 1,
-  };
+const FILTER_TABS = [
+  { id: 'all', label: 'All Trips' },
+  { id: 'trending', label: 'Trending', count: 6 },
+  { id: 'weekend', label: 'Weekend' },
+  { id: 'long', label: 'Long Trips' },
+];
 
-  const { packages, totalCount, page, totalPages } = await searchPackages(filters);
+export default function PackagesPage() {
+  const [activeFilter, setActiveFilter] = useState('all');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [selectedVibe, setSelectedVibe] = useState<string | null>(null);
+
+  const filteredTrips = useMemo(() => {
+    let trips = TRENDING_TRIPS;
+
+    if (searchQuery) {
+      const q = searchQuery.toLowerCase();
+      trips = trips.filter(
+        (t) =>
+          t.name.toLowerCase().includes(q) ||
+          t.location.toLowerCase().includes(q)
+      );
+    }
+
+    if (activeFilter === 'trending') {
+      trips = trips.filter((t) => t.badge);
+    }
+
+    return trips;
+  }, [activeFilter, searchQuery]);
 
   return (
-    <main className="min-h-screen bg-slate-50 py-10 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-7xl mx-auto space-y-8">
-        {/* Header */}
-        <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 pb-6 border-b border-slate-200">
-          <div>
-            <div className="flex items-center gap-2 text-amber-600 text-xs font-bold uppercase tracking-wider mb-1">
-              <Compass className="w-4 h-4" />
-              Package Catalog
-            </div>
-            <h1 className="font-heading text-3xl font-extrabold text-slate-900">
-              Curated Tour Packages ({totalCount})
+    <main className="min-h-screen">
+      {/* Hero */}
+      <section className="relative pt-32 pb-16 sm:pt-40 sm:pb-20 bg-gradient-brand overflow-hidden">
+        <div className="absolute inset-0 bg-pattern-dots opacity-5" />
+        <Container className="relative z-10 text-center">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6 }}
+            className="max-w-3xl mx-auto space-y-4"
+          >
+            <Badge variant="brand" size="sm" icon={<Compass className="w-3.5 h-3.5" />}>
+              Curated Packages
+            </Badge>
+            <h1 className="text-display sm:text-display-lg font-heading font-extrabold text-white">
+              Trip Packages
             </h1>
-            <p className="text-slate-500 text-sm mt-1">
-              Hand-crafted itineraries powered by live pricing and commercial inventory engine.
+            <p className="text-body-lg text-white/70 max-w-xl mx-auto">
+              Fixed departures. Verified stays. Zero hassle. Pick your escape and we&apos;ll handle the rest.
             </p>
-          </div>
-        </div>
+          </motion.div>
+        </Container>
+      </section>
 
-        {/* Content Layout */}
-        <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
-          {/* Sidebar */}
-          <div className="lg:col-span-1">
-            <PackageFilterSidebar filters={filters} />
+      {/* Filters & Grid */}
+      <section className="py-section-sm sm:py-section bg-surface-50">
+        <Container>
+          {/* Toolbar */}
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-8">
+            <Tabs
+              tabs={FILTER_TABS}
+              defaultTab="all"
+              onChange={(id) => setActiveFilter(id)}
+              variant="pills"
+              size="sm"
+            />
+
+            <div className="flex items-center gap-3 w-full sm:w-auto">
+              <Input
+                placeholder="Search trips..."
+                icon={<Search className="w-4 h-4" />}
+                size="sm"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="!rounded-badge"
+              />
+            </div>
           </div>
 
-          {/* Grid */}
-          <div className="lg:col-span-3 space-y-6">
-            {packages.length === 0 ? (
-              <div className="bg-white rounded-2xl p-12 text-center border border-slate-200">
-                <Sparkles className="w-10 h-10 text-amber-500 mx-auto mb-3" />
-                <h3 className="text-lg font-bold text-slate-900">No packages matched your filters</h3>
-                <p className="text-sm text-slate-500 mt-1">Try broadening your budget or duration parameters.</p>
-              </div>
-            ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-                {packages.map((pkg) => (
-                  <PackageCard key={pkg.id} packageItem={pkg} />
-                ))}
-              </div>
-            )}
+          {/* Vibe Filters (horizontal scroll) */}
+          <div className="flex items-center gap-2 mb-8 overflow-x-auto scrollbar-hide pb-2">
+            {VIBE_CATEGORIES.slice(0, 8).map((vibe) => (
+              <button
+                key={vibe.id}
+                onClick={() => setSelectedVibe(selectedVibe === vibe.title ? null : vibe.title)}
+                className={`shrink-0 flex items-center gap-2 px-4 py-2 rounded-badge border text-body-sm font-bold transition-all ${
+                  selectedVibe === vibe.title
+                    ? 'border-brand-orange bg-brand-soft-orange text-brand-orange'
+                    : 'border-surface-200 bg-white text-brand-muted hover:border-brand-orange/40'
+                }`}
+              >
+                <span>{vibe.title}</span>
+                {selectedVibe === vibe.title && <X className="w-3 h-3" />}
+              </button>
+            ))}
           </div>
-        </div>
-      </div>
+
+          {/* Trip Grid */}
+          {filteredTrips.length > 0 ? (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8">
+              {filteredTrips.map((trip, index) => (
+                <motion.div
+                  key={trip.id}
+                  initial={{ opacity: 0, y: 24 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true }}
+                  transition={{ delay: index * 0.06, duration: 0.4 }}
+                >
+                  <Link
+                    href={`${ROUTES.PACKAGES}/${trip.slug}`}
+                    className="group block bg-white rounded-card-lg border border-surface-200/80 shadow-subtle overflow-hidden card-interactive"
+                  >
+                    {/* Image */}
+                    <div className="relative aspect-[4/3] overflow-hidden">
+                      <Image
+                        src={trip.image}
+                        alt={trip.name}
+                        fill
+                        className="object-cover group-hover:scale-105 transition-transform duration-700 ease-out-expo"
+                        sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
+                      />
+                      {trip.badge && (
+                        <div className="absolute top-3 left-3">
+                          <Badge variant="brand" size="xs">{trip.badge}</Badge>
+                        </div>
+                      )}
+                      <div className="absolute top-3 right-3 flex items-center gap-1 px-2 py-1 rounded-badge bg-black/40 backdrop-blur-md text-white text-caption font-bold">
+                        <Star className="w-3 h-3 text-amber-400 fill-amber-400" />
+                        <span>{trip.rating}</span>
+                      </div>
+                      <div className="absolute bottom-3 left-3">
+                        <Badge variant="warning" size="xs" pulse>{trip.seatsLeft}</Badge>
+                      </div>
+                    </div>
+
+                    {/* Content */}
+                    <div className="p-5 space-y-3">
+                      <div className="flex items-center gap-3 text-caption text-brand-muted">
+                        <span className="flex items-center gap-1">
+                          <MapPin className="w-3.5 h-3.5 text-brand-orange" />
+                          {trip.location}
+                        </span>
+                        <span className="flex items-center gap-1">
+                          <Clock className="w-3.5 h-3.5" />
+                          {trip.duration}
+                        </span>
+                      </div>
+                      <h3 className="text-heading-sm font-heading font-extrabold text-brand-navy group-hover:text-brand-orange transition-colors leading-tight">
+                        {trip.name}
+                      </h3>
+                      <div className="flex items-center justify-between pt-3 border-t border-surface-200/60">
+                        <div>
+                          <span className="text-caption text-brand-muted block">From</span>
+                          <span className="text-heading-sm font-heading font-extrabold text-brand-navy">{trip.price}</span>
+                        </div>
+                        <span className="inline-flex items-center gap-1.5 text-body-sm font-bold text-brand-orange group-hover:gap-2.5 transition-all">
+                          View Trip
+                          <ArrowRight className="w-4 h-4" />
+                        </span>
+                      </div>
+                    </div>
+                  </Link>
+                </motion.div>
+              ))}
+            </div>
+          ) : (
+            <div className="text-center py-20 space-y-4">
+              <div className="w-16 h-16 rounded-full bg-surface-100 flex items-center justify-center mx-auto text-brand-muted/40">
+                <Search className="w-8 h-8" />
+              </div>
+              <h3 className="text-heading-sm font-heading font-bold text-brand-navy">No trips found</h3>
+              <p className="text-body-sm text-brand-muted">Try adjusting your filters or search query.</p>
+              <Button variant="outline" size="sm" onClick={() => { setSearchQuery(''); setActiveFilter('all'); setSelectedVibe(null); }}>
+                Clear Filters
+              </Button>
+            </div>
+          )}
+        </Container>
+      </section>
     </main>
   );
 }

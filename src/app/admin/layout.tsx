@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { usePathname } from 'next/navigation';
-import { AdminLayout } from '@/components/admin/AdminLayout';
+import { V3AdminLayout } from '@/components/v3/admin/AdminLayout';
 
 export default function AdminRootLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
@@ -17,5 +17,5 @@ export default function AdminRootLayout({ children }: { children: React.ReactNod
     return <>{children}</>;
   }
 
-  return <AdminLayout>{children}</AdminLayout>;
+  return <V3AdminLayout>{children}</V3AdminLayout>;
 }

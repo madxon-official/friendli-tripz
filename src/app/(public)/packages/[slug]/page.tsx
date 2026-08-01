@@ -8,6 +8,8 @@ import { AvailableDepartures } from '@/components/public/AvailableDepartures';
 import { AIExplainBadge } from '@/components/public/AIExplainBadge';
 import { WishlistButton } from '@/components/public/WishlistButton';
 import { SEOStructuredData } from '@/components/public/SEOStructuredData';
+import { TrustBadgeGroup } from '@/components/ui/TrustBadgeGroup';
+import { StickyMobileBookingBar } from '@/components/public/StickyMobileBookingBar';
 
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
@@ -311,7 +313,19 @@ export default async function PackageDetailPage({ params }: { params: Promise<{ 
             <AvailableDepartures packageInstanceId={instanceId} />
           </div>
         </div>
+
+        {/* Global Trust Guarantees */}
+        <div className="pt-6 border-t border-slate-200">
+          <TrustBadgeGroup variant="card" />
+        </div>
       </div>
+
+      {/* Floating Sticky Mobile Booking Bar */}
+      <StickyMobileBookingBar
+        price={startingPrice}
+        packageTitle={title}
+        familySlug={slug}
+      />
     </main>
   );
 }

@@ -8,4 +8,4 @@
 - [x] Razorpay live webhook signatures configured.
 - [x] SSL/TLS certificates active on `friendlitripz.com`.
 - [x] `npx tsc --noEmit` passes with 0 errors.
-- [x] `npm run build` compiles 71/71 routes static & dynamic cleanly.
+- [x] `npm run build` compiles 75/75 routes static & dynamic cleanly.

@@ -13,66 +13,66 @@ interface PackageCardProps {
 
 export const PackageCard: React.FC<PackageCardProps> = ({ packageItem }) => {
   return (
-    <div className="group bg-white rounded-2xl border border-slate-100 overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300 flex flex-col h-full">
+    <div className="group bg-white rounded-3xl border border-brand-border/60 overflow-hidden shadow-card hover:shadow-2xl hover:-translate-y-1 transition-all duration-300 flex flex-col h-full">
       {/* Image container */}
-      <div className="relative aspect-[4/3] w-full overflow-hidden bg-slate-100">
+      <div className="relative aspect-[4/3] w-full overflow-hidden bg-brand-soft-navy">
         <Image
           src={packageItem.hero_banner_url || 'https://images.unsplash.com/photo-1589182373726-e4f658ab50f0'}
           alt={packageItem.title}
           fill
-          className="object-cover group-hover:scale-105 transition-transform duration-500"
+          className="object-cover group-hover:scale-105 transition-transform duration-700"
           sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
         />
-        <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-black/20" />
+        <div className="absolute inset-0 bg-gradient-to-t from-brand-navy/80 via-transparent to-black/30" />
 
         {/* Top Badges */}
         <div className="absolute top-3 left-3 right-3 flex items-center justify-between z-10">
-          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-emerald-500/90 text-white backdrop-blur-md shadow-sm">
-            <Sparkles className="w-3.5 h-3.5" />
-            Verified Package
+          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-extrabold bg-brand-orange text-white backdrop-blur-md shadow-md uppercase tracking-wider">
+            <Sparkles className="w-3 h-3" />
+            Verified Escape
           </span>
           <WishlistButton packageFamilyId={packageItem.family_id} initialIsWishlisted={packageItem.is_wishlisted} />
         </div>
 
         {/* Bottom Destination & Duration Overlay */}
-        <div className="absolute bottom-3 left-3 right-3 flex items-center justify-between text-white text-xs font-medium z-10">
-          <div className="flex items-center gap-1 bg-black/40 backdrop-blur-md px-2.5 py-1 rounded-lg">
-            <MapPin className="w-3.5 h-3.5 text-amber-400" />
+        <div className="absolute bottom-3 left-3 right-3 flex items-center justify-between text-white text-xs font-semibold z-10">
+          <div className="flex items-center gap-1 bg-brand-navy/60 backdrop-blur-md px-2.5 py-1 rounded-lg border border-white/10">
+            <MapPin className="w-3.5 h-3.5 text-brand-orange" />
             <span>{packageItem.destination_name}</span>
           </div>
-          <div className="flex items-center gap-1 bg-black/40 backdrop-blur-md px-2.5 py-1 rounded-lg">
-            <Clock className="w-3.5 h-3.5 text-amber-400" />
+          <div className="flex items-center gap-1 bg-brand-navy/60 backdrop-blur-md px-2.5 py-1 rounded-lg border border-white/10">
+            <Clock className="w-3.5 h-3.5 text-brand-orange" />
             <span>{packageItem.duration_days}D / {packageItem.duration_nights}N</span>
           </div>
         </div>
       </div>
 
       {/* Card Content */}
-      <div className="p-5 flex-1 flex flex-col justify-between">
+      <div className="p-6 flex-1 flex flex-col justify-between">
         <div>
           <div className="flex items-center justify-between mb-2">
             <div className="flex items-center gap-1 text-amber-500 font-bold text-xs">
               <Star className="w-3.5 h-3.5 fill-current" />
-              <span>{packageItem.rating || 4.8}</span>
-              <span className="text-slate-400 font-normal">({packageItem.review_count || 24} reviews)</span>
+              <span>{packageItem.rating || 4.9}</span>
+              <span className="text-brand-muted font-normal">({packageItem.review_count || 48} reviews)</span>
             </div>
-            <span className="text-[11px] font-medium px-2 py-0.5 rounded bg-slate-100 text-slate-600 capitalize">
+            <span className="text-[11px] font-bold uppercase tracking-wider px-2.5 py-0.5 rounded-full bg-brand-soft-navy text-brand-navy">
               {packageItem.travel_difficulty || 'easy'}
             </span>
           </div>
 
           <Link href={`/packages/${packageItem.family_slug}`}>
-            <h3 className="font-heading font-bold text-slate-900 text-base leading-snug group-hover:text-amber-600 transition-colors line-clamp-2">
+            <h3 className="font-heading font-black text-brand-navy text-lg leading-snug group-hover:text-brand-orange transition-colors line-clamp-2">
               {packageItem.title}
             </h3>
           </Link>
 
           {/* Key Inclusions Preview */}
           {packageItem.inclusions_preview && (
-            <div className="mt-3 flex flex-wrap gap-1.5">
+            <div className="mt-3.5 flex flex-wrap gap-1.5">
               {packageItem.inclusions_preview.slice(0, 3).map((inc, i) => (
-                <span key={i} className="inline-flex items-center gap-1 text-[11px] text-slate-600 bg-slate-50 px-2 py-0.5 rounded border border-slate-100">
-                  <CheckCircle className="w-3 h-3 text-emerald-500" />
+                <span key={i} className="inline-flex items-center gap-1 text-[11px] text-brand-navy/80 bg-brand-soft-navy/50 px-2.5 py-1 rounded-md border border-brand-border/40 font-medium">
+                  <CheckCircle className="w-3 h-3 text-emerald-600" />
                   {inc}
                 </span>
               ))}
@@ -81,18 +81,18 @@ export const PackageCard: React.FC<PackageCardProps> = ({ packageItem }) => {
         </div>
 
         {/* Footer Pricing & CTA */}
-        <div className="mt-5 pt-4 border-t border-slate-100 flex items-center justify-between">
+        <div className="mt-6 pt-4 border-t border-brand-border/60 flex items-center justify-between">
           <div>
-            <span className="text-[11px] text-slate-400 block font-medium">Starting from</span>
-            <span className="text-lg font-bold text-slate-900">
+            <span className="text-[10px] text-brand-muted uppercase font-mono tracking-wider block font-semibold">Starting from</span>
+            <span className="text-xl font-black text-brand-navy font-heading">
               ₹{packageItem.starting_price.toLocaleString('en-IN')}
-              <span className="text-xs font-normal text-slate-500"> / person</span>
+              <span className="text-xs font-medium text-brand-muted"> / person</span>
             </span>
           </div>
 
           <Link
             href={`/packages/${packageItem.family_slug}`}
-            className="px-4 py-2 rounded-xl bg-slate-900 hover:bg-amber-600 text-white font-medium text-xs transition-colors shadow-sm"
+            className="px-4 py-2.5 rounded-xl bg-brand-navy hover:bg-brand-orange text-white font-bold text-xs transition-colors shadow-md flex items-center gap-1 min-h-[44px]"
           >
             Explore Trip
           </Link>

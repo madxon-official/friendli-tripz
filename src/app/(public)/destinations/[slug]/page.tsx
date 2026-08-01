@@ -1,454 +1,312 @@
+'use client';
+
 import React from 'react';
-import { notFound, redirect, RedirectType } from 'next/navigation';
 import Image from 'next/image';
 import Link from 'next/link';
+import { useParams } from 'next/navigation';
+import { motion } from 'framer-motion';
 import {
-  MapPin,
-  Calendar,
-  Clock,
-  Globe,
-  Sparkles,
-  Phone,
-  HelpCircle,
-  ArrowRight,
-  ShieldCheck,
-  Plane,
-  Train,
-  Bus,
-  Utensils,
-  ShoppingBag,
-  AlertTriangle,
-  Heart,
-  Mountain,
-  Compass,
-  CheckCircle2,
-  Package,
+  MapPin, Sun, CloudRain, Compass, Camera, ArrowRight,
+  Mountain, Utensils, Calendar, Star, ChevronRight,
 } from 'lucide-react';
-import { getDestinationBySlug, incrementDestinationViewCount } from '@/lib/actions/destination';
-import {
-  DestinationHighlight,
-  DestinationGallery,
-  DestinationEmergencyContact,
-  DestinationFAQ,
-} from '@/lib/types/destination';
+import { Container } from '@/components/v3/ui/Container';
+import { SectionHeading } from '@/components/v3/ui/SectionHeading';
+import { Badge } from '@/components/v3/ui/Badge';
+import { Card } from '@/components/v3/ui/Card';
+import { Accordion } from '@/components/v3/ui/Accordion';
+import { GradientButton } from '@/components/v3/ui/GradientButton';
+import { ROUTES } from '@/lib/routes';
+import { DESTINATIONS } from '@/lib/data/destinations';
+import { TRENDING_TRIPS, FAQ_ITEMS, UPCOMING_DEPARTURES } from '@/lib/data/trips';
 
-export async function generateMetadata({
-  params,
-}: {
-  params: Promise<{ slug: string }>;
-}) {
-  const resolvedParams = await params;
-  const { destination } = await getDestinationBySlug(resolvedParams.slug);
+export default function DestinationDetailPage() {
+  const params = useParams();
+  const slug = params.slug as string;
+  const dest = DESTINATIONS.find((d) => d.slug === slug);
 
-  if (!destination) {
-    return { title: 'Destination Not Found | Friendli Tripz' };
+  if (!dest) {
+    return (
+      <main className="min-h-screen flex items-center justify-center">
+        <div className="text-center space-y-4">
+          <h1 className="text-display font-heading font-extrabold text-brand-navy">Destination Not Found</h1>
+          <GradientButton href={ROUTES.DESTINATIONS}>Browse Destinations</GradientButton>
+        </div>
+      </main>
+    );
   }
 
-  return {
-    title: destination.meta_title || `${destination.name} Travel Guide | Friendli Tripz`,
-    description:
-      destination.meta_description ||
-      destination.short_description ||
-      `Explore ${destination.name} travel details and curated trips with Friendli Tripz.`,
-    keywords: destination.meta_keywords || [destination.name, 'Friendli Tripz', 'Travel'],
-  };
-}
+  const relatedTrips = TRENDING_TRIPS.filter((t) =>
+    t.location.toLowerCase().includes(dest.state.toLowerCase()) ||
+    t.name.toLowerCase().includes(dest.name.toLowerCase())
+  ).slice(0, 3);
 
-export default async function PublicDestinationDetailPage({
-  params,
-}: {
-  params: Promise<{ slug: string }>;
-}) {
-  const resolvedParams = await params;
-  const requestedSlug = resolvedParams.slug;
-
-  const { destination, redirectedSlug } = await getDestinationBySlug(requestedSlug);
-
-  // SEO 301 Permanent Redirect handling if old slug accessed
-  if (redirectedSlug) {
-    redirect(`/destinations/${redirectedSlug}`, RedirectType.replace);
-  }
-
-  if (!destination) {
-    notFound();
-  }
-
-  // Increment view count asynchronously
-  incrementDestinationViewCount(requestedSlug);
-
-  const heroImage =
-    destination.hero_banner_url ||
-    destination.featured_image_url ||
-    '/images/kodaikanal/kodaikanal-hero.webp';
-
-  const isComingSoon = destination.status === 'coming_soon';
+  const destinationFAQs = [
+    { id: 'dfaq-1', title: `What is the best time to visit ${dest.name}?`, content: `The best season to visit ${dest.name} is ${dest.bestSeason}. During this period, the weather is pleasant with temperatures ranging from ${dest.weather}, making it ideal for sightseeing and outdoor activities.` },
+    { id: 'dfaq-2', title: `How do I reach ${dest.name}?`, content: `${dest.name} is well-connected by road. Our group trips include comfortable AC transport from the departure city. We handle all logistics so you just need to show up at the meeting point.` },
+    { id: 'dfaq-3', title: `What should I pack for ${dest.name}?`, content: `Pack light layers, comfortable walking shoes, a light rain jacket, sunscreen, and a camera. We provide a detailed packing list after booking.` },
+    { id: 'dfaq-4', title: `Is ${dest.name} safe for solo travellers?`, content: `Absolutely! Over 60% of our travellers join solo. You'll be paired with same-gender room-mates and our trip leaders ensure everyone feels included from day one.` },
+  ];
 
   return (
-    <article className="min-h-screen bg-slate-50 pb-24 text-slate-900">
-      {/* Hero Banner Header */}
-      <section className="relative h-[65vh] min-h-[480px] w-full bg-slate-950 overflow-hidden flex items-end">
-        <Image src={heroImage} alt={destination.name} fill className="object-cover opacity-60" priority />
-        <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/40 to-transparent" />
+    <main className="min-h-screen">
+      {/* Hero */}
+      <section className="relative h-[70vh] min-h-[500px] flex items-end overflow-hidden">
+        <Image
+          src={dest.heroImage}
+          alt={dest.name}
+          fill
+          priority
+          className="object-cover"
+          sizes="100vw"
+        />
+        <div className="absolute inset-0 bg-gradient-to-t from-brand-navy via-brand-navy/40 to-transparent" />
 
-        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-12 w-full text-white space-y-4">
-          {/* Badges */}
-          <div className="flex flex-wrap items-center gap-2">
-            <span className="px-3 py-1 rounded-full text-xs font-mono font-bold bg-brand-orange text-white uppercase tracking-wider shadow-sm">
-              {destination.category?.name || 'Hill Station'}
-            </span>
-            <span className="px-3 py-1 rounded-full text-xs font-mono font-semibold bg-white/20 backdrop-blur-md text-white border border-white/20">
-              {destination.state?.name}, {destination.country?.name}
-            </span>
-            {isComingSoon && (
-              <span className="px-3 py-1 rounded-full text-xs font-mono font-bold bg-blue-600 text-white uppercase">
-                Coming Soon
-              </span>
-            )}
-          </div>
-
-          <h1 className="text-4xl sm:text-6xl font-heading font-black tracking-tight text-white leading-tight">
-            {destination.name}
-          </h1>
-
-          <p className="text-lg sm:text-xl text-slate-200 font-medium max-w-3xl leading-relaxed">
-            {destination.short_description ||
-              'Misty roads, mountain views and a trip worth remembering with good company.'}
-          </p>
-        </div>
+        <Container className="relative z-10 pb-12 sm:pb-16">
+          <motion.div
+            initial={{ opacity: 0, y: 30 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.7 }}
+            className="max-w-3xl space-y-4"
+          >
+            <div className="flex items-center gap-3">
+              <Badge variant="brand" size="sm" icon={<MapPin className="w-3 h-3" />}>
+                {dest.state}
+              </Badge>
+              <Badge variant="success" size="xs" icon={<Sun className="w-3 h-3" />}>
+                {dest.bestSeason}
+              </Badge>
+            </div>
+            <h1 className="text-display-lg sm:text-display-xl font-heading font-extrabold text-white">
+              {dest.name}
+            </h1>
+            <p className="text-body-lg text-white/70 max-w-xl">{dest.tagline}</p>
+            <div className="flex items-center gap-4 pt-2">
+              <GradientButton href={ROUTES.PACKAGES} variant="orange" size="md">
+                View {dest.packageCount} Packages
+              </GradientButton>
+              <GradientButton href={ROUTES.PLANNER} variant="glass" size="md" icon={<Compass className="w-4 h-4" />}>
+                Plan Trip Here
+              </GradientButton>
+            </div>
+          </motion.div>
+        </Container>
       </section>
 
-      {/* Quick Facts Ribbon Bar */}
-      <section className="bg-white border-b border-slate-200 shadow-sm sticky top-0 z-20">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-          <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-6 gap-4 text-xs font-mono font-semibold text-slate-700">
-            {destination.ideal_duration && (
-              <div className="flex items-center gap-2">
-                <Clock className="w-4 h-4 text-brand-orange shrink-0" />
-                <div>
-                  <span className="block text-[10px] text-slate-400 font-bold uppercase">Duration</span>
-                  <span>{destination.ideal_duration}</span>
-                </div>
-              </div>
-            )}
-
-            {destination.best_season && (
-              <div className="flex items-center gap-2">
-                <Calendar className="w-4 h-4 text-brand-orange shrink-0" />
-                <div>
-                  <span className="block text-[10px] text-slate-400 font-bold uppercase">Best Season</span>
-                  <span>{destination.best_season}</span>
-                </div>
-              </div>
-            )}
-
-            {destination.climate && (
-              <div className="flex items-center gap-2">
-                <Globe className="w-4 h-4 text-brand-orange shrink-0" />
-                <div>
-                  <span className="block text-[10px] text-slate-400 font-bold uppercase">Climate</span>
-                  <span>{destination.climate}</span>
-                </div>
-              </div>
-            )}
-
-            {destination.travel_difficulty && (
-              <div className="flex items-center gap-2">
-                <Mountain className="w-4 h-4 text-brand-orange shrink-0" />
-                <div>
-                  <span className="block text-[10px] text-slate-400 font-bold uppercase">Difficulty</span>
-                  <span className="capitalize">{destination.travel_difficulty}</span>
-                </div>
-              </div>
-            )}
-
-            {destination.elevation && (
-              <div className="flex items-center gap-2">
-                <Compass className="w-4 h-4 text-brand-orange shrink-0" />
-                <div>
-                  <span className="block text-[10px] text-slate-400 font-bold uppercase">Elevation</span>
-                  <span>{destination.elevation}</span>
-                </div>
-              </div>
-            )}
-
-            {destination.average_budget_per_day && (
-              <div className="flex items-center gap-2">
-                <Sparkles className="w-4 h-4 text-brand-orange shrink-0" />
-                <div>
-                  <span className="block text-[10px] text-slate-400 font-bold uppercase">Avg Budget</span>
-                  <span>{destination.average_budget_per_day}</span>
-                </div>
-              </div>
-            )}
-          </div>
-        </div>
-      </section>
-
-      {/* Main Body Details */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 space-y-16">
-        {/* Overview & Description */}
-        <section className="grid grid-cols-1 lg:grid-cols-3 gap-12">
-          <div className="lg:col-span-2 space-y-6">
-            <h2 className="text-2xl font-heading font-black text-slate-900 tracking-tight flex items-center gap-2">
-              <Sparkles className="w-6 h-6 text-brand-orange" />
-              <span>About {destination.name}</span>
-            </h2>
-            <div className="prose prose-slate max-w-none text-slate-700 leading-relaxed text-base">
-              <p>
-                {destination.long_description ||
-                  `${destination.name} is a serene escape located in ${destination.state?.name}. Known for its lush landscapes, refreshing mountain breezes, and peaceful atmosphere, it offers an ideal getaway for travelers looking to slow down and enjoy the journey.`}
+      {/* Story / About */}
+      <section className="py-section-sm sm:py-section bg-white border-b border-surface-200/40">
+        <Container>
+          <div className="grid grid-cols-1 lg:grid-cols-5 gap-12">
+            <div className="lg:col-span-3 space-y-6">
+              <SectionHeading
+                badge="THE STORY"
+                title={`Discover ${dest.name}`}
+                size="sm"
+              />
+              <p className="text-body text-brand-muted leading-relaxed">
+                {dest.description}
+              </p>
+              <p className="text-body text-brand-muted leading-relaxed">
+                Friendli Tripz brings you a curated experience of {dest.name} — not a rushed checklist, but a journey designed around the best this destination has to offer. Our local experts know every hidden waterfall, the best sunrise spots, and where to find the most authentic local cuisine.
               </p>
             </div>
 
-            {/* Repeatable Highlight Cards */}
-            {destination.highlights && destination.highlights.length > 0 && (
-              <div className="pt-6 border-t border-slate-200 space-y-4">
-                <h3 className="text-xl font-heading font-bold text-slate-900">Destination Highlights</h3>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  {destination.highlights.map((h: DestinationHighlight, idx: number) => (
-                    <div
-                      key={idx}
-                      className="p-5 rounded-2xl bg-white border border-slate-200 shadow-sm flex items-start gap-4"
-                    >
-                      <div className="p-3 rounded-xl bg-orange-50 text-brand-orange shrink-0">
-                        <Sparkles className="w-5 h-5" />
+            {/* Highlight Cards */}
+            <div className="lg:col-span-2 space-y-4">
+              <Card variant="elevated" padding="lg">
+                <h3 className="text-heading-sm font-heading font-extrabold text-brand-navy mb-4">Quick Facts</h3>
+                <div className="space-y-3">
+                  {[
+                    { icon: Sun, label: 'Best Season', value: dest.bestSeason },
+                    { icon: CloudRain, label: 'Temperature', value: dest.weather },
+                    { icon: Compass, label: 'Available Packages', value: `${dest.packageCount} trips` },
+                    { icon: Star, label: 'Starting Price', value: dest.avgPrice },
+                  ].map((fact) => (
+                    <div key={fact.label} className="flex items-center gap-3 py-2 border-b border-surface-200/40 last:border-0">
+                      <div className="w-9 h-9 rounded-button bg-brand-soft-orange flex items-center justify-center shrink-0">
+                        <fact.icon className="w-4 h-4 text-brand-orange" />
                       </div>
-                      <div>
-                        <h4 className="font-bold text-slate-900 text-sm">{h.title}</h4>
-                        {h.description && (
-                          <p className="text-xs text-slate-600 mt-1 leading-relaxed">{h.description}</p>
-                        )}
+                      <div className="flex-1 flex items-center justify-between">
+                        <span className="text-body-sm text-brand-muted">{fact.label}</span>
+                        <span className="text-body-sm font-bold text-brand-navy">{fact.value}</span>
                       </div>
                     </div>
                   ))}
                 </div>
-              </div>
-            )}
-          </div>
-
-          {/* Sidebar CTA Widget */}
-          <div className="space-y-6">
-            <div className="bg-brand-navy text-white p-8 rounded-3xl shadow-xl space-y-6 relative overflow-hidden">
-              <div className="absolute top-0 right-0 w-32 h-32 bg-brand-orange/20 rounded-full blur-2xl pointer-events-none" />
-              <div>
-                <span className="text-xs font-mono font-bold text-brand-orange uppercase tracking-wider block">
-                  FRIENDLI TRIP EXPERIENCE
-                </span>
-                <h3 className="text-2xl font-heading font-black text-white mt-1">
-                  Want to visit {destination.name}?
-                </h3>
-                <p className="text-slate-300 text-xs mt-2 leading-relaxed">
-                  We handle the accommodation, local transport, and curated itinerary details so you can simply show up with good company.
-                </p>
-              </div>
-
-              <Link
-                href={`/customize?destination=${destination.slug}`}
-                className="w-full py-3.5 px-6 rounded-2xl bg-brand-orange text-white font-bold text-sm flex items-center justify-center gap-2 shadow-button hover:bg-orange-600 transition-colors"
-              >
-                <span>Customize This Trip</span>
-                <ArrowRight className="w-4 h-4" />
-              </Link>
-
-              <div className="pt-4 border-t border-white/10 text-[11px] text-slate-400 space-y-2 font-mono">
-                <div className="flex items-center gap-2">
-                  <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
-                  <span>Curated local experiences</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
-                  <span>Friendli operational support</span>
-                </div>
-              </div>
+              </Card>
             </div>
           </div>
-        </section>
+        </Container>
+      </section>
 
-        {/* Photo Gallery Grid */}
-        {destination.gallery && destination.gallery.length > 0 && (
-          <section className="space-y-6 pt-8 border-t border-slate-200">
-            <h2 className="text-2xl font-heading font-black text-slate-900 tracking-tight">
-              Photo Gallery
-            </h2>
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-              {destination.gallery.map((img: DestinationGallery, idx: number) => (
-                <div
+      {/* Highlights / Things To Do */}
+      <section className="py-section-sm sm:py-section bg-surface-50 border-b border-surface-200/40">
+        <Container>
+          <SectionHeading
+            badge="EXPERIENCES"
+            title={`Things To Do in ${dest.name}`}
+            subtitle="Curated activities and hidden gems handpicked by our local experts."
+          />
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+            {dest.thingsToDo.map((activity, idx) => (
+              <motion.div
+                key={activity}
+                initial={{ opacity: 0, y: 16 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ delay: idx * 0.07, duration: 0.4 }}
+              >
+                <Card variant="interactive" padding="lg" className="h-full group">
+                  <div className="flex items-start gap-4">
+                    <div className="w-10 h-10 rounded-card bg-brand-soft-orange flex items-center justify-center text-brand-orange shrink-0 group-hover:bg-brand-orange group-hover:text-white transition-all">
+                      <Mountain className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <h3 className="text-body font-bold text-brand-navy group-hover:text-brand-orange transition-colors">
+                        {activity}
+                      </h3>
+                      <p className="text-caption text-brand-muted mt-1">
+                        Included in select packages
+                      </p>
+                    </div>
+                  </div>
+                </Card>
+              </motion.div>
+            ))}
+          </div>
+        </Container>
+      </section>
+
+      {/* Gallery */}
+      {dest.gallery.length > 0 && (
+        <section className="py-section-sm sm:py-section bg-white border-b border-surface-200/40">
+          <Container>
+            <SectionHeading
+              badge="GALLERY"
+              title={`${dest.name} in Pictures`}
+              subtitle="Real photos from our trips — no stock images."
+            />
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 sm:gap-4">
+              {dest.gallery.map((img, idx) => (
+                <motion.div
                   key={idx}
-                  className="group relative h-48 rounded-2xl overflow-hidden bg-slate-200 border border-slate-200 shadow-sm"
+                  initial={{ opacity: 0, scale: 0.9 }}
+                  whileInView={{ opacity: 1, scale: 1 }}
+                  viewport={{ once: true }}
+                  transition={{ delay: idx * 0.06, duration: 0.4 }}
+                  className="relative aspect-[4/3] rounded-card overflow-hidden group cursor-pointer"
                 >
                   <Image
-                    src={img.image_url}
-                    alt={img.alt_text || destination.name}
+                    src={img}
+                    alt={`${dest.name} photo ${idx + 1}`}
                     fill
-                    className="object-cover group-hover:scale-105 transition-transform duration-300"
+                    className="object-cover group-hover:scale-110 transition-transform duration-700 ease-out-expo"
+                    sizes="(max-width: 640px) 50vw, 33vw"
                   />
-                  {img.caption && (
-                    <div className="absolute inset-x-0 bottom-0 p-3 bg-gradient-to-t from-black/80 to-transparent text-white text-xs font-semibold">
-                      {img.caption}
+                  <div className="absolute inset-0 bg-brand-navy/0 group-hover:bg-brand-navy/30 transition-all duration-300 flex items-center justify-center">
+                    <Camera className="w-8 h-8 text-white opacity-0 group-hover:opacity-100 transition-opacity" />
+                  </div>
+                </motion.div>
+              ))}
+            </div>
+          </Container>
+        </section>
+      )}
+
+      {/* Related Trips */}
+      {relatedTrips.length > 0 && (
+        <section className="py-section-sm sm:py-section bg-surface-50 border-b border-surface-200/40">
+          <Container>
+            <SectionHeading
+              badge="RELATED TRIPS"
+              title={`${dest.name} Packages`}
+              actionText="View all packages"
+              actionHref={ROUTES.PACKAGES}
+            />
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+              {relatedTrips.map((trip, idx) => (
+                <motion.div
+                  key={trip.id}
+                  initial={{ opacity: 0, y: 16 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true }}
+                  transition={{ delay: idx * 0.1, duration: 0.4 }}
+                >
+                  <Link
+                    href={`${ROUTES.PACKAGES}/${trip.slug}`}
+                    className="group block bg-white rounded-card-lg border border-surface-200/80 shadow-subtle overflow-hidden card-interactive"
+                  >
+                    <div className="relative aspect-[4/3] overflow-hidden">
+                      <Image src={trip.image} alt={trip.name} fill className="object-cover group-hover:scale-105 transition-transform duration-700" sizes="33vw" />
+                      {trip.badge && (
+                        <div className="absolute top-3 left-3">
+                          <Badge variant="brand" size="xs">{trip.badge}</Badge>
+                        </div>
+                      )}
                     </div>
-                  )}
-                </div>
+                    <div className="p-5 space-y-2">
+                      <h3 className="text-heading-sm font-heading font-extrabold text-brand-navy group-hover:text-brand-orange transition-colors">
+                        {trip.name}
+                      </h3>
+                      <div className="flex items-center gap-3 text-caption text-brand-muted">
+                        <span>{trip.duration}</span>
+                        <span>•</span>
+                        <span className="flex items-center gap-1"><Star className="w-3 h-3 text-amber-400 fill-amber-400" />{trip.rating}</span>
+                      </div>
+                      <div className="flex items-center justify-between pt-3 border-t border-surface-200/60">
+                        <span className="text-heading-sm font-extrabold text-brand-navy">{trip.price}</span>
+                        <span className="text-body-sm font-bold text-brand-orange flex items-center gap-1">
+                          View <ArrowRight className="w-3.5 h-3.5" />
+                        </span>
+                      </div>
+                    </div>
+                  </Link>
+                </motion.div>
               ))}
             </div>
-          </section>
-        )}
-
-        {/* Rich SEO Guides (Food, Shopping, Travel Tips, Things to Avoid) */}
-        {(destination.food_guide || destination.shopping_guide || destination.travel_tips || destination.things_to_avoid) && (
-          <section className="space-y-6 pt-8 border-t border-slate-200">
-            <h2 className="text-2xl font-heading font-black text-slate-900 tracking-tight">
-              Local Travel Guide & Essentials
-            </h2>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {destination.food_guide && (
-                <div className="p-6 rounded-2xl bg-white border border-slate-200 shadow-sm space-y-2">
-                  <div className="flex items-center gap-2 text-brand-orange font-bold text-sm">
-                    <Utensils className="w-4 h-4" />
-                    <span>Food & Local Cuisine</span>
-                  </div>
-                  <p className="text-xs text-slate-700 leading-relaxed">{destination.food_guide}</p>
-                </div>
-              )}
-
-              {destination.shopping_guide && (
-                <div className="p-6 rounded-2xl bg-white border border-slate-200 shadow-sm space-y-2">
-                  <div className="flex items-center gap-2 text-brand-orange font-bold text-sm">
-                    <ShoppingBag className="w-4 h-4" />
-                    <span>Shopping & Souvenirs</span>
-                  </div>
-                  <p className="text-xs text-slate-700 leading-relaxed">{destination.shopping_guide}</p>
-                </div>
-              )}
-
-              {destination.travel_tips && (
-                <div className="p-6 rounded-2xl bg-white border border-slate-200 shadow-sm space-y-2">
-                  <div className="flex items-center gap-2 text-emerald-600 font-bold text-sm">
-                    <Sparkles className="w-4 h-4" />
-                    <span>Traveler Recommendations</span>
-                  </div>
-                  <p className="text-xs text-slate-700 leading-relaxed">{destination.travel_tips}</p>
-                </div>
-              )}
-
-              {destination.things_to_avoid && (
-                <div className="p-6 rounded-2xl bg-white border border-slate-200 shadow-sm space-y-2">
-                  <div className="flex items-center gap-2 text-rose-600 font-bold text-sm">
-                    <AlertTriangle className="w-4 h-4" />
-                    <span>Things to Keep in Mind</span>
-                  </div>
-                  <p className="text-xs text-slate-700 leading-relaxed">{destination.things_to_avoid}</p>
-                </div>
-              )}
-            </div>
-          </section>
-        )}
-
-        {/* Travel Logistics & Transportation */}
-        <section className="space-y-6 pt-8 border-t border-slate-200">
-          <h2 className="text-2xl font-heading font-black text-slate-900 tracking-tight">
-            How to Reach & Local Logistics
-          </h2>
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {destination.nearest_airport && (
-              <div className="p-6 rounded-2xl bg-white border border-slate-200 shadow-sm space-y-2">
-                <div className="flex items-center gap-2 text-blue-600 font-bold text-sm">
-                  <Plane className="w-4 h-4" />
-                  <span>Nearest Airport</span>
-                </div>
-                <p className="text-xs text-slate-700 font-semibold">{destination.nearest_airport}</p>
-              </div>
-            )}
-
-            {destination.nearest_railway_station && (
-              <div className="p-6 rounded-2xl bg-white border border-slate-200 shadow-sm space-y-2">
-                <div className="flex items-center gap-2 text-blue-600 font-bold text-sm">
-                  <Train className="w-4 h-4" />
-                  <span>Nearest Railway Station</span>
-                </div>
-                <p className="text-xs text-slate-700 font-semibold">{destination.nearest_railway_station}</p>
-              </div>
-            )}
-
-            {destination.nearest_bus_stand && (
-              <div className="p-6 rounded-2xl bg-white border border-slate-200 shadow-sm space-y-2">
-                <div className="flex items-center gap-2 text-blue-600 font-bold text-sm">
-                  <Bus className="w-4 h-4" />
-                  <span>Nearest Bus Stand</span>
-                </div>
-                <p className="text-xs text-slate-700 font-semibold">{destination.nearest_bus_stand}</p>
-              </div>
-            )}
-          </div>
+          </Container>
         </section>
+      )}
 
-        {/* Emergency Contacts */}
-        {destination.emergency_contacts && destination.emergency_contacts.length > 0 && (
-          <section className="space-y-6 pt-8 border-t border-slate-200">
-            <h2 className="text-2xl font-heading font-black text-slate-900 tracking-tight flex items-center gap-2">
-              <Phone className="w-5 h-5 text-brand-orange" />
-              <span>Local Emergency Contacts</span>
+      {/* FAQ */}
+      <section className="py-section-sm sm:py-section bg-white border-b border-surface-200/40">
+        <Container size="narrow">
+          <SectionHeading
+            badge="FAQ"
+            title={`${dest.name} Trip FAQs`}
+            centered
+          />
+          <Accordion items={destinationFAQs} variant="card" />
+        </Container>
+      </section>
+
+      {/* CTA */}
+      <section className="py-section sm:py-section-lg bg-gradient-brand relative overflow-hidden">
+        <div className="absolute inset-0 bg-pattern-dots opacity-5" />
+        <Container className="relative z-10 text-center">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.6 }}
+            className="max-w-2xl mx-auto space-y-6"
+          >
+            <h2 className="text-display font-heading font-extrabold text-white">
+              Ready to explore {dest.name}?
             </h2>
-
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-              {destination.emergency_contacts.map((c: DestinationEmergencyContact, idx: number) => (
-                <div key={idx} className="p-5 rounded-2xl bg-white border border-slate-200 shadow-sm space-y-1">
-                  <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-slate-400">
-                    {c.service_type}
-                  </span>
-                  <h4 className="font-bold text-slate-900 text-sm">{c.title}</h4>
-                  <div className="text-xs font-mono font-bold text-brand-orange">{c.phone_number}</div>
-                </div>
-              ))}
+            <p className="text-body-lg text-white/70">
+              Join {dest.packageCount} curated packages starting from {dest.avgPrice} per person.
+            </p>
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-4 pt-2">
+              <GradientButton href={ROUTES.CUSTOMIZE} variant="orange" size="lg" glow>
+                Join a Trip
+              </GradientButton>
+              <GradientButton href={ROUTES.CONTACT} variant="glass" size="lg">
+                Talk to Us
+              </GradientButton>
             </div>
-          </section>
-        )}
-
-        {/* Frequently Asked Questions */}
-        {destination.faqs && destination.faqs.length > 0 && (
-          <section className="space-y-6 pt-8 border-t border-slate-200">
-            <h2 className="text-2xl font-heading font-black text-slate-900 tracking-tight flex items-center gap-2">
-              <HelpCircle className="w-5 h-5 text-brand-orange" />
-              <span>Frequently Asked Questions</span>
-            </h2>
-
-            <div className="space-y-4 max-w-3xl">
-              {destination.faqs.map((faq: DestinationFAQ, idx: number) => (
-                <div key={idx} className="p-6 rounded-2xl bg-white border border-slate-200 shadow-sm space-y-2">
-                  <h4 className="font-bold text-slate-900 text-sm">{faq.question}</h4>
-                  <p className="text-xs text-slate-600 leading-relaxed">{faq.answer}</p>
-                </div>
-              ))}
-            </div>
-          </section>
-        )}
-
-        {/* Placeholders for Future Expansion Modules */}
-        <section className="p-8 rounded-3xl bg-slate-100 border border-slate-200 space-y-4">
-          <div className="text-xs font-mono font-bold text-slate-400 uppercase tracking-wider">
-            FUTURE MODULE PLACEHOLDERS
-          </div>
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 text-xs font-bold text-slate-600">
-            <div className="p-4 bg-white rounded-2xl border border-slate-200 flex items-center gap-2 opacity-60">
-              <Mountain className="w-4 h-4 text-slate-400" />
-              <span>Top Attractions (Soon)</span>
-            </div>
-            <div className="p-4 bg-white rounded-2xl border border-slate-200 flex items-center gap-2 opacity-60">
-              <Compass className="w-4 h-4 text-slate-400" />
-              <span>Things To Do (Soon)</span>
-            </div>
-            <div className="p-4 bg-white rounded-2xl border border-slate-200 flex items-center gap-2 opacity-60">
-              <Package className="w-4 h-4 text-slate-400" />
-              <span>Package Templates (Soon)</span>
-            </div>
-            <div className="p-4 bg-white rounded-2xl border border-slate-200 flex items-center gap-2 opacity-60">
-              <Calendar className="w-4 h-4 text-slate-400" />
-              <span>Departures (Soon)</span>
-            </div>
-          </div>
-        </section>
-      </main>
-    </article>
+          </motion.div>
+        </Container>
+      </section>
+    </main>
   );
 }

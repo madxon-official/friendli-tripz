@@ -1,6 +1,6 @@
 import React from 'react';
-import { Navbar } from '@/components/layout/Navbar';
-import { Footer } from '@/components/layout/Footer';
+import { V3Navbar } from '@/components/v3/layout/Navbar';
+import { V3Footer } from '@/components/v3/layout/Footer';
 
 export default function PublicLayout({
   children,
@@ -9,9 +9,9 @@ export default function PublicLayout({
 }) {
   return (
     <>
-      <Navbar />
+      <V3Navbar />
       <div className="flex-1">{children}</div>
-      <Footer />
+      <V3Footer />
     </>
   );
 }

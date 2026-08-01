@@ -67,8 +67,36 @@ export const HeroSection: React.FC = () => {
               </Button>
             </div>
 
+            {/* Social Proof Counter Bar */}
+            <div className="pt-4 grid grid-cols-3 gap-3 border-t border-brand-border/60">
+              <div>
+                <span className="text-xl sm:text-2xl font-black font-heading text-brand-navy block">
+                  1,200+
+                </span>
+                <span className="text-[11px] font-medium text-brand-muted block">
+                  Happy Travellers
+                </span>
+              </div>
+              <div>
+                <span className="text-xl sm:text-2xl font-black font-heading text-brand-orange block">
+                  4.9★
+                </span>
+                <span className="text-[11px] font-medium text-brand-muted block">
+                  Average Rating
+                </span>
+              </div>
+              <div>
+                <span className="text-xl sm:text-2xl font-black font-heading text-brand-navy block">
+                  100%
+                </span>
+                <span className="text-[11px] font-medium text-brand-muted block">
+                  Verified Stays
+                </span>
+              </div>
+            </div>
+
             {/* Trust Line */}
-            <div className="pt-3 flex items-center gap-2 text-xs sm:text-sm font-semibold text-brand-navy/80 border-t border-brand-border/50">
+            <div className="pt-2 flex items-center gap-2 text-xs sm:text-sm font-semibold text-brand-navy/80">
               <ShieldCheck className="w-4 h-4 text-brand-orange shrink-0" />
               <span>{BRAND_INFO.trustLine}</span>
             </div>
