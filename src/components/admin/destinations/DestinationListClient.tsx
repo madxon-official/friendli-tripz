@@ -32,6 +32,7 @@ import {
   toggleDestinationFeatured,
   bulkUpdateDestinationStatus,
 } from '@/lib/actions/destination';
+import { formatImageUrl } from '@/lib/images';
 
 interface DestinationListClientProps {
   initialData: {
@@ -411,7 +412,7 @@ export const DestinationListClient: React.FC<DestinationListClientProps> = ({
                           <div className="relative w-12 h-12 rounded-xl overflow-hidden bg-slate-100 border border-slate-200 shrink-0">
                             {dest.featured_image_url || dest.hero_banner_url ? (
                               <Image
-                                src={dest.featured_image_url || dest.hero_banner_url || ''}
+                                src={formatImageUrl(dest.featured_image_url || dest.hero_banner_url)}
                                 alt={dest.name}
                                 fill
                                 className="object-cover"

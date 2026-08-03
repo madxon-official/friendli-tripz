@@ -1,7 +1,19 @@
 import React from 'react';
+import dynamicImport from 'next/dynamic';
 import { getPackageReleases, getPackageFamilies } from '@/lib/actions/package';
 import { getDestinations } from '@/lib/actions/destination';
-import { PackageListClient } from '@/components/admin/packages/PackageListClient';
+
+const DynamicPackageListClient = dynamicImport(
+  () => import('@/components/admin/packages/PackageListClient').then((mod) => mod.PackageListClient),
+  {
+    loading: () => (
+      <div className="p-8 space-y-4 animate-pulse">
+        <div className="h-8 bg-slate-200 rounded-lg w-1/3" />
+        <div className="h-64 bg-slate-100 rounded-2xl w-full" />
+      </div>
+    ),
+  }
+);
 
 export const metadata = {
   title: 'Package Releases | Friendli Travel Catalog Admin',
@@ -30,7 +42,7 @@ export default async function AdminPackagesPage({
   ]);
 
   return (
-    <PackageListClient
+    <DynamicPackageListClient
       initialData={releaseResult}
       families={families}
       destinations={destinationResult.destinations.map((d) => ({ id: d.id, name: d.name }))}

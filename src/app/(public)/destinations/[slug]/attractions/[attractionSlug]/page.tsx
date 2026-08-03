@@ -15,6 +15,7 @@ import {
   Award,
 } from 'lucide-react';
 import { getAttractionBySlug } from '@/lib/actions/attraction';
+import { formatImageUrl } from '@/lib/images';
 
 export async function generateMetadata({
   params,
@@ -58,10 +59,7 @@ export default async function CanonicalAttractionDetailPage({
     notFound();
   }
 
-  const heroImage =
-    attraction.hero_banner_url ||
-    attraction.featured_image_url ||
-    '/images/kodaikanal/kodaikanal-lake.webp';
+  const heroImage = formatImageUrl(attraction.hero_banner_url || attraction.featured_image_url);
 
   // Generate Schema.org JSON-LD TouristAttraction Markup
   const jsonLd = {

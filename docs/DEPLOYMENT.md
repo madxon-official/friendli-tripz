@@ -1,37 +1,20 @@
-# FRIENDLI TRIPZ — PRODUCTION DEPLOYMENT GUIDE
+# Enterprise Deployment Manual — Friendli Tripz
 
-## 1. Prerequisites
-- Vercel Team Account (connected to production Git repository).
-- Supabase Cloud Enterprise / Pro Project.
-- Custom Domain registered (`friendlitripz.com`).
-- Docker engine installed (for self-hosted containerized deployment).
+## Deployment Target
+- **Production Framework**: Next.js 15.5+ App Router
+- **Runtime Environment**: Node.js 20 LTS / Docker / Vercel Enterprise
+- **Database Target**: Supabase Managed Postgres with RLS
 
----
+## Pre-Deployment Verification Checklist
+1. `npx tsc --noEmit` returns 0 errors.
+2. `npm run build` generates static HTML pre-rendered pages.
+3. Environment variables configured in deployment manager.
+4. Database health probe `/api/health` returns `200 OK`.
 
-## 2. Vercel Deployment Workflow
-1. Import repository into Vercel Dashboard.
-2. Select **Next.js** framework preset.
-3. Configure Environment Variables as specified in `ENVIRONMENT_SETUP.md`.
-4. Set Build Command: `npm run build`.
-5. Deploy to Production Branch (`main`).
-
----
-
-## 3. Containerized Deployment (Docker)
-```bash
-# Build standalone Docker image
-docker build -t friendli-tripz:latest .
-
-# Run production container
-docker run -d \
-  -p 3000:3000 \
-  --env-file .env.local \
-  --name friendli-app \
-  friendli-tripz:latest
+## Production Environment Variables
+```env
+NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
+SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
+NODE_ENV=production
 ```
-
----
-
-## 4. Post-Deployment Verification
-- Run Health Probe: `curl https://friendlitripz.com/api/health`
-- Verify HTTP 200 response with status `healthy`.

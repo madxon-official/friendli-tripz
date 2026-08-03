@@ -15,7 +15,7 @@ export const DestinationFloatingCard: React.FC = () => {
     >
       <div className="relative h-28 w-full rounded-xl overflow-hidden mb-2.5">
         <Image
-          src="/images/kodaikanal/kodaikanal-hero.webp"
+          src="/destinations/kodaikanal/kodaikanal-hero.webp"
           alt="Kodaikanal"
           fill
           className="object-cover"

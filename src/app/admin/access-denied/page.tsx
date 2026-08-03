@@ -6,6 +6,7 @@ import Image from 'next/image';
 import { ShieldAlert, LogOut, ArrowLeft } from 'lucide-react';
 import { Container } from '@/components/ui/Container';
 import { Button } from '@/components/ui/Button';
+import { BrandWordmark } from '@/components/ui/BrandWordmark';
 import { createClient } from '@/lib/supabase/client';
 
 function AccessDeniedContent() {
@@ -86,16 +87,18 @@ function AccessDeniedContent() {
           <div className="pt-3 border-t border-brand-border/40 flex items-center justify-center gap-2">
             <div className="relative w-5 h-5 rounded bg-white p-0.5 shrink-0 border border-brand-border/40">
               <Image
-                src="/logo.jpeg"
+                src="/friendli/logo.svg"
                 alt="Friendli Logo"
                 width={20}
                 height={20}
-                className="object-cover rounded"
+                className="object-contain rounded"
               />
             </div>
-            <span className="text-[11px] font-bold text-brand-navy font-heading">
-              Friendli Admin Security
-            </span>
+            <BrandWordmark
+              theme="light"
+              size="sm"
+              badge="SECURITY"
+            />
           </div>
         </div>
       </Container>

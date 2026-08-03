@@ -6,6 +6,7 @@ import Image from 'next/image';
 import { Menu, ChevronDown, User, Sparkles, ArrowRight } from 'lucide-react';
 import { Container } from '@/components/ui/Container';
 import { Button } from '@/components/ui/Button';
+import { BrandWordmark } from '@/components/ui/BrandWordmark';
 import { ROUTES, NAV_LINKS, MEGA_MENU_DATA, PRIMARY_CTA } from '@/lib/routes';
 import { MobileMenu } from './MobileMenu';
 import { MegaMenu } from '@/components/v2/MegaMenu';
@@ -57,29 +58,21 @@ export const Navbar: React.FC = () => {
         <Container className="flex items-center justify-between">
           {/* Logo Lockup */}
           <Link href={ROUTES.HOME} className="flex items-center gap-2.5 group shrink-0">
-            <div className="relative w-9 h-9 rounded-xl overflow-hidden shadow-md border border-white/20 group-hover:scale-105 transition-transform shrink-0 flex items-center justify-center bg-white">
+            <div className="relative w-9 h-9 rounded-xl overflow-hidden shadow-md border border-white/20 group-hover:scale-105 transition-transform shrink-0 flex items-center justify-center bg-white p-0.5">
               <Image
-                src="/logo.jpeg"
+                src="/friendli/logo.svg"
                 alt="Friendli Tripz Logo"
                 width={36}
                 height={36}
                 priority
-                className="w-full h-full object-cover"
-                style={{ maxWidth: '36px', maxHeight: '36px' }}
+                className="w-full h-full object-contain"
               />
             </div>
-            <div className="flex flex-col">
-              <span
-                className={`font-heading font-extrabold text-base sm:text-lg tracking-tight leading-none ${
-                  isScrolled ? 'text-brand-navy dark:text-white' : 'text-white'
-                }`}
-              >
-                Friendli Tripz
-              </span>
-              <span className="text-[9px] font-extrabold text-brand-orange uppercase tracking-wider mt-0.5">
-                Travel. Vibe. Repeat.
-              </span>
-            </div>
+            <BrandWordmark
+              theme={isScrolled ? 'light' : 'dark'}
+              size="md"
+              showTagline
+            />
           </Link>
 
           {/* Desktop Navigation Links */}

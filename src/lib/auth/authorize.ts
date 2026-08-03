@@ -28,18 +28,18 @@ export async function authorizeAdmin(
   const supabase = await createServerSupabaseClient();
 
   const {
-    data: { session },
-    error: sessionError,
-  } = await supabase.auth.getSession();
+    data: { user },
+    error: userError,
+  } = await supabase.auth.getUser();
 
-  if (sessionError || !session || !session.user) {
+  if (userError || !user) {
     throw new AuthorizationError('Authentication required.', 'UNAUTHENTICATED', 401);
   }
 
   const { data: profile, error: profileError } = await supabase
     .from('admin_profiles')
     .select('id, full_name, role, is_active')
-    .eq('id', session.user.id)
+    .eq('id', user.id)
     .single();
 
   if (profileError || !profile) {
@@ -63,8 +63,8 @@ export async function authorizeAdmin(
   }
 
   return {
-    userId: session.user.id,
-    email: session.user.email || '',
+    userId: user.id,
+    email: user.email || '',
     fullName: profile.full_name,
     role: profile.role,
     isActive: profile.is_active,

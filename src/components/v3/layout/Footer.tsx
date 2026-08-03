@@ -2,6 +2,7 @@ import React from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { Container } from '@/components/v3/ui/Container';
+import { BrandWordmark } from '@/components/ui/BrandWordmark';
 import { BRAND_INFO } from '@/lib/data/trips';
 import { ROUTES } from '@/lib/routes';
 import { Heart, Instagram, Youtube, MessageSquare, Mail, Phone, ArrowRight, ShieldCheck, MapPin, Sparkles } from 'lucide-react';
@@ -117,21 +118,18 @@ export function V3Footer() {
             <Link href={ROUTES.HOME} className="flex items-center gap-3 group">
               <div className="relative w-11 h-11 rounded-xl overflow-hidden bg-white p-0.5 shadow-md shrink-0">
                 <Image
-                  src="/logo.jpeg"
-                  alt=""
+                  src="/friendli/logo.svg"
+                  alt="Friendli Logo"
                   width={44}
                   height={44}
-                  className="w-full h-full object-cover rounded-lg"
+                  className="w-full h-full object-contain rounded-lg"
                 />
               </div>
-              <div className="flex flex-col">
-                <span className="font-heading font-extrabold text-xl tracking-tight text-white">
-                  Friendli Tripz
-                </span>
-                <span className="text-[10px] font-extrabold text-brand-orange uppercase tracking-wider">
-                  Travel. Vibe. Repeat.
-                </span>
-              </div>
+              <BrandWordmark
+                theme="dark"
+                size="lg"
+                showTagline
+              />
             </Link>
 
             <p className="text-body-sm text-slate-300 leading-relaxed max-w-sm">

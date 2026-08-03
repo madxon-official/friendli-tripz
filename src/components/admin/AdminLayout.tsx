@@ -75,18 +75,18 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({
   useEffect(() => {
     async function syncAdminProfile() {
       try {
-        const { data: { session } } = await supabase.auth.getSession();
-        if (session?.user) {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user) {
           const { data: prof } = await supabase
             .from('admin_profiles')
             .select('full_name, role')
-            .eq('id', session.user.id)
+            .eq('id', user.id)
             .single();
 
           if (prof) {
             setProfileState({
               name: prof.full_name || 'Admin',
-              email: session.user.email || '',
+              email: user.email || '',
               role: prof.role || 'operations',
             });
           }
@@ -181,7 +181,7 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({
             if ('Notification' in window && Notification.permission === 'granted') {
               const notif = new Notification('Friendli Tripz — New Enquiry!', {
                 body: `${newEnquiry.name || 'Traveller'} · ${newEnquiry.traveller_count || 1} travellers · ${newEnquiry.destination || 'Kodaikanal'}`,
-                icon: '/logo.jpeg',
+                icon: '/friendli/logo.svg',
                 tag: newEnquiry.id,
               });
 

@@ -7,6 +7,7 @@ import { X, Sparkles, User, ChevronRight, Phone, MessageSquare } from 'lucide-re
 import { ROUTES, NAV_LINKS, PRIMARY_CTA } from '@/lib/routes';
 import { BRAND_INFO } from '@/lib/data/trips';
 import { Button } from '@/components/ui/Button';
+import { BrandWordmark } from '@/components/ui/BrandWordmark';
 
 interface MobileMenuProps {
   isOpen: boolean;
@@ -32,21 +33,18 @@ export const MobileMenu: React.FC<MobileMenuProps> = ({ isOpen, onClose }) => {
             <Link href={ROUTES.HOME} onClick={onClose} className="flex items-center gap-2.5">
               <div className="relative w-8 h-8 rounded-lg overflow-hidden bg-white p-0.5 shadow-md shrink-0">
                 <Image
-                  src="/logo.jpeg"
+                  src="/friendli/logo.svg"
                   alt="Friendli Tripz Logo"
                   width={32}
                   height={32}
-                  className="w-full h-full object-cover"
+                  className="w-full h-full object-contain"
                 />
               </div>
-              <div className="flex flex-col">
-                <span className="font-heading font-extrabold text-base text-white">
-                  Friendli Tripz
-                </span>
-                <span className="text-[8px] font-extrabold text-brand-orange uppercase tracking-wider">
-                  Travel. Vibe. Repeat.
-                </span>
-              </div>
+              <BrandWordmark
+                theme="dark"
+                size="sm"
+                showTagline
+              />
             </Link>
 
             <button

@@ -1,11 +1,23 @@
 import React from 'react';
+import dynamicImport from 'next/dynamic';
 import {
   getDestinations,
   getMasterCategories,
   getMasterStates,
   getMasterCountries,
 } from '@/lib/actions/destination';
-import { DestinationListClient } from '@/components/admin/destinations/DestinationListClient';
+
+const DynamicDestinationListClient = dynamicImport(
+  () => import('@/components/admin/destinations/DestinationListClient').then((mod) => mod.DestinationListClient),
+  {
+    loading: () => (
+      <div className="p-8 space-y-4 animate-pulse">
+        <div className="h-8 bg-slate-200 rounded-lg w-1/3" />
+        <div className="h-64 bg-slate-100 rounded-2xl w-full" />
+      </div>
+    ),
+  }
+);
 
 export const metadata = {
   title: 'Destinations | Friendli Travel Catalog Admin',
@@ -23,7 +35,6 @@ export default async function AdminDestinationsPage({
   const state_id = resolvedParams?.state_id;
   const search = resolvedParams?.search || '';
 
-  // Fetch initial dataset on server component
   const [initialData, categories, states, countries] = await Promise.all([
     getDestinations({
       search,
@@ -38,7 +49,7 @@ export default async function AdminDestinationsPage({
   ]);
 
   return (
-    <DestinationListClient
+    <DynamicDestinationListClient
       initialData={initialData}
       categories={categories}
       states={states}

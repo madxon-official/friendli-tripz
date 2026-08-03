@@ -6,6 +6,7 @@ import Image from 'next/image';
 import { Shield, Lock, Mail, AlertCircle, CheckCircle2, Loader2, ArrowRight } from 'lucide-react';
 import { Container } from '@/components/ui/Container';
 import { Button } from '@/components/ui/Button';
+import { BrandWordmark } from '@/components/ui/BrandWordmark';
 import { createClient } from '@/lib/supabase/client';
 
 function AdminLoginForm() {
@@ -63,20 +64,23 @@ function AdminLoginForm() {
     <div className="bg-white rounded-3xl p-8 sm:p-10 shadow-2xl border border-brand-border/40 space-y-6">
       {/* Header Lockup */}
       <div className="text-center space-y-3">
-        <div className="relative w-12 h-12 rounded-2xl overflow-hidden shadow-md mx-auto border border-brand-navy/10 flex items-center justify-center bg-white p-0.5">
+        <div className="relative w-14 h-14 rounded-2xl overflow-hidden shadow-md mx-auto border border-brand-navy/10 flex items-center justify-center bg-white p-1">
           <Image
-            src="/logo.jpeg"
+            src="/friendli/logo.svg"
             alt="Friendli Logo"
-            width={48}
-            height={48}
-            className="w-full h-full object-cover rounded-xl"
+            width={56}
+            height={56}
+            className="w-full h-full object-contain rounded-xl"
           />
         </div>
-        <div>
-          <h1 className="text-2xl font-black text-brand-navy font-heading">
-            Friendli Admin
-          </h1>
-          <p className="text-xs font-semibold text-brand-muted mt-1">
+        <div className="flex flex-col items-center justify-center pt-1">
+          <BrandWordmark
+            theme="light"
+            size="lg"
+            badge="ADMIN"
+            badgePosition="inline"
+          />
+          <p className="text-xs font-semibold text-brand-muted mt-2">
             Internal Operations Portal
           </p>
         </div>

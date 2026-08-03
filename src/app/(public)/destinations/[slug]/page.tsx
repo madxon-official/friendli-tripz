@@ -1,13 +1,10 @@
-'use client';
-
 import React from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { useParams } from 'next/navigation';
-import { motion } from 'framer-motion';
+import { notFound } from 'next/navigation';
+import type { Metadata } from 'next';
 import {
-  MapPin, Sun, CloudRain, Compass, Camera, ArrowRight,
-  Mountain, Utensils, Calendar, Star, ChevronRight,
+  MapPin, Sun, Compass,
 } from 'lucide-react';
 import { Container } from '@/components/v3/ui/Container';
 import { SectionHeading } from '@/components/v3/ui/SectionHeading';
@@ -17,34 +14,70 @@ import { Accordion } from '@/components/v3/ui/Accordion';
 import { GradientButton } from '@/components/v3/ui/GradientButton';
 import { ROUTES } from '@/lib/routes';
 import { DESTINATIONS } from '@/lib/data/destinations';
-import { TRENDING_TRIPS, FAQ_ITEMS, UPCOMING_DEPARTURES } from '@/lib/data/trips';
+import { TRENDING_TRIPS } from '@/lib/data/trips';
 
-export default function DestinationDetailPage() {
-  const params = useParams();
-  const slug = params.slug as string;
+export const revalidate = 3600; // Enable ISR static caching
+
+export async function generateStaticParams() {
+  return DESTINATIONS.map((dest) => ({
+    slug: dest.slug,
+  }));
+}
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ slug: string }>;
+}): Promise<Metadata> {
+  const { slug } = await params;
+  const dest = DESTINATIONS.find((d) => d.slug === slug);
+  if (!dest) return { title: 'Destination Not Found | Friendli Tripz' };
+
+  return {
+    title: `${dest.name} Travel Guide | Friendli Tripz`,
+    description: dest.description,
+  };
+}
+
+export default async function DestinationDetailPage({
+  params,
+}: {
+  params: Promise<{ slug: string }>;
+}) {
+  const { slug } = await params;
   const dest = DESTINATIONS.find((d) => d.slug === slug);
 
   if (!dest) {
-    return (
-      <main className="min-h-screen flex items-center justify-center">
-        <div className="text-center space-y-4">
-          <h1 className="text-display font-heading font-extrabold text-brand-navy">Destination Not Found</h1>
-          <GradientButton href={ROUTES.DESTINATIONS}>Browse Destinations</GradientButton>
-        </div>
-      </main>
-    );
+    notFound();
   }
 
-  const relatedTrips = TRENDING_TRIPS.filter((t) =>
-    t.location.toLowerCase().includes(dest.state.toLowerCase()) ||
-    t.name.toLowerCase().includes(dest.name.toLowerCase())
+  const relatedTrips = TRENDING_TRIPS.filter(
+    (t) =>
+      t.location.toLowerCase().includes(dest.state.toLowerCase()) ||
+      t.name.toLowerCase().includes(dest.name.toLowerCase())
   ).slice(0, 3);
 
   const destinationFAQs = [
-    { id: 'dfaq-1', title: `What is the best time to visit ${dest.name}?`, content: `The best season to visit ${dest.name} is ${dest.bestSeason}. During this period, the weather is pleasant with temperatures ranging from ${dest.weather}, making it ideal for sightseeing and outdoor activities.` },
-    { id: 'dfaq-2', title: `How do I reach ${dest.name}?`, content: `${dest.name} is well-connected by road. Our group trips include comfortable AC transport from the departure city. We handle all logistics so you just need to show up at the meeting point.` },
-    { id: 'dfaq-3', title: `What should I pack for ${dest.name}?`, content: `Pack light layers, comfortable walking shoes, a light rain jacket, sunscreen, and a camera. We provide a detailed packing list after booking.` },
-    { id: 'dfaq-4', title: `Is ${dest.name} safe for solo travellers?`, content: `Absolutely! Over 60% of our travellers join solo. You'll be paired with same-gender room-mates and our trip leaders ensure everyone feels included from day one.` },
+    {
+      id: 'dfaq-1',
+      title: `What is the best time to visit ${dest.name}?`,
+      content: `The best season to visit ${dest.name} is ${dest.bestSeason}. During this period, the weather is pleasant with temperatures ranging from ${dest.weather}, making it ideal for sightseeing and outdoor activities.`,
+    },
+    {
+      id: 'dfaq-2',
+      title: `How do I reach ${dest.name}?`,
+      content: `${dest.name} is well-connected by road. Our group trips include comfortable AC transport from the departure city. We handle all logistics so you just need to show up at the meeting point.`,
+    },
+    {
+      id: 'dfaq-3',
+      title: `What should I pack for ${dest.name}?`,
+      content: `Pack light layers, comfortable walking shoes, a light rain jacket, sunscreen, and a camera. We provide a detailed packing list after booking.`,
+    },
+    {
+      id: 'dfaq-4',
+      title: `Is ${dest.name} safe for solo travellers?`,
+      content: `Absolutely! Over 60% of our travellers join solo. You'll be paired with same-gender room-mates and our trip leaders ensure everyone feels included from day one.`,
+    },
   ];
 
   return (
@@ -62,12 +95,7 @@ export default function DestinationDetailPage() {
         <div className="absolute inset-0 bg-gradient-to-t from-brand-navy via-brand-navy/40 to-transparent" />
 
         <Container className="relative z-10 pb-12 sm:pb-16">
-          <motion.div
-            initial={{ opacity: 0, y: 30 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.7 }}
-            className="max-w-3xl space-y-4"
-          >
+          <div className="max-w-3xl space-y-4">
             <div className="flex items-center gap-3">
               <Badge variant="brand" size="sm" icon={<MapPin className="w-3 h-3" />}>
                 {dest.state}
@@ -88,7 +116,7 @@ export default function DestinationDetailPage() {
                 Plan Trip Here
               </GradientButton>
             </div>
-          </motion.div>
+          </div>
         </Container>
       </section>
 
@@ -98,37 +126,39 @@ export default function DestinationDetailPage() {
           <div className="grid grid-cols-1 lg:grid-cols-5 gap-12">
             <div className="lg:col-span-3 space-y-6">
               <SectionHeading
-                badge="THE STORY"
-                title={`Discover ${dest.name}`}
-                size="sm"
+                badge="About Destination"
+                title={`Experience the Magic of ${dest.name}`}
               />
-              <p className="text-body text-brand-muted leading-relaxed">
+              <p className="text-body-lg text-surface-600 leading-relaxed">
                 {dest.description}
               </p>
-              <p className="text-body text-brand-muted leading-relaxed">
-                Friendli Tripz brings you a curated experience of {dest.name} — not a rushed checklist, but a journey designed around the best this destination has to offer. Our local experts know every hidden waterfall, the best sunrise spots, and where to find the most authentic local cuisine.
-              </p>
+              <div className="grid grid-cols-2 gap-4 pt-4">
+                <Card variant="outline" padding="md" className="border border-surface-200">
+                  <div className="text-caption text-surface-400 font-semibold uppercase tracking-wider">
+                    Best Season
+                  </div>
+                  <div className="text-body-lg font-bold text-surface-900 mt-1">{dest.bestSeason}</div>
+                </Card>
+                <Card variant="outline" padding="md" className="border border-surface-200">
+                  <div className="text-caption text-surface-400 font-semibold uppercase tracking-wider">
+                    Average Temp
+                  </div>
+                  <div className="text-body-lg font-bold text-surface-900 mt-1">{dest.weather}</div>
+                </Card>
+              </div>
             </div>
 
-            {/* Highlight Cards */}
+            {/* Quick Specs */}
             <div className="lg:col-span-2 space-y-4">
-              <Card variant="elevated" padding="lg">
-                <h3 className="text-heading-sm font-heading font-extrabold text-brand-navy mb-4">Quick Facts</h3>
-                <div className="space-y-3">
-                  {[
-                    { icon: Sun, label: 'Best Season', value: dest.bestSeason },
-                    { icon: CloudRain, label: 'Temperature', value: dest.weather },
-                    { icon: Compass, label: 'Available Packages', value: `${dest.packageCount} trips` },
-                    { icon: Star, label: 'Starting Price', value: dest.avgPrice },
-                  ].map((fact) => (
-                    <div key={fact.label} className="flex items-center gap-3 py-2 border-b border-surface-200/40 last:border-0">
-                      <div className="w-9 h-9 rounded-button bg-brand-soft-orange flex items-center justify-center shrink-0">
-                        <fact.icon className="w-4 h-4 text-brand-orange" />
-                      </div>
-                      <div className="flex-1 flex items-center justify-between">
-                        <span className="text-body-sm text-brand-muted">{fact.label}</span>
-                        <span className="text-body-sm font-bold text-brand-navy">{fact.value}</span>
-                      </div>
+              <Card variant="outline" padding="lg" className="bg-surface-50 space-y-4">
+                <h3 className="text-heading-sm font-heading font-bold text-surface-900">
+                  Top Highlights
+                </h3>
+                <div className="space-y-2.5">
+                  {dest.highlights.map((hl) => (
+                    <div key={hl} className="flex items-center gap-3 text-body-sm text-surface-700">
+                      <div className="w-2 h-2 rounded-full bg-brand-orange shrink-0" />
+                      <span>{hl}</span>
                     </div>
                   ))}
                 </div>
@@ -138,173 +168,83 @@ export default function DestinationDetailPage() {
         </Container>
       </section>
 
-      {/* Highlights / Things To Do */}
-      <section className="py-section-sm sm:py-section bg-surface-50 border-b border-surface-200/40">
+      {/* Things to Do */}
+      <section className="py-section-sm sm:py-section bg-surface-50">
         <Container>
           <SectionHeading
-            badge="EXPERIENCES"
-            title={`Things To Do in ${dest.name}`}
-            subtitle="Curated activities and hidden gems handpicked by our local experts."
+            badge="Activities & Experiences"
+            title={`Things to Do in ${dest.name}`}
+            subtitle="Curated experiences included in our group trip itineraries."
           />
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
-            {dest.thingsToDo.map((activity, idx) => (
-              <motion.div
-                key={activity}
-                initial={{ opacity: 0, y: 16 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ delay: idx * 0.07, duration: 0.4 }}
-              >
-                <Card variant="interactive" padding="lg" className="h-full group">
-                  <div className="flex items-start gap-4">
-                    <div className="w-10 h-10 rounded-card bg-brand-soft-orange flex items-center justify-center text-brand-orange shrink-0 group-hover:bg-brand-orange group-hover:text-white transition-all">
-                      <Mountain className="w-5 h-5" />
-                    </div>
-                    <div>
-                      <h3 className="text-body font-bold text-brand-navy group-hover:text-brand-orange transition-colors">
-                        {activity}
-                      </h3>
-                      <p className="text-caption text-brand-muted mt-1">
-                        Included in select packages
-                      </p>
-                    </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mt-12">
+            {dest.thingsToDo.map((thing, idx) => (
+              <Card key={thing} variant="interactive" padding="md" className="bg-white">
+                <div className="flex items-start gap-4">
+                  <div className="w-10 h-10 rounded-xl bg-brand-orange/10 flex items-center justify-center text-brand-orange font-bold font-mono text-sm shrink-0">
+                    0{idx + 1}
                   </div>
-                </Card>
-              </motion.div>
+                  <div>
+                    <h3 className="text-body-md font-bold text-surface-900">{thing}</h3>
+                    <p className="text-caption text-surface-500 mt-1">
+                      Guided activity with experienced local trip hosts.
+                    </p>
+                  </div>
+                </div>
+              </Card>
             ))}
           </div>
         </Container>
       </section>
 
-      {/* Gallery */}
-      {dest.gallery.length > 0 && (
-        <section className="py-section-sm sm:py-section bg-white border-b border-surface-200/40">
-          <Container>
-            <SectionHeading
-              badge="GALLERY"
-              title={`${dest.name} in Pictures`}
-              subtitle="Real photos from our trips — no stock images."
-            />
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 sm:gap-4">
-              {dest.gallery.map((img, idx) => (
-                <motion.div
-                  key={idx}
-                  initial={{ opacity: 0, scale: 0.9 }}
-                  whileInView={{ opacity: 1, scale: 1 }}
-                  viewport={{ once: true }}
-                  transition={{ delay: idx * 0.06, duration: 0.4 }}
-                  className="relative aspect-[4/3] rounded-card overflow-hidden group cursor-pointer"
-                >
-                  <Image
-                    src={img}
-                    alt={`${dest.name} photo ${idx + 1}`}
-                    fill
-                    className="object-cover group-hover:scale-110 transition-transform duration-700 ease-out-expo"
-                    sizes="(max-width: 640px) 50vw, 33vw"
-                  />
-                  <div className="absolute inset-0 bg-brand-navy/0 group-hover:bg-brand-navy/30 transition-all duration-300 flex items-center justify-center">
-                    <Camera className="w-8 h-8 text-white opacity-0 group-hover:opacity-100 transition-opacity" />
-                  </div>
-                </motion.div>
-              ))}
-            </div>
-          </Container>
-        </section>
-      )}
-
-      {/* Related Trips */}
+      {/* Related Packages */}
       {relatedTrips.length > 0 && (
-        <section className="py-section-sm sm:py-section bg-surface-50 border-b border-surface-200/40">
+        <section className="py-section-sm sm:py-section bg-white border-t border-surface-200/40">
           <Container>
             <SectionHeading
-              badge="RELATED TRIPS"
-              title={`${dest.name} Packages`}
-              actionText="View all packages"
-              actionHref={ROUTES.PACKAGES}
+              badge="Active Trips"
+              title={`Trips to ${dest.name}`}
+              subtitle="Handcrafted itineraries with fixed departure dates and all-inclusive pricing."
             />
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-              {relatedTrips.map((trip, idx) => (
-                <motion.div
-                  key={trip.id}
-                  initial={{ opacity: 0, y: 16 }}
-                  whileInView={{ opacity: 1, y: 0 }}
-                  viewport={{ once: true }}
-                  transition={{ delay: idx * 0.1, duration: 0.4 }}
-                >
-                  <Link
-                    href={`${ROUTES.PACKAGES}/${trip.slug}`}
-                    className="group block bg-white rounded-card-lg border border-surface-200/80 shadow-subtle overflow-hidden card-interactive"
-                  >
-                    <div className="relative aspect-[4/3] overflow-hidden">
-                      <Image src={trip.image} alt={trip.name} fill className="object-cover group-hover:scale-105 transition-transform duration-700" sizes="33vw" />
-                      {trip.badge && (
-                        <div className="absolute top-3 left-3">
-                          <Badge variant="brand" size="xs">{trip.badge}</Badge>
-                        </div>
-                      )}
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-12">
+              {relatedTrips.map((trip) => (
+                <Card key={trip.id} variant="interactive" padding="none" className="bg-white overflow-hidden">
+                  <div className="relative aspect-[16/10] overflow-hidden">
+                    <Image
+                      src={trip.image}
+                      alt={trip.name}
+                      fill
+                      sizes="(max-width: 768px) 100vw, 33vw"
+                      className="object-cover"
+                      loading="lazy"
+                    />
+                  </div>
+                  <div className="p-5 space-y-3">
+                    <h3 className="text-body-md font-bold text-surface-900">{trip.name}</h3>
+                    <div className="flex items-center justify-between text-caption text-surface-500 pt-2 border-t border-surface-100">
+                      <span>{trip.duration}</span>
+                      <span className="text-body-md font-extrabold text-brand-navy">{trip.price}</span>
                     </div>
-                    <div className="p-5 space-y-2">
-                      <h3 className="text-heading-sm font-heading font-extrabold text-brand-navy group-hover:text-brand-orange transition-colors">
-                        {trip.name}
-                      </h3>
-                      <div className="flex items-center gap-3 text-caption text-brand-muted">
-                        <span>{trip.duration}</span>
-                        <span>•</span>
-                        <span className="flex items-center gap-1"><Star className="w-3 h-3 text-amber-400 fill-amber-400" />{trip.rating}</span>
-                      </div>
-                      <div className="flex items-center justify-between pt-3 border-t border-surface-200/60">
-                        <span className="text-heading-sm font-extrabold text-brand-navy">{trip.price}</span>
-                        <span className="text-body-sm font-bold text-brand-orange flex items-center gap-1">
-                          View <ArrowRight className="w-3.5 h-3.5" />
-                        </span>
-                      </div>
-                    </div>
-                  </Link>
-                </motion.div>
+                  </div>
+                </Card>
               ))}
             </div>
           </Container>
         </section>
       )}
 
-      {/* FAQ */}
-      <section className="py-section-sm sm:py-section bg-white border-b border-surface-200/40">
-        <Container size="narrow">
+      {/* FAQs */}
+      <section className="py-section-sm sm:py-section bg-surface-50">
+        <Container className="max-w-3xl">
           <SectionHeading
-            badge="FAQ"
-            title={`${dest.name} Trip FAQs`}
-            centered
+            badge="Helpful Info"
+            title="Frequently Asked Questions"
+            subtitle={`Everything you need to know before visiting ${dest.name}.`}
           />
-          <Accordion items={destinationFAQs} variant="card" />
-        </Container>
-      </section>
-
-      {/* CTA */}
-      <section className="py-section sm:py-section-lg bg-gradient-brand relative overflow-hidden">
-        <div className="absolute inset-0 bg-pattern-dots opacity-5" />
-        <Container className="relative z-10 text-center">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.6 }}
-            className="max-w-2xl mx-auto space-y-6"
-          >
-            <h2 className="text-display font-heading font-extrabold text-white">
-              Ready to explore {dest.name}?
-            </h2>
-            <p className="text-body-lg text-white/70">
-              Join {dest.packageCount} curated packages starting from {dest.avgPrice} per person.
-            </p>
-            <div className="flex flex-col sm:flex-row items-center justify-center gap-4 pt-2">
-              <GradientButton href={ROUTES.CUSTOMIZE} variant="orange" size="lg" glow>
-                Join a Trip
-              </GradientButton>
-              <GradientButton href={ROUTES.CONTACT} variant="glass" size="lg">
-                Talk to Us
-              </GradientButton>
-            </div>
-          </motion.div>
+          <div className="mt-10">
+            <Accordion items={destinationFAQs} />
+          </div>
         </Container>
       </section>
     </main>

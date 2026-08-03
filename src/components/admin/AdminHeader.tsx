@@ -4,6 +4,7 @@ import React, { useState, useMemo, useRef, useEffect } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { usePathname, useRouter } from 'next/navigation';
+import { BrandWordmark } from '@/components/ui/BrandWordmark';
 import {
   Menu,
   X,
@@ -304,16 +305,18 @@ export const AdminHeader: React.FC<AdminHeaderProps> = ({
           <Link href="/admin" className="flex items-center gap-2">
             <div className="relative w-7 h-7 rounded bg-white p-0.5 shrink-0">
               <Image
-                src="/logo.jpeg"
+                src="/friendli/logo.svg"
                 alt="Friendli Logo"
                 width={28}
                 height={28}
-                className="object-cover rounded"
+                className="object-contain rounded"
               />
             </div>
-            <span className="font-heading font-extrabold text-base tracking-tight text-white">
-              Friendli Admin
-            </span>
+            <BrandWordmark
+              theme="dark"
+              size="sm"
+              badge="ADMIN"
+            />
           </Link>
 
           <div className="flex items-center gap-2">

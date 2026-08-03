@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { usePathname } from 'next/navigation';
+import { BrandWordmark } from '@/components/ui/BrandWordmark';
 import { clsx } from 'clsx';
 import {
   LayoutDashboard, MessageSquare, Package, MapPin, FileText, Settings,
@@ -93,18 +94,16 @@ function AdminSidebar({
         'flex items-center gap-3 border-b border-white/5 shrink-0',
         collapsed ? 'px-3 py-4 justify-center' : 'px-5 py-4'
       )}>
-        <div className="w-9 h-9 rounded-lg overflow-hidden bg-white shadow-md shrink-0">
-          <Image src="/logo.jpeg" alt="" width={36} height={36} className="w-full h-full object-cover" />
+        <div className="w-9 h-9 rounded-lg overflow-hidden bg-white shadow-md shrink-0 p-0.5">
+          <Image src="/friendli/logo.svg" alt="Friendli Logo" width={36} height={36} className="w-full h-full object-contain" />
         </div>
         {!collapsed && (
-          <div className="flex flex-col min-w-0">
-            <span className="font-heading font-extrabold text-sm text-white leading-none truncate">
-              Friendli Tripz
-            </span>
-            <span className="text-[8px] font-extrabold text-brand-orange uppercase tracking-wider">
-              Admin Panel
-            </span>
-          </div>
+          <BrandWordmark
+            theme="dark"
+            size="sm"
+            badge="ADMIN"
+            badgePosition="below"
+          />
         )}
       </div>
 

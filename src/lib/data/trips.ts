@@ -20,7 +20,7 @@ export const VIBE_CATEGORIES = [
     subtitle: 'Misty hills & cool breeze',
     icon: 'Trees',
     color: 'from-emerald-500/20 to-teal-500/20',
-    image: '/images/kodaikanal/kodaikanal-hero.webp',
+    image: 'https://images.unsplash.com/photo-1589182373726-e4f658ab50f0?auto=format&fit=crop&w=1200&q=80',
   },
   {
     id: 'vibe-2',
@@ -28,7 +28,7 @@ export const VIBE_CATEGORIES = [
     subtitle: 'Golden sands & ocean waves',
     icon: 'Waves',
     color: 'from-blue-500/20 to-cyan-500/20',
-    image: '/images/kodaikanal/kodaikanal-lake.webp',
+    image: 'https://images.unsplash.com/photo-1544644181-1484b3fdfc62?auto=format&fit=crop&w=1200&q=80',
   },
   {
     id: 'vibe-3',
@@ -36,7 +36,7 @@ export const VIBE_CATEGORIES = [
     subtitle: 'Stargazing & cozy music',
     icon: 'Flame',
     color: 'from-orange-500/20 to-amber-500/20',
-    image: '/images/kodaikanal/kodaikanal-landscape.webp',
+    image: 'https://images.unsplash.com/photo-1602216056096-3b40cc0c9944?auto=format&fit=crop&w=1200&q=80',
   },
   {
     id: 'vibe-4',
@@ -44,7 +44,7 @@ export const VIBE_CATEGORIES = [
     subtitle: 'Artisan brews & slow afternoons',
     icon: 'Coffee',
     color: 'from-amber-600/20 to-orange-400/20',
-    image: '/images/kodaikanal/kodaikanal-pines.webp',
+    image: 'https://images.unsplash.com/photo-1448375240586-882707db888b?auto=format&fit=crop&w=1200&q=80',
   },
   {
     id: 'vibe-5',
@@ -52,7 +52,7 @@ export const VIBE_CATEGORIES = [
     subtitle: 'Winding roads & epic playlists',
     icon: 'Car',
     color: 'from-indigo-500/20 to-purple-500/20',
-    image: '/images/kodaikanal/kodaikanal-viewpoint.webp',
+    image: 'https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&w=1200&q=80',
   },
   {
     id: 'vibe-6',
@@ -60,7 +60,7 @@ export const VIBE_CATEGORIES = [
     subtitle: 'Forest baths & hidden trails',
     icon: 'Leaf',
     color: 'from-green-500/20 to-emerald-600/20',
-    image: '/images/kodaikanal/kodaikanal-waterfall.webp',
+    image: 'https://images.unsplash.com/photo-1596178065887-1198b6148b2b?auto=format&fit=crop&w=1200&q=80',
   },
   {
     id: 'vibe-7',
@@ -68,7 +68,7 @@ export const VIBE_CATEGORIES = [
     subtitle: 'Quick 2-3 day escapes',
     icon: 'Sparkles',
     color: 'from-rose-500/20 to-pink-500/20',
-    image: '/images/kodaikanal/kodaikanal-cloud.webp',
+    image: 'https://images.unsplash.com/photo-1519681393784-d120267933ba?auto=format&fit=crop&w=1200&q=80',
   },
   {
     id: 'vibe-8',
@@ -76,7 +76,7 @@ export const VIBE_CATEGORIES = [
     subtitle: 'Romantic views & private stays',
     icon: 'Heart',
     color: 'from-red-500/20 to-rose-400/20',
-    image: '/images/kodaikanal/kodaikanal-word.webp',
+    image: 'https://images.unsplash.com/photo-1470071459604-3b5ec3a7fe05?auto=format&fit=crop&w=1200&q=80',
   },
 ];
 
@@ -92,7 +92,7 @@ export const TRENDING_TRIPS = [
     reviewsCount: '243',
     nextDeparture: '15 May',
     seatsLeft: '09 Seats Left',
-    image: '/images/kodaikanal/kodaikanal-hero.webp',
+    image: 'https://images.unsplash.com/photo-1589182373726-e4f658ab50f0?auto=format&fit=crop&w=1200&q=80',
     badge: 'Bestseller',
   },
   {
@@ -106,7 +106,7 @@ export const TRENDING_TRIPS = [
     reviewsCount: '192',
     nextDeparture: '18 May',
     seatsLeft: '05 Seats Left',
-    image: '/images/kodaikanal/kodaikanal-lake.webp',
+    image: 'https://images.unsplash.com/photo-1544644181-1484b3fdfc62?auto=format&fit=crop&w=1200&q=80',
     badge: 'Trending',
   },
   {
@@ -120,7 +120,7 @@ export const TRENDING_TRIPS = [
     reviewsCount: '310',
     nextDeparture: '02 Jun',
     seatsLeft: '08 Seats Left',
-    image: '/images/kodaikanal/kodaikanal-landscape.webp',
+    image: 'https://images.unsplash.com/photo-1602216056096-3b40cc0c9944?auto=format&fit=crop&w=1200&q=80',
     badge: 'Popular',
   },
   {
@@ -134,7 +134,7 @@ export const TRENDING_TRIPS = [
     reviewsCount: '176',
     nextDeparture: '05 Jun',
     seatsLeft: '07 Seats Left',
-    image: '/images/kodaikanal/kodaikanal-pines.webp',
+    image: 'https://images.unsplash.com/photo-1448375240586-882707db888b?auto=format&fit=crop&w=1200&q=80',
     badge: null,
   },
   {
@@ -148,7 +148,7 @@ export const TRENDING_TRIPS = [
     reviewsCount: '153',
     nextDeparture: '10 Jun',
     seatsLeft: '04 Seats Left',
-    image: '/images/kodaikanal/kodaikanal-waterfall.webp',
+    image: 'https://images.unsplash.com/photo-1596178065887-1198b6148b2b?auto=format&fit=crop&w=1200&q=80',
     badge: null,
   },
   {
@@ -162,7 +162,7 @@ export const TRENDING_TRIPS = [
     reviewsCount: '94',
     nextDeparture: '22 May',
     seatsLeft: '11 Seats Left',
-    image: '/images/kodaikanal/kodaikanal-viewpoint.webp',
+    image: 'https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&w=1200&q=80',
     badge: null,
   },
 ];
@@ -214,7 +214,7 @@ export const UPCOMING_DEPARTURES = [
     duration: '4D / 3N',
     price: '₹8,999',
     seatsLeft: 9,
-    image: '/images/kodaikanal/kodaikanal-hero.webp',
+    image: 'https://images.unsplash.com/photo-1589182373726-e4f658ab50f0?auto=format&fit=crop&w=1200&q=80',
     month: 'May 26',
   },
   {
@@ -224,7 +224,7 @@ export const UPCOMING_DEPARTURES = [
     duration: '4D / 3N',
     price: '₹9,499',
     seatsLeft: 5,
-    image: '/images/kodaikanal/kodaikanal-lake.webp',
+    image: 'https://images.unsplash.com/photo-1544644181-1484b3fdfc62?auto=format&fit=crop&w=1200&q=80',
     month: 'May 26',
   },
   {
@@ -234,7 +234,7 @@ export const UPCOMING_DEPARTURES = [
     duration: '4D / 3N',
     price: '₹9,499',
     seatsLeft: 7,
-    image: '/images/kodaikanal/kodaikanal-pines.webp',
+    image: 'https://images.unsplash.com/photo-1448375240586-882707db888b?auto=format&fit=crop&w=1200&q=80',
     month: 'Jun 26',
   },
   {
@@ -244,7 +244,7 @@ export const UPCOMING_DEPARTURES = [
     duration: '4D / 3N',
     price: '₹10,499',
     seatsLeft: 8,
-    image: '/images/kodaikanal/kodaikanal-landscape.webp',
+    image: 'https://images.unsplash.com/photo-1602216056096-3b40cc0c9944?auto=format&fit=crop&w=1200&q=80',
     month: 'Jun 26',
   },
   {
@@ -254,7 +254,7 @@ export const UPCOMING_DEPARTURES = [
     duration: '4D / 3N',
     price: '₹11,999',
     seatsLeft: 12,
-    image: '/images/kodaikanal/kodaikanal-waterfall.webp',
+    image: 'https://images.unsplash.com/photo-1596178065887-1198b6148b2b?auto=format&fit=crop&w=1200&q=80',
     month: 'Jul 26',
   },
 ];
@@ -265,7 +265,7 @@ export const GALLERY_ITEMS = [
     type: 'video',
     title: 'Campfire Jamming session in Kodai',
     author: '@rahul_travels',
-    thumbnail: '/images/kodaikanal/kodaikanal-hero.webp',
+    thumbnail: 'https://images.unsplash.com/photo-1589182373726-e4f658ab50f0?auto=format&fit=crop&w=1200&q=80',
     aspect: 'aspect-[4/5]',
   },
   {
@@ -273,7 +273,7 @@ export const GALLERY_ITEMS = [
     type: 'photo',
     title: 'Morning mist at Silver Cascade',
     author: '@ananya_clicks',
-    thumbnail: '/images/kodaikanal/kodaikanal-waterfall.webp',
+    thumbnail: 'https://images.unsplash.com/photo-1596178065887-1198b6148b2b?auto=format&fit=crop&w=1200&q=80',
     aspect: 'aspect-square',
   },
   {
@@ -281,7 +281,7 @@ export const GALLERY_ITEMS = [
     type: 'photo',
     title: 'Jeep ride through pine forests',
     author: '@karthik_vlog',
-    thumbnail: '/images/kodaikanal/kodaikanal-landscape.webp',
+    thumbnail: 'https://images.unsplash.com/photo-1602216056096-3b40cc0c9944?auto=format&fit=crop&w=1200&q=80',
     aspect: 'aspect-[4/3]',
   },
   {
@@ -289,7 +289,7 @@ export const GALLERY_ITEMS = [
     type: 'photo',
     title: 'Sunset over Kodai Lake',
     author: '@priya.wanderlust',
-    thumbnail: '/images/kodaikanal/kodaikanal-lake.webp',
+    thumbnail: 'https://images.unsplash.com/photo-1544644181-1484b3fdfc62?auto=format&fit=crop&w=1200&q=80',
     aspect: 'aspect-[3/4]',
   },
   {
@@ -297,7 +297,7 @@ export const GALLERY_ITEMS = [
     type: 'photo',
     title: 'Group photo at Dolphin Nose viewpoint',
     author: '@friendlitripz_official',
-    thumbnail: '/images/kodaikanal/kodaikanal-viewpoint.webp',
+    thumbnail: 'https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&w=1200&q=80',
     aspect: 'aspect-square',
   },
   {
@@ -305,7 +305,7 @@ export const GALLERY_ITEMS = [
     type: 'photo',
     title: 'Coffee brew by the valley',
     author: '@vikram_adventures',
-    thumbnail: '/images/kodaikanal/kodaikanal-pines.webp',
+    thumbnail: 'https://images.unsplash.com/photo-1448375240586-882707db888b?auto=format&fit=crop&w=1200&q=80',
     aspect: 'aspect-[4/5]',
   },
 ];
@@ -449,15 +449,15 @@ export const KODAIKANAL_TRIP: Trip = {
   departureCity: 'Madurai',
   startingPrice: '₹8,999 per person',
   nextTripDate: 'May 15, 2026',
-  heroImage: '/images/kodaikanal/kodaikanal-hero.webp',
+  heroImage: 'https://images.unsplash.com/photo-1589182373726-e4f658ab50f0?auto=format&fit=crop&w=1200&q=80',
   galleryImages: [
-    '/images/kodaikanal/kodaikanal-lake.webp',
-    '/images/kodaikanal/kodaikanal-landscape.webp',
-    '/images/kodaikanal/kodaikanal-waterfall.webp',
-    '/images/kodaikanal/kodaikanal-viewpoint.webp',
-    '/images/kodaikanal/kodaikanal-pines.webp',
-    '/images/kodaikanal/kodaikanal-cloud.webp',
-    '/images/kodaikanal/kodaikanal-word.webp',
+    'https://images.unsplash.com/photo-1544644181-1484b3fdfc62?auto=format&fit=crop&w=1200&q=80',
+    'https://images.unsplash.com/photo-1602216056096-3b40cc0c9944?auto=format&fit=crop&w=1200&q=80',
+    'https://images.unsplash.com/photo-1596178065887-1198b6148b2b?auto=format&fit=crop&w=1200&q=80',
+    'https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&w=1200&q=80',
+    'https://images.unsplash.com/photo-1448375240586-882707db888b?auto=format&fit=crop&w=1200&q=80',
+    'https://images.unsplash.com/photo-1519681393784-d120267933ba?auto=format&fit=crop&w=1200&q=80',
+    'https://images.unsplash.com/photo-1470071459604-3b5ec3a7fe05?auto=format&fit=crop&w=1200&q=80',
   ],
   isFeatured: true,
   isAvailable: true,
@@ -469,21 +469,21 @@ export const EXPERIENCE_FEATURES: ExperienceFeature[] = [
     title: 'See More',
     description: 'Experience Kodaikanal beyond rushing from one checkpoint to another.',
     iconName: 'compass',
-    imageBg: '/images/kodaikanal/kodaikanal-lake.webp',
+    imageBg: 'https://images.unsplash.com/photo-1544644181-1484b3fdfc62?auto=format&fit=crop&w=1200&q=80',
   },
   {
     id: 'exp-2',
     title: 'Rush Less',
     description: 'Give the trip enough breathing room to actually enjoy the hills.',
     iconName: 'wind',
-    imageBg: '/images/kodaikanal/kodaikanal-landscape.webp',
+    imageBg: 'https://images.unsplash.com/photo-1602216056096-3b40cc0c9944?auto=format&fit=crop&w=1200&q=80',
   },
   {
     id: 'exp-3',
     title: 'Travel Together',
     description: 'Because the right company can turn a good destination into a great memory.',
     iconName: 'users',
-    imageBg: '/images/kodaikanal/kodaikanal-waterfall.webp',
+    imageBg: 'https://images.unsplash.com/photo-1596178065887-1198b6148b2b?auto=format&fit=crop&w=1200&q=80',
   },
 ];
 

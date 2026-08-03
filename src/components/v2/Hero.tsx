@@ -21,7 +21,7 @@ export const HeroSectionV2: React.FC = () => {
       {/* Background Cinematic Visual Layer */}
       <div className="absolute inset-0 z-0">
         <Image
-          src="/images/kodaikanal/kodaikanal-hero.webp"
+          src="https://images.unsplash.com/photo-1589182373726-e4f658ab50f0?auto=format&fit=crop&w=1600&q=80"
           alt="Cinematic Travel Background"
           fill
           priority

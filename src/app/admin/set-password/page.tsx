@@ -6,6 +6,7 @@ import Image from 'next/image';
 import { Lock, Eye, EyeOff, CheckCircle2, AlertCircle, Loader2, KeyRound, ShieldAlert } from 'lucide-react';
 import { Container } from '@/components/ui/Container';
 import { Button } from '@/components/ui/Button';
+import { BrandWordmark } from '@/components/ui/BrandWordmark';
 import { createClient } from '@/lib/supabase/client';
 import { User, EmailOtpType } from '@supabase/supabase-js';
 
@@ -141,15 +142,12 @@ function SetPasswordForm() {
           }
         }
 
-        // 5. Fallback: Check if user already has an active session from browser storage/cookies
-        const { data: existingSessionData } = await supabase.auth.getSession();
-        if (existingSessionData?.session) {
-          const { data: userData } = await supabase.auth.getUser();
-          if (userData?.user && isMounted) {
-            setAuthenticatedUser(userData.user);
-            setInvitationState('valid_invitation');
-            return;
-          }
+        // 5. Fallback: Check if user already has an active authenticated user
+        const { data: userData } = await supabase.auth.getUser();
+        if (userData?.user && isMounted) {
+          setAuthenticatedUser(userData.user);
+          setInvitationState('valid_invitation');
+          return;
         }
 
         // If no credentials or session found
@@ -255,18 +253,22 @@ function SetPasswordForm() {
       <div className="text-center space-y-3">
         <div className="relative w-12 h-12 rounded-2xl overflow-hidden shadow-md mx-auto border border-brand-navy/10 flex items-center justify-center bg-white p-0.5">
           <Image
-            src="/logo.jpeg"
+            src="/friendli/logo.svg"
             alt="Friendli Logo"
             width={48}
             height={48}
-            className="w-full h-full object-cover rounded-xl"
+            className="w-full h-full object-contain rounded-xl"
           />
         </div>
-        <div>
-          <h1 className="text-2xl font-black text-brand-navy font-heading">
-            Welcome to Friendli Tripz
-          </h1>
-          <p className="text-xs font-semibold text-brand-muted mt-1">
+        <div className="flex flex-col items-center justify-center pt-1 gap-2">
+          <div className="flex items-center gap-2 justify-center">
+            <span className="text-xl sm:text-2xl font-extrabold text-brand-navy font-heading">Welcome to</span>
+            <BrandWordmark
+              theme="light"
+              size="lg"
+            />
+          </div>
+          <p className="text-xs font-semibold text-brand-muted">
             Set your password to finish setting up your admin account.
           </p>
         </div>

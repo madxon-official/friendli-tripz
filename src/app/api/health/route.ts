@@ -1,7 +1,20 @@
-import { NextResponse } from 'next/server';
+import { NextRequest } from 'next/server';
 import { createServiceRoleClient } from '@/lib/supabase/service';
+import { ApiResponse } from '@/lib/api/response';
 
-export async function GET() {
+export const dynamic = 'force-dynamic';
+
+export async function GET(request: NextRequest) {
+  const probe = request.nextUrl.searchParams.get('probe') || 'health';
+
+  if (probe === 'liveness') {
+    return ApiResponse.success({
+      status: 'alive',
+      uptimeSeconds: process.uptime(),
+      timestamp: new Date().toISOString(),
+    });
+  }
+
   let dbStatus = 'disconnected';
   let isHealthy = false;
 
@@ -18,20 +31,28 @@ export async function GET() {
     dbStatus = `failed: ${err?.message || 'Connection error'}`;
   }
 
-  const statusCode = isHealthy ? 200 : 503;
-
-  return NextResponse.json(
-    {
-      status: isHealthy ? 'healthy' : 'unhealthy',
-      timestamp: new Date().toISOString(),
-      services: {
-        database: dbStatus,
-        cache: 'operational',
-        realtime: 'listening',
-        queueWorker: 'running',
-      },
-      version: '1.0.0',
+  const payload = {
+    status: isHealthy ? 'healthy' : 'unhealthy',
+    probe,
+    timestamp: new Date().toISOString(),
+    services: {
+      database: dbStatus,
+      cache: 'operational',
+      realtime: 'listening',
+      queueWorker: 'running',
     },
-    { status: statusCode }
-  );
+    version: '1.0.0',
+    memoryUsageMB: Math.round(process.memoryUsage().heapUsed / 1024 / 1024),
+  };
+
+  if (!isHealthy) {
+    return ApiResponse.error(
+      'Database health check failed',
+      'SERVICE_UNAVAILABLE',
+      503,
+      payload
+    );
+  }
+
+  return ApiResponse.success(payload);
 }

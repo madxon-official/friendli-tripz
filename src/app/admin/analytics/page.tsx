@@ -1,6 +1,6 @@
 import React from 'react';
 import { getExecutiveMetrics, getDestinationPerformance } from '@/lib/actions/analytics';
-import { BarChart3, TrendingUp, PieChart, Sparkles, MapPin, Users } from 'lucide-react';
+import { BarChart3, MapPin } from 'lucide-react';
 
 export const metadata = {
   title: 'Executive Analytics Dashboard | Friendli Tripz Admin',
@@ -8,8 +8,10 @@ export const metadata = {
 };
 
 export default async function AnalyticsPage() {
-  const metrics = await getExecutiveMetrics();
-  const dests = await getDestinationPerformance();
+  const [metrics, dests] = await Promise.all([
+    getExecutiveMetrics(),
+    getDestinationPerformance(),
+  ]);
 
   return (
     <main className="min-h-screen bg-slate-900 text-white py-10 px-4 sm:px-6 lg:px-8">

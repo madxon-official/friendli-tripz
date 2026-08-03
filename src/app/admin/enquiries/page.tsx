@@ -1,7 +1,20 @@
-import React, { Suspense } from 'react';
+import React from 'react';
+import dynamicImport from 'next/dynamic';
 import { redirect } from 'next/navigation';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
-import { EnquiryListClient, EnquiryRow } from '@/components/admin/EnquiryListClient';
+import type { EnquiryRow } from '@/components/admin/EnquiryListClient';
+
+const DynamicEnquiryListClient = dynamicImport(
+  () => import('@/components/admin/EnquiryListClient').then((mod) => mod.EnquiryListClient),
+  {
+    loading: () => (
+      <div className="p-8 space-y-4 animate-pulse">
+        <div className="h-8 bg-slate-200 rounded-lg w-1/3" />
+        <div className="h-64 bg-slate-100 rounded-2xl w-full" />
+      </div>
+    ),
+  }
+);
 
 export const dynamic = 'force-dynamic';
 
@@ -21,10 +34,10 @@ export default async function EnquiryListPage({
   const supabase = await createServerSupabaseClient();
 
   const {
-    data: { session },
-  } = await supabase.auth.getSession();
+    data: { user },
+  } = await supabase.auth.getUser();
 
-  if (!session) {
+  if (!user) {
     redirect('/admin/login');
   }
 
@@ -52,25 +65,23 @@ export default async function EnquiryListPage({
     supabase
       .from('admin_profiles')
       .select('full_name, role')
-      .eq('id', session.user.id)
+      .eq('id', user.id)
       .single(),
   ]);
 
   const initialEnquiries: EnquiryRow[] = enquiriesRes.data || [];
   const initialNewCount = newCountRes.count || 0;
-  const adminName = profileRes.data?.full_name || 'Admin';
-  const adminRole = profileRes.data?.role || 'operations';
+  const adminName = profileRes.data?.full_name || user.email?.split('@')[0] || 'Admin';
+  const adminRole = profileRes.data?.role || 'admin';
 
   return (
-    <Suspense>
-      <EnquiryListClient
-        initialEnquiries={initialEnquiries}
-        initialNewCount={initialNewCount}
-        initialStatus={statusFilter}
-        adminName={adminName}
-        adminEmail={session.user.email}
-        adminRole={adminRole}
-      />
-    </Suspense>
+    <DynamicEnquiryListClient
+      initialEnquiries={initialEnquiries}
+      initialNewCount={initialNewCount}
+      initialStatus={statusFilter}
+      adminName={adminName}
+      adminEmail={user.email || ''}
+      adminRole={adminRole}
+    />
   );
 }

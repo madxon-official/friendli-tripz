@@ -12,6 +12,7 @@ import {
   CheckCircle2,
 } from 'lucide-react';
 import { getActivityBySlug } from '@/lib/actions/activity';
+import { formatImageUrl } from '@/lib/images';
 
 export async function generateMetadata({
   params,
@@ -53,7 +54,7 @@ export default async function StandaloneMasterActivityPage({
     notFound();
   }
 
-  const heroImage = activity.hero_image_url || '/images/kodaikanal/kodaikanal-lake.webp';
+  const heroImage = formatImageUrl(activity.hero_image_url);
 
   return (
     <article className="min-h-screen bg-slate-50 pb-24 text-slate-900">

@@ -1,209 +1,118 @@
-'use client';
-
-import React, { useState } from 'react';
-import { motion } from 'framer-motion';
-import { Mail, Phone, MapPin, Send, CheckCircle2, MessageSquare, Clock, Instagram } from 'lucide-react';
-import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { contactFormSchema, ContactFormValues } from '@/lib/validations/discovery';
+import React from 'react';
+import type { Metadata } from 'next';
+import { Mail, Phone, MessageSquare, Instagram } from 'lucide-react';
 import { Container } from '@/components/v3/ui/Container';
 import { Badge } from '@/components/v3/ui/Badge';
 import { Card } from '@/components/v3/ui/Card';
-import { Input } from '@/components/v3/ui/Input';
-import { Select } from '@/components/v3/ui/Select';
-import { Button } from '@/components/v3/ui/Button';
 import { BRAND_INFO } from '@/lib/data/trips';
+import { ContactFormWidget } from '@/components/v3/contact/ContactFormWidget';
+
+export const metadata: Metadata = {
+  title: 'Contact Us & Trip Support | Friendli Tripz',
+  description: 'Reach out to Friendli Tripz team for trip inquiries, custom group bookings, and instant support.',
+};
+
+export const revalidate = 3600; // Enable ISR static caching
 
 export default function ContactPage() {
-  const [submitted, setSubmitted] = useState(false);
-
-  const {
-    register,
-    handleSubmit,
-    formState: { errors, isSubmitting },
-  } = useForm<ContactFormValues>({
-    resolver: zodResolver(contactFormSchema) as any,
-    defaultValues: {
-      travellerCount: 2,
-      destination: 'Kodaikanal',
-    },
-  });
-
-  const onSubmit = async (data: ContactFormValues) => {
-    setSubmitted(true);
-  };
-
   return (
     <main className="min-h-screen">
       {/* Hero */}
       <section className="relative pt-32 pb-16 sm:pt-40 sm:pb-20 bg-gradient-brand overflow-hidden">
         <div className="absolute inset-0 bg-pattern-dots opacity-5" />
         <Container className="relative z-10 text-center">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6 }}
-            className="max-w-3xl mx-auto space-y-4"
-          >
-            <Badge variant="brand" size="sm" icon={<Mail className="w-3.5 h-3.5" />}>
-              We&apos;re Here to Help
+          <div className="max-w-3xl mx-auto space-y-4">
+            <Badge variant="brand" size="sm" icon={<MessageSquare className="w-3.5 h-3.5" />}>
+              Get in Touch
             </Badge>
             <h1 className="text-display sm:text-display-lg font-heading font-extrabold text-white">
-              Get in Touch
+              We&apos;re Here to{' '}
+              <span className="text-gradient-warm inline-block">Help You Travel</span>
             </h1>
             <p className="text-body-lg text-white/70 max-w-xl mx-auto">
-              Have a question, custom trip request, or group booking? Our travel planning desk is just a message away.
+              Have a question about a trip? Want to plan a custom getaway for your group? Reach out anytime!
             </p>
-          </motion.div>
+          </div>
         </Container>
       </section>
 
-      {/* Contact Section */}
+      {/* Main Section */}
       <section className="py-section-sm sm:py-section bg-surface-50">
         <Container>
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-            {/* Contact Info Cards */}
-            <div className="space-y-5">
-              {/* Quick Contact Card */}
-              <Card variant="elevated" padding="lg" className="bg-brand-navy !text-white !border-brand-navy-dark">
-                <h3 className="text-heading font-heading font-extrabold text-brand-orange mb-6">
-                  Contact Info
-                </h3>
-                <div className="space-y-5">
-                  {[
-                    { icon: Phone, label: '+91 94301 87000', sub: 'Mon–Sun: 9 AM – 9 PM', href: 'tel:+919430187000' },
-                    { icon: Mail, label: BRAND_INFO.contactEmail, sub: '24/7 Response', href: `mailto:${BRAND_INFO.contactEmail}` },
-                    { icon: MapPin, label: 'Friendli Travel HQ', sub: 'Kodaikanal, Tamil Nadu' },
-                  ].map((item) => (
-                    <div key={item.label} className="flex items-start gap-3">
-                      <div className="w-9 h-9 rounded-button bg-white/10 flex items-center justify-center shrink-0">
-                        <item.icon className="w-4 h-4 text-brand-orange" />
-                      </div>
-                      <div>
-                        {item.href ? (
-                          <a href={item.href} className="text-body-sm font-bold text-white hover:text-brand-orange transition-colors">
-                            {item.label}
-                          </a>
-                        ) : (
-                          <span className="text-body-sm font-bold text-white">{item.label}</span>
-                        )}
-                        <span className="text-caption text-white/50 block">{item.sub}</span>
-                      </div>
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-12">
+            {/* Left: Contact Info */}
+            <div className="lg:col-span-5 space-y-6">
+              <div className="space-y-2">
+                <span className="text-label-sm font-bold text-brand-orange uppercase tracking-wider">
+                  Contact Information
+                </span>
+                <h2 className="text-heading-lg font-heading font-bold text-surface-900">
+                  Talk to a Travel Host
+                </h2>
+                <p className="text-body-md text-surface-600">
+                  We reply fastest on WhatsApp. Feel free to call or message us directly.
+                </p>
+              </div>
+
+              <div className="space-y-4">
+                <Card variant="outline" padding="md" className="bg-white border border-surface-200">
+                  <div className="flex items-center gap-4">
+                    <div className="w-12 h-12 rounded-xl bg-brand-orange/10 flex items-center justify-center text-brand-orange shrink-0">
+                      <Phone className="w-6 h-6" />
                     </div>
-                  ))}
-                </div>
-
-                {/* Social */}
-                <div className="pt-6 mt-6 border-t border-white/10 flex items-center gap-3">
-                  <a href={BRAND_INFO.whatsappUrl} target="_blank" rel="noopener noreferrer"
-                    className="w-10 h-10 rounded-button bg-emerald-500/20 flex items-center justify-center text-emerald-400 hover:bg-emerald-500/30 transition-colors">
-                    <MessageSquare className="w-4 h-4" />
-                  </a>
-                  <a href={BRAND_INFO.instagramUrl} target="_blank" rel="noopener noreferrer"
-                    className="w-10 h-10 rounded-button bg-white/10 flex items-center justify-center text-white/70 hover:text-brand-orange transition-colors">
-                    <Instagram className="w-4 h-4" />
-                  </a>
-                </div>
-              </Card>
-
-              {/* Response Time Card */}
-              <Card variant="default" padding="md">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-button bg-emerald-50 flex items-center justify-center">
-                    <Clock className="w-5 h-5 text-emerald-500" />
+                    <div>
+                      <div className="text-caption text-surface-400 font-semibold uppercase tracking-wider">
+                        WhatsApp & Support
+                      </div>
+                      <a href={BRAND_INFO.whatsappUrl} target="_blank" rel="noopener noreferrer" className="text-body-lg font-bold text-surface-900 hover:text-brand-orange transition-colors">
+                        Chat on WhatsApp
+                      </a>
+                    </div>
                   </div>
-                  <div>
-                    <span className="text-body-sm font-bold text-brand-navy block">Average Response Time</span>
-                    <span className="text-caption text-brand-muted">Under 30 minutes</span>
+                </Card>
+
+                <Card variant="outline" padding="md" className="bg-white border border-surface-200">
+                  <div className="flex items-center gap-4">
+                    <div className="w-12 h-12 rounded-xl bg-brand-navy/10 flex items-center justify-center text-brand-navy shrink-0">
+                      <Mail className="w-6 h-6" />
+                    </div>
+                    <div>
+                      <div className="text-caption text-surface-400 font-semibold uppercase tracking-wider">
+                        Email Us
+                      </div>
+                      <a href={`mailto:${BRAND_INFO.contactEmail}`} className="text-body-lg font-bold text-surface-900 hover:text-brand-orange transition-colors">
+                        {BRAND_INFO.contactEmail}
+                      </a>
+                    </div>
                   </div>
-                </div>
-              </Card>
+                </Card>
+
+                <Card variant="outline" padding="md" className="bg-white border border-surface-200">
+                  <div className="flex items-center gap-4">
+                    <div className="w-12 h-12 rounded-xl bg-purple-100 flex items-center justify-center text-purple-600 shrink-0">
+                      <Instagram className="w-6 h-6" />
+                    </div>
+                    <div>
+                      <div className="text-caption text-surface-400 font-semibold uppercase tracking-wider">
+                        Instagram
+                      </div>
+                      <a
+                        href={BRAND_INFO.instagramUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-body-lg font-bold text-surface-900 hover:text-brand-orange transition-colors"
+                      >
+                        @friendlitripz
+                      </a>
+                    </div>
+                  </div>
+                </Card>
+              </div>
             </div>
 
-            {/* Form */}
-            <div className="lg:col-span-2">
-              <Card variant="elevated" padding="lg">
-                {submitted ? (
-                  <motion.div
-                    initial={{ opacity: 0, scale: 0.95 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    className="text-center py-16 space-y-4"
-                  >
-                    <div className="w-16 h-16 rounded-full bg-emerald-50 flex items-center justify-center mx-auto">
-                      <CheckCircle2 className="w-8 h-8 text-emerald-500" />
-                    </div>
-                    <h3 className="text-heading font-heading font-extrabold text-brand-navy">
-                      Enquiry Submitted!
-                    </h3>
-                    <p className="text-body-sm text-brand-muted max-w-sm mx-auto">
-                      Thank you! Our travel expert will contact you within 30 minutes with a personalised response.
-                    </p>
-                    <Button variant="outline" size="sm" onClick={() => setSubmitted(false)}>
-                      Submit Another Enquiry
-                    </Button>
-                  </motion.div>
-                ) : (
-                  <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
-                      <Input
-                        label="Full Name"
-                        placeholder="Rahul Sharma"
-                        error={errors.name?.message}
-                        {...register('name')}
-                      />
-                      <Input
-                        label="Email Address"
-                        placeholder="rahul@example.com"
-                        error={errors.email?.message}
-                        {...register('email')}
-                      />
-                    </div>
-
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
-                      <Input
-                        label="Phone Number"
-                        placeholder="+91 98765 43210"
-                        error={errors.phone?.message}
-                        {...register('phone')}
-                      />
-                      <div className="space-y-1.5">
-                        <label className="block text-overline text-brand-muted uppercase">Destination</label>
-                        <select
-                          {...register('destination')}
-                          className="w-full bg-surface-50 border border-surface-200 px-4 py-3 text-body-sm rounded-card transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-brand-orange/20 focus:border-brand-orange focus:bg-white"
-                        >
-                          <option value="Kodaikanal">Kodaikanal</option>
-                          <option value="Ooty">Ooty</option>
-                          <option value="Wayanad">Wayanad</option>
-                          <option value="Coorg">Coorg</option>
-                          <option value="Munnar">Munnar</option>
-                        </select>
-                      </div>
-                    </div>
-
-                    <div className="space-y-1.5">
-                      <label className="block text-overline text-brand-muted uppercase">Special Requirements</label>
-                      <textarea
-                        {...register('notes')}
-                        rows={4}
-                        className="w-full bg-surface-50 border border-surface-200 px-4 py-3 text-body-sm rounded-card transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-brand-orange/20 focus:border-brand-orange focus:bg-white placeholder:text-brand-muted/60"
-                        placeholder="Preferred dates, hotel choices, group size, or any special requests..."
-                      />
-                    </div>
-
-                    <Button
-                      type="submit"
-                      variant="primary"
-                      size="lg"
-                      fullWidth
-                      loading={isSubmitting}
-                      icon={<Send className="w-4 h-4" />}
-                    >
-                      Submit Travel Request
-                    </Button>
-                  </form>
-                )}
-              </Card>
+            {/* Right: Contact Form Widget */}
+            <div className="lg:col-span-7">
+              <ContactFormWidget />
             </div>
           </div>
         </Container>

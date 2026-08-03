@@ -2,7 +2,7 @@
 -- FRIENDLI TRIPZ — PHASE 5.3 SUPABASE MIGRATION
 -- Feature: Enterprise RBAC, Departments, Assignment Engine, Activity Logs & Notifications
 -- ==============================================================================
-
+ 
 -- 1. DEPARTMENTS TABLE
 CREATE TABLE IF NOT EXISTS public.departments (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),

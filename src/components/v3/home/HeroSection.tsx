@@ -17,7 +17,7 @@ export function HeroSection() {
       {/* Background Image */}
       <div className="absolute inset-0">
         <Image
-          src="/images/kodaikanal/kodaikanal-hero.webp"
+          src="https://images.unsplash.com/photo-1589182373726-e4f658ab50f0?auto=format&fit=crop&w=1600&q=80"
           alt="Misty mountains of Kodaikanal"
           fill
           priority

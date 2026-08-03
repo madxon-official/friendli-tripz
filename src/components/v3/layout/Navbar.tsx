@@ -5,6 +5,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { Menu, ChevronDown, User, Sparkles, X } from 'lucide-react';
 import { Container } from '@/components/v3/ui/Container';
+import { BrandWordmark } from '@/components/ui/BrandWordmark';
 import { Button } from '@/components/v3/ui/Button';
 import { ROUTES, NAV_LINKS, MEGA_MENU_DATA, PRIMARY_CTA } from '@/lib/routes';
 import { V3MobileMenu } from './MobileMenu';
@@ -73,28 +74,21 @@ export function V3Navbar() {
             className="flex items-center gap-2.5 group shrink-0"
             aria-label="Friendli Tripz — Home"
           >
-            <div className="relative w-9 h-9 sm:w-10 sm:h-10 rounded-xl overflow-hidden shadow-md border border-white/20 group-hover:scale-105 transition-transform duration-300 shrink-0 bg-white">
+            <div className="relative w-9 h-9 sm:w-10 sm:h-10 rounded-xl overflow-hidden shadow-md border border-white/20 group-hover:scale-105 transition-transform duration-300 shrink-0 bg-white p-0.5">
               <Image
-                src="/logo.jpeg"
-                alt=""
+                src="/friendli/logo.svg"
+                alt="Friendli Logo"
                 width={40}
                 height={40}
                 priority
-                className="w-full h-full object-cover"
+                className="w-full h-full object-contain"
               />
             </div>
-            <div className="flex flex-col">
-              <span
-                className={`font-heading font-extrabold text-base sm:text-lg tracking-tight leading-none transition-colors duration-300 ${
-                  isScrolled ? 'text-brand-navy' : 'text-white'
-                }`}
-              >
-                Friendli Tripz
-              </span>
-              <span className="text-[9px] sm:text-[10px] font-extrabold text-brand-orange uppercase tracking-wider mt-0.5">
-                Travel. Vibe. Repeat.
-              </span>
-            </div>
+            <BrandWordmark
+              theme={isScrolled ? 'light' : 'dark'}
+              size="md"
+              showTagline
+            />
           </Link>
 
           {/* Desktop Navigation */}

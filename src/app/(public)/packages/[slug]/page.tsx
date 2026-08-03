@@ -21,74 +21,105 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
 
 export default async function PackageDetailPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
-  const supabase = await createClient();
 
-  const { data: family } = await supabase
-    .from('package_families')
-    .select(`
-      id,
-      name,
-      family_slug,
-      description,
-      destinations (
-        id,
-        name,
-        slug,
-        hero_banner_url,
-        travel_difficulty
-      ),
-      package_releases (
-        id,
-        version_tag,
-        title,
-        duration_days,
-        duration_nights,
- base_pricing_tree_json,
-        commercial_terms_text,
-        status
-      )
-    `)
-    .eq('family_slug', slug)
-    .maybeSingle();
+  let family: any = null;
+  let realInstance: any = null;
+  let dbItineraryDays: any = null;
 
-  const release = family?.package_releases?.find((r: any) => r.status === 'active') || family?.package_releases?.[0];
+  try {
+    const fetchDbData = async () => {
+      const supabase = await createClient();
 
-  // Fetch real package instance if available
-  const { data: realInstance } = release?.id
-    ? await supabase
-        .from('package_instances')
-        .select('id, title, custom_pricing_tree_json')
-        .eq('release_id', release.id)
-        .limit(1)
-        .maybeSingle()
-    : { data: null };
-
-  // Fetch real itinerary days and segments if available
-  const { data: dbItineraryDays } = release?.id
-    ? await supabase
-        .from('itinerary_days')
+      const { data: familyData } = await supabase
+        .from('package_families')
         .select(`
           id,
-          day_number,
-          theme_title,
+          name,
+          family_slug,
           description,
-          itinerary_day_segments (
+          destinations (
             id,
-            sequence_order,
-            segment_type,
-            planned_start_time,
-            planned_end_time,
-            duration_mins,
-            segment_title,
-            cost_override,
-            is_included_in_package
+            name,
+            slug,
+            hero_banner_url,
+            travel_difficulty
+          ),
+          package_releases (
+            id,
+            version_tag,
+            title,
+            duration_days,
+            duration_nights,
+            base_pricing_tree_json,
+            commercial_terms_text,
+            status
           )
         `)
-        .eq('release_id', release.id)
-        .order('day_number', { ascending: true })
-    : { data: null };
+        .eq('family_slug', slug)
+        .maybeSingle();
 
-  const title = release?.title || family?.name || '4-Day Signature Escape';
+      if (!familyData) return null;
+
+      const activeRelease = familyData?.package_releases?.find((r: any) => r.status === 'active') || familyData?.package_releases?.[0];
+
+      const [instanceRes, itineraryRes] = await Promise.all([
+        activeRelease?.id
+          ? supabase
+              .from('package_instances')
+              .select('id, title, custom_pricing_tree_json')
+              .eq('release_id', activeRelease.id)
+              .limit(1)
+              .maybeSingle()
+          : Promise.resolve({ data: null }),
+        activeRelease?.id
+          ? supabase
+              .from('itinerary_days')
+              .select(`
+                id,
+                day_number,
+                theme_title,
+                description,
+                itinerary_day_segments (
+                  id,
+                  sequence_order,
+                  segment_type,
+                  planned_start_time,
+                  planned_end_time,
+                  duration_mins,
+                  segment_title,
+                  cost_override,
+                  is_included_in_package
+                )
+              `)
+              .eq('release_id', activeRelease.id)
+              .order('day_number', { ascending: true })
+          : Promise.resolve({ data: null }),
+      ]);
+
+      return {
+        family: familyData,
+        realInstance: instanceRes.data,
+        dbItineraryDays: itineraryRes.data,
+      };
+    };
+
+    // 1.5s timeout for fast response guarantee
+    const result = await Promise.race([
+      fetchDbData(),
+      new Promise<null>((resolve) => setTimeout(() => resolve(null), 1500)),
+    ]);
+
+    if (result) {
+      family = result.family;
+      realInstance = result.realInstance;
+      dbItineraryDays = result.dbItineraryDays;
+    }
+  } catch (err) {
+    console.error('Supabase fetch bypassed for instant static load:', err);
+  }
+
+  const release = family?.package_releases?.find((r: any) => r.status === 'active') || family?.package_releases?.[0];
+  const title = release?.title || family?.name || `${slug.split('-').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ')}`;
   const durationDays = release?.duration_days || 4;
   const durationNights = release?.duration_nights || 3;
   const pricing = release?.base_pricing_tree_json || {};

@@ -4,6 +4,7 @@ import React, { useMemo, useEffect, useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { usePathname, useRouter } from 'next/navigation';
+import { BrandWordmark } from '@/components/ui/BrandWordmark';
 import {
   LayoutDashboard,
   Calendar,
@@ -191,21 +192,19 @@ export const AdminSidebar: React.FC<AdminSidebarProps> = ({
           <div className="flex items-center gap-3">
             <div className="relative w-9 h-9 rounded-xl overflow-hidden bg-white p-0.5 shrink-0 shadow-md">
               <Image
-                src="/logo.jpeg"
+                src="/friendli/logo.svg"
                 alt="Friendli Logo"
                 width={36}
                 height={36}
-                className="object-cover rounded-lg"
+                className="object-contain rounded-lg w-full h-full"
               />
             </div>
-            <div>
-              <span className="font-heading font-black text-base tracking-tight text-white block leading-none">
-                Friendli Tripz
-              </span>
-              <span className="text-[10px] font-bold text-brand-orange uppercase tracking-wider font-mono">
-                {roleLabel}
-              </span>
-            </div>
+            <BrandWordmark
+              theme="dark"
+              size="sm"
+              badge={roleLabel}
+              badgePosition="below"
+            />
           </div>
 
           {onOpenSearch && (

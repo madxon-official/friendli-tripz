@@ -44,7 +44,7 @@ export const metadata: Metadata = {
     siteName: 'Friendli Tripz',
     images: [
       {
-        url: '/logo.jpeg',
+        url: '/friendli/logo.svg',
         width: 800,
         height: 600,
         alt: 'Friendli Tripz — Travel Lifestyle Platform',
@@ -63,8 +63,8 @@ export const metadata: Metadata = {
     follow: true,
   },
   icons: {
-    icon: '/logo.jpeg',
-    apple: '/logo.jpeg',
+    icon: '/friendli/logo.svg',
+    apple: '/friendli/logo.svg',
   },
 };
 

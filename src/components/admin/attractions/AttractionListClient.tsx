@@ -22,6 +22,8 @@ import {
 import { Attraction, AttractionCategory, DestinationZone, AttractionStatus } from '@/lib/types/attraction';
 import { updateAttractionStatus } from '@/lib/actions/attraction';
 
+import { formatImageUrl } from '@/lib/images';
+
 interface AttractionListClientProps {
   initialData: {
     attractions: Attraction[];
@@ -238,8 +240,7 @@ export const AttractionListClient: React.FC<AttractionListClientProps> = ({
               </thead>
               <tbody className="divide-y divide-slate-100">
                 {filteredAttractions.map((attr) => {
-                  const imageSrc =
-                    attr.featured_image_url || attr.hero_banner_url || '/images/kodaikanal/kodaikanal-lake.webp';
+                  const imageSrc = formatImageUrl(attr.featured_image_url || attr.hero_banner_url);
 
                   return (
                     <tr key={attr.id} className="hover:bg-slate-50/80 transition-colors">

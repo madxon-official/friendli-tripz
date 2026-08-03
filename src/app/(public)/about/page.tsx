@@ -96,7 +96,7 @@ export default function AboutPage() {
             </div>
             <div className="relative aspect-[4/3] rounded-card-lg overflow-hidden shadow-elevated">
               <Image
-                src="/images/kodaikanal/kodaikanal-landscape.webp"
+                src="/destinations/kodaikanal/kodaikanal-landscape.webp"
                 alt="Team at Kodaikanal"
                 fill
                 className="object-cover"

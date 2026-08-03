@@ -33,10 +33,10 @@ export default async function AdminDashboardPage() {
   const supabase = await createServerSupabaseClient();
 
   const {
-    data: { session },
-  } = await supabase.auth.getSession();
+    data: { user },
+  } = await supabase.auth.getUser();
 
-  if (!session) {
+  if (!user) {
     redirect('/admin/login');
   }
 
@@ -44,7 +44,7 @@ export default async function AdminDashboardPage() {
   const { data: profile } = await supabase
     .from('admin_profiles')
     .select('full_name, role, is_active')
-    .eq('id', session.user.id)
+    .eq('id', user.id)
     .single();
 
   if (!profile || !profile.is_active) {

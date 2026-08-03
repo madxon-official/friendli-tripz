@@ -4,6 +4,7 @@ import React from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { Container } from '@/components/ui/Container';
+import { BrandWordmark } from '@/components/ui/BrandWordmark';
 import { BRAND_INFO } from '@/lib/data/trips';
 import { ROUTES } from '@/lib/routes';
 import { Heart, Instagram, Youtube, MessageSquare, Mail, Phone, ArrowRight, ShieldCheck } from 'lucide-react';
@@ -49,22 +50,18 @@ export const Footer: React.FC = () => {
             <Link href={ROUTES.HOME} className="flex items-center gap-3">
               <div className="relative w-10 h-10 rounded-xl overflow-hidden bg-white p-0.5 shadow-md shrink-0 flex items-center justify-center">
                 <Image
-                  src="/logo.jpeg"
+                  src="/friendli/logo.svg"
                   alt="Friendli Tripz Logo"
                   width={40}
                   height={40}
-                  className="w-full h-full object-cover rounded-lg"
-                  style={{ maxWidth: '40px', maxHeight: '40px' }}
+                  className="w-full h-full object-contain rounded-lg"
                 />
               </div>
-              <div className="flex flex-col">
-                <span className="font-heading font-extrabold text-xl tracking-tight text-white">
-                  Friendli Tripz
-                </span>
-                <span className="text-[10px] font-extrabold text-brand-orange uppercase tracking-wider">
-                  Travel. Vibe. Repeat.
-                </span>
-              </div>
+              <BrandWordmark
+                theme="dark"
+                size="lg"
+                showTagline
+              />
             </Link>
 
             <p className="text-slate-300 font-medium text-sm leading-relaxed max-w-sm">

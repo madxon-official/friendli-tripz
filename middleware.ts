@@ -66,10 +66,10 @@ export async function middleware(request: NextRequest) {
     const supabase = createSupabaseMiddlewareClient();
 
     const {
-      data: { session },
-    } = await supabase.auth.getSession();
+      data: { user },
+    } = await supabase.auth.getUser();
 
-    if (!session) {
+    if (!user) {
       // Redirect unauthenticated partner users to admin login with return URL
       const loginUrl = new URL('/admin/login', request.url);
       loginUrl.searchParams.set('returnTo', url.pathname);
@@ -84,10 +84,10 @@ export async function middleware(request: NextRequest) {
     const supabase = createSupabaseMiddlewareClient();
 
     const {
-      data: { session },
-    } = await supabase.auth.getSession();
+      data: { user },
+    } = await supabase.auth.getUser();
 
-    if (!session) {
+    if (!user) {
       const loginUrl = new URL('/admin/login', request.url);
       return NextResponse.redirect(loginUrl);
     }
@@ -96,7 +96,7 @@ export async function middleware(request: NextRequest) {
     const { data: profile } = await supabase
       .from('admin_profiles')
       .select('role, is_active')
-      .eq('id', session.user.id)
+      .eq('id', user.id)
       .single();
 
     if (!profile || !profile.is_active) {
@@ -120,4 +120,3 @@ export async function middleware(request: NextRequest) {
 export const config = {
   matcher: ['/admin/:path*', '/driver/:path*', '/hotel-portal/:path*', '/vendor-portal/:path*', '/tour-leader/:path*'],
 };
-

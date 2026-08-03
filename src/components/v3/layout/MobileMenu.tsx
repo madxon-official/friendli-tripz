@@ -8,6 +8,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { ROUTES, NAV_LINKS, MEGA_MENU_DATA, PRIMARY_CTA } from '@/lib/routes';
 import { BRAND_INFO } from '@/lib/data/trips';
 import { Button } from '@/components/v3/ui/Button';
+import { BrandWordmark } from '@/components/ui/BrandWordmark';
 
 interface V3MobileMenuProps {
   isOpen: boolean;
@@ -50,17 +51,14 @@ export function V3MobileMenu({ isOpen, onClose }: V3MobileMenuProps) {
             {/* Header */}
             <div className="flex items-center justify-between p-5 border-b border-surface-200/60">
               <Link href={ROUTES.HOME} onClick={onClose} className="flex items-center gap-2.5">
-                <div className="w-8 h-8 rounded-lg overflow-hidden bg-white shadow-sm">
-                  <Image src="/logo.jpeg" alt="" width={32} height={32} className="w-full h-full object-cover" />
+                <div className="w-8 h-8 rounded-lg overflow-hidden bg-white shadow-sm p-0.5 border border-surface-200">
+                  <Image src="/friendli/logo.svg" alt="Friendli Logo" width={32} height={32} className="w-full h-full object-contain" />
                 </div>
-                <div className="flex flex-col">
-                  <span className="font-heading font-extrabold text-sm text-brand-navy leading-none">
-                    Friendli Tripz
-                  </span>
-                  <span className="text-[8px] font-extrabold text-brand-orange uppercase tracking-wider">
-                    Travel. Vibe. Repeat.
-                  </span>
-                </div>
+                <BrandWordmark
+                  theme="light"
+                  size="sm"
+                  showTagline
+                />
               </Link>
               <button
                 onClick={onClose}

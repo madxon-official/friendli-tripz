@@ -1,9 +1,24 @@
 import React, { Suspense } from 'react';
+import dynamicImport from 'next/dynamic';
 import { redirect } from 'next/navigation';
 import { requirePermission, AuthorizationError } from '@/lib/rbac/authorize';
 import { createServiceRoleClient } from '@/lib/supabase/service';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
-import { TeamManagementClient, TeamMemberItem, InvitationItem, DepartmentItem, AuditLogItem } from '@/components/admin/TeamManagementClient';
+import type { TeamMemberItem, InvitationItem, DepartmentItem, AuditLogItem } from '@/components/admin/TeamManagementClient';
+
+// Dynamic lazy import for 93KB TeamManagementClient module
+const DynamicTeamManagementClient = dynamicImport(
+  () => import('@/components/admin/TeamManagementClient').then((mod) => mod.TeamManagementClient),
+  {
+    loading: () => (
+      <div className="p-8 space-y-6 animate-pulse">
+        <div className="h-8 bg-slate-200 rounded-lg w-1/4" />
+        <div className="h-12 bg-slate-100 rounded-xl w-full" />
+        <div className="h-64 bg-slate-100 rounded-2xl w-full" />
+      </div>
+    ),
+  }
+);
 
 export const dynamic = 'force-dynamic';
 
@@ -30,7 +45,7 @@ export default async function AdminTeamPage() {
   const [profilesRes, usersRes, invitationsRes, deptsRes, activityRes, enquiriesRes, newCountRes] = await Promise.all([
     serviceClient
       .from('admin_profiles')
-      .select('*')
+      .select('id, full_name, avatar_url, phone, role, department_id, is_active, status, created_at, created_by')
       .order('created_at', { ascending: false }),
     Promise.race([
       serviceClient.auth.admin.listUsers().catch((e) => ({ data: { users: [] }, error: e })),
@@ -38,15 +53,15 @@ export default async function AdminTeamPage() {
     ]),
     serviceClient
       .from('admin_invitations')
-      .select('*')
+      .select('id, email, full_name, phone, role, department_id, invited_by, status, created_at, expires_at, accepted_at')
       .order('created_at', { ascending: false }),
     serviceClient
       .from('departments')
-      .select('*')
+      .select('id, name, color, active, archived_at, manager_id')
       .order('name', { ascending: true }),
     serviceClient
       .from('admin_activity_logs')
-      .select('*')
+      .select('id, admin_id, action, details, created_at')
       .order('created_at', { ascending: false })
       .limit(50),
     serviceClient
@@ -194,21 +209,24 @@ export default async function AdminTeamPage() {
     pending_invitations: pendingInvitesCountMap.get(d.id) || 0,
   }));
 
-  // TEAM VISIBILITY RULES:
-  // Owner: sees ALL members
-  // Admin: sees ALL members (Owner marked read-only in UI)
-  // Operations / Sales / Support / Viewer: sees ONLY their own profile
   let visibleMembers: TeamMemberItem[] = allMembers;
   if (['operations', 'sales', 'support', 'viewer'].includes(authResult.role)) {
     visibleMembers = allMembers.filter((m) => m.id === authResult.userId);
   }
 
-  const activityLogs: AuditLogItem[] = activityRes.data || [];
+  const activityLogs: AuditLogItem[] = (activityRes.data || []).map((a: any) => ({
+    id: a.id,
+    actor_id: a.admin_id || a.actor_id || 'system',
+    actor_name: userNameMap.get(a.admin_id) || 'Admin',
+    target_type: a.target_type || 'system',
+    action: a.action || 'activity',
+    created_at: a.created_at,
+  }));
   const initialNewCount = newCountRes.count || 0;
 
   return (
     <Suspense>
-      <TeamManagementClient
+      <DynamicTeamManagementClient
         initialMembers={visibleMembers}
         initialInvitations={invitations}
         initialDepartments={departments}
