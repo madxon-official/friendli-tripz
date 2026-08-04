@@ -1,8 +1,10 @@
 import React from 'react';
 import Link from 'next/link';
 import { Container } from '@/components/ui/Container';
-import { FileText, ArrowLeft } from 'lucide-react';
+import { FileText, ArrowLeft, CheckCircle2, Shield, Scale, HelpCircle } from 'lucide-react';
 import { ROUTES } from '@/lib/routes';
+
+import { BRAND_INFO } from '@/lib/data/trips';
 
 export const metadata = {
   title: 'Terms of Service | Friendli Tripz',
@@ -11,100 +13,80 @@ export const metadata = {
 
 export default function TermsPage() {
   return (
-    <main className="min-h-screen py-12 sm:py-16">
-      <Container className="max-w-3xl">
-        <Link href={ROUTES.HOME} className="inline-flex items-center gap-2 text-sm font-semibold text-brand-orange hover:underline mb-8">
-          <ArrowLeft className="w-4 h-4" />
-          Back to Home
+    <div className="bg-slate-950 text-slate-100 min-h-screen pt-32 pb-24">
+      <Container className="max-w-4xl">
+        <Link href={ROUTES.HOME} className="text-xs font-semibold text-slate-400 hover:text-white flex items-center gap-1.5 mb-6">
+          <ArrowLeft className="w-3.5 h-3.5" /> Back to Home
         </Link>
 
-        <div className="flex items-center gap-3 mb-6">
-          <div className="w-10 h-10 rounded-xl bg-brand-soft-navy flex items-center justify-center">
-            <FileText className="w-5 h-5 text-brand-navy" />
+        {/* Header Banner */}
+        <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 sm:p-8 mb-8 shadow-elevated flex items-center gap-4">
+          <div className="w-12 h-12 rounded-2xl bg-brand-orange/15 border border-brand-orange/30 text-brand-orange flex items-center justify-center shrink-0">
+            <FileText className="w-6 h-6" />
           </div>
           <div>
-            <h1 className="text-3xl sm:text-4xl font-heading font-black text-brand-navy tracking-tight">Terms of Service</h1>
-            <p className="text-xs text-brand-muted mt-0.5">Last updated: July 2026</p>
+            <h1 className="text-3xl sm:text-4xl font-extrabold text-white tracking-tight">Terms of Service</h1>
+            <p className="text-xs text-slate-400 font-mono mt-1">Platform Service Agreement • Last updated: July 2026</p>
           </div>
         </div>
 
-        <div className="prose prose-slate max-w-none space-y-6 text-brand-text leading-relaxed text-[15px]">
+        {/* Content Document */}
+        <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 sm:p-10 shadow-elevated space-y-8 text-slate-300 text-sm leading-relaxed">
           <section className="space-y-3">
-            <h2 className="text-xl font-heading font-bold text-brand-navy">1. Acceptance of Terms</h2>
-            <p>By using the Friendli Tripz website and services, you agree to be bound by these Terms of Service. If you do not agree, please do not use our platform. Friendli Tripz reserves the right to update these terms at any time, with notice posted on this page.</p>
+            <h2 className="text-lg sm:text-xl font-extrabold text-white flex items-center gap-2 border-b border-slate-800 pb-2">
+              <CheckCircle2 className="w-4 h-4 text-brand-orange" /> 1. Acceptance of Terms
+            </h2>
+            <p>By accessing or using the Friendli Tripz platform, booking services, or enquiries engine, you agree to be bound by these Terms of Service. If you do not agree, please discontinue platform usage.</p>
           </section>
 
           <section className="space-y-3">
-            <h2 className="text-xl font-heading font-bold text-brand-navy">2. Services</h2>
-            <p>Friendli Tripz provides curated group travel experiences, including:</p>
-            <ul className="list-disc pl-6 space-y-1 text-brand-muted">
-              <li>Curated trip packages with pre-planned itineraries.</li>
-              <li>Customization of trips based on traveller preferences.</li>
-              <li>Coordination of accommodation, transport, and activities through our verified partner network.</li>
-              <li>Personal trip support from enquiry through trip completion.</li>
-            </ul>
-            <p>Friendli Tripz acts as a travel organiser and service aggregator. Individual services (hotels, transport, activities) are provided by our independent partner network.</p>
-          </section>
-
-          <section className="space-y-3">
-            <h2 className="text-xl font-heading font-bold text-brand-navy">3. Booking & Payment</h2>
-            <ul className="list-disc pl-6 space-y-1 text-brand-muted">
-              <li>A booking is confirmed only after receipt of the advance deposit amount.</li>
-              <li>Full payment must be completed before the trip departure date as per the payment schedule.</li>
-              <li>All prices are in Indian Rupees (INR) and inclusive of applicable GST unless stated otherwise.</li>
-              <li>Payments are processed securely through Razorpay. Friendli Tripz does not store card details.</li>
+            <h2 className="text-lg sm:text-xl font-extrabold text-white flex items-center gap-2 border-b border-slate-800 pb-2">
+              <Shield className="w-4 h-4 text-brand-orange" /> 2. Services Offered
+            </h2>
+            <p>Friendli Tripz provides curated group travel experiences, AI trip planning, and booking management:</p>
+            <ul className="list-disc pl-5 space-y-2 text-slate-300">
+              <li>Curated group trip packages with pre-planned itineraries and stays.</li>
+              <li>Custom trip planning and lead assignment to dedicated trip planners.</li>
+              <li>Coordination of accommodations, transport, and local activities through verified partner networks.</li>
+              <li>Live 5-stage trip tracker access via unique reference codes.</li>
             </ul>
           </section>
 
           <section className="space-y-3">
-            <h2 className="text-xl font-heading font-bold text-brand-navy">4. Traveller Responsibilities</h2>
-            <ul className="list-disc pl-6 space-y-1 text-brand-muted">
-              <li>Provide accurate personal information and valid identification documents.</li>
-              <li>Adhere to the trip schedule and instructions from the trip leader or driver.</li>
-              <li>Behave respectfully towards fellow travellers, local communities, and the environment.</li>
-              <li>Carry valid government-issued photo identification during the trip.</li>
-              <li>Inform us of any medical conditions, allergies, or special needs at the time of booking.</li>
+            <h2 className="text-lg sm:text-xl font-extrabold text-white flex items-center gap-2 border-b border-slate-800 pb-2">
+              <Scale className="w-4 h-4 text-brand-orange" /> 3. Booking & Payment Policies
+            </h2>
+            <ul className="list-disc pl-5 space-y-2 text-slate-300">
+              <li>Bookings are confirmed upon receipt of advance deposit or full booking confirmation.</li>
+              <li>All payments are processed securely through Razorpay in Indian Rupees (INR), inclusive of applicable taxes.</li>
+              <li>Remaining balances must be cleared prior to trip departure as specified in your booking agreement.</li>
             </ul>
           </section>
 
           <section className="space-y-3">
-            <h2 className="text-xl font-heading font-bold text-brand-navy">5. Trip Modifications</h2>
-            <p>Friendli Tripz reserves the right to modify itineraries due to:</p>
-            <ul className="list-disc pl-6 space-y-1 text-brand-muted">
-              <li>Weather conditions or natural events affecting safety.</li>
-              <li>Road closures or transport disruptions.</li>
-              <li>Partner venue closures or capacity restrictions.</li>
-              <li>Government advisories or regulations.</li>
-            </ul>
-            <p>In such cases, we will provide equivalent alternative arrangements or a proportional refund.</p>
-          </section>
-
-          <section className="space-y-3">
-            <h2 className="text-xl font-heading font-bold text-brand-navy">6. Liability Limitations</h2>
-            <ul className="list-disc pl-6 space-y-1 text-brand-muted">
-              <li>Friendli Tripz is not liable for delays, cancellations, or service failures by third-party partners (hotels, transport, activities).</li>
-              <li>Personal belongings are the traveller's responsibility.</li>
-              <li>Travel insurance is strongly recommended but not included in package pricing.</li>
-              <li>Friendli Tripz total liability shall not exceed the total amount paid for the booking.</li>
+            <h2 className="text-lg sm:text-xl font-extrabold text-white flex items-center gap-2 border-b border-slate-800 pb-2">
+              <CheckCircle2 className="w-4 h-4 text-brand-orange" /> 4. Traveller Responsibilities
+            </h2>
+            <ul className="list-disc pl-5 space-y-2 text-slate-300">
+              <li>Provide accurate contact details, valid government photo IDs (Aadhaar/Passport), and travel dates.</li>
+              <li>Adhere to trip schedules and guidelines shared by assigned travel planners and local trip captains.</li>
+              <li>Behave respectfully towards fellow travellers, host communities, and natural environments.</li>
             </ul>
           </section>
 
           <section className="space-y-3">
-            <h2 className="text-xl font-heading font-bold text-brand-navy">7. Intellectual Property</h2>
-            <p>All content on the Friendli Tripz platform (text, images, logos, design) is owned by Friendli Tripz and protected under applicable intellectual property laws. Reproduction without written permission is prohibited.</p>
-          </section>
-
-          <section className="space-y-3">
-            <h2 className="text-xl font-heading font-bold text-brand-navy">8. Governing Law</h2>
-            <p>These Terms shall be governed by and construed in accordance with the laws of India. Any disputes shall be subject to the exclusive jurisdiction of the courts in Tamil Nadu, India.</p>
-          </section>
-
-          <section className="space-y-3">
-            <h2 className="text-xl font-heading font-bold text-brand-navy">9. Contact</h2>
-            <p>For questions about these Terms of Service, please contact us at <strong>support@friendlitripz.com</strong>.</p>
+            <h2 className="text-lg sm:text-xl font-extrabold text-white flex items-center gap-2 border-b border-slate-800 pb-2">
+              <HelpCircle className="w-4 h-4 text-brand-orange" /> 5. Questions & Legal Inquiries
+            </h2>
+            <p>For questions regarding these Terms of Service, contact our support team:</p>
+            <div className="bg-slate-950 p-4 rounded-2xl border border-slate-800 text-xs font-mono space-y-1">
+              <p><strong className="text-white">Email:</strong> {BRAND_INFO.supportEmail}</p>
+              <p><strong className="text-white">Phone:</strong> {BRAND_INFO.contactPhone}</p>
+              <p><strong className="text-white">Location:</strong> Tamil Nadu, India</p>
+            </div>
           </section>
         </div>
       </Container>
-    </main>
+    </div>
   );
 }

@@ -3,11 +3,10 @@
 import React from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { X, Sparkles, User, ChevronRight, Phone, MessageSquare } from 'lucide-react';
-import { ROUTES, NAV_LINKS, PRIMARY_CTA } from '@/lib/routes';
-import { BRAND_INFO } from '@/lib/data/trips';
-import { Button } from '@/components/ui/Button';
+import { X, Sparkles, Compass, ArrowRight } from 'lucide-react';
+import { NAV_LINKS, ROUTES } from '@/lib/routes';
 import { BrandWordmark } from '@/components/ui/BrandWordmark';
+import { Button } from '@/components/ui/Button';
 
 interface MobileMenuProps {
   isOpen: boolean;
@@ -18,94 +17,66 @@ export const MobileMenu: React.FC<MobileMenuProps> = ({ isOpen, onClose }) => {
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 lg:hidden">
-      {/* Overlay backdrop */}
-      <div
-        className="fixed inset-0 bg-black/60 backdrop-blur-sm transition-opacity"
-        onClick={onClose}
-      />
-
-      {/* Drawer panel */}
-      <div className="fixed inset-y-0 right-0 w-full max-w-xs bg-slate-950 text-white shadow-2xl p-6 flex flex-col justify-between overflow-y-auto border-l border-slate-800">
-        <div>
-          {/* Header & Close */}
-          <div className="flex items-center justify-between pb-6 border-b border-slate-800">
-            <Link href={ROUTES.HOME} onClick={onClose} className="flex items-center gap-2.5">
-              <div className="relative w-8 h-8 rounded-lg overflow-hidden bg-white p-0.5 shadow-md shrink-0">
-                <Image
-                  src="/friendli/logo.svg"
-                  alt="Friendli Tripz Logo"
-                  width={32}
-                  height={32}
-                  className="w-full h-full object-contain"
-                />
-              </div>
-              <BrandWordmark
-                theme="dark"
-                size="sm"
-                showTagline
-              />
-            </Link>
-
-            <button
-              onClick={onClose}
-              className="p-2 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
-              aria-label="Close menu"
-            >
-              <X className="w-5 h-5" />
-            </button>
+    <div className="fixed inset-0 z-50 lg:hidden flex flex-col bg-slate-950/95 backdrop-blur-2xl text-white">
+      {/* Top Header */}
+      <div className="flex items-center justify-between p-4 border-b border-slate-800">
+        <Link href={ROUTES.HOME} onClick={onClose} className="flex items-center gap-2">
+          <div className="w-8 h-8 rounded-lg bg-white p-0.5 flex items-center justify-center">
+            <Image src="/friendli/logo.svg" alt="Friendli Tripz" width={32} height={32} />
           </div>
+          <BrandWordmark theme="dark" size="sm" showTagline />
+        </Link>
+        <button
+          onClick={onClose}
+          className="p-2 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800"
+          aria-label="Close menu"
+        >
+          <X className="w-6 h-6" />
+        </button>
+      </div>
 
-          {/* Nav Links */}
-          <div className="py-6 space-y-1">
-            {NAV_LINKS.map((link) => (
-              <Link
-                key={link.label}
-                href={link.href}
-                onClick={onClose}
-                className="flex items-center justify-between p-3 rounded-xl text-sm font-bold text-slate-200 hover:text-white hover:bg-slate-900 transition-all group"
-              >
-                <span>{link.label}</span>
-                <ChevronRight className="w-4 h-4 text-slate-600 group-hover:text-brand-orange group-hover:translate-x-1 transition-all" />
-              </Link>
-            ))}
-
-            <Link
-              href={ROUTES.AUTH_LOGIN}
-              onClick={onClose}
-              className="flex items-center justify-between p-3 rounded-xl text-sm font-bold text-slate-200 hover:text-white hover:bg-slate-900 transition-all group"
-            >
-              <span className="flex items-center gap-2">
-                <User className="w-4 h-4 text-brand-orange" />
-                Login
-              </span>
-              <ChevronRight className="w-4 h-4 text-slate-600 group-hover:text-brand-orange transition-all" />
-            </Link>
-          </div>
-        </div>
-
-        {/* Bottom CTA & Support */}
-        <div className="pt-6 border-t border-slate-800 space-y-4">
-          <Button
-            href={PRIMARY_CTA.href}
-            variant="primary"
-            className="w-full justify-center text-sm py-3"
+      {/* Navigation List */}
+      <div className="flex-1 overflow-y-auto px-6 py-8 flex flex-col gap-4">
+        {NAV_LINKS.map((link) => (
+          <Link
+            key={link.label}
+            href={link.href}
             onClick={onClose}
-            icon={<Sparkles className="w-4 h-4" />}
+            className="text-lg font-bold text-slate-200 hover:text-brand-orange py-2 border-b border-slate-800/40 flex items-center justify-between"
           >
-            {PRIMARY_CTA.label}
-          </Button>
+            <span>{link.label}</span>
+            <ArrowRight className="w-4 h-4 text-slate-500" />
+          </Link>
+        ))}
 
-          <a
-            href={BRAND_INFO.whatsappUrl || 'https://wa.me/919430187000'}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="flex items-center justify-center gap-2 text-xs text-slate-400 hover:text-emerald-400 transition-colors py-2"
-          >
-            <MessageSquare className="w-4 h-4 text-emerald-400" />
-            <span>24/7 WhatsApp Support</span>
-          </a>
-        </div>
+        <Link
+          href={ROUTES.ENQUIRE}
+          onClick={onClose}
+          className="text-lg font-bold text-brand-orange py-2 border-b border-slate-800/40 flex items-center justify-between"
+        >
+          <span>Submit Trip Enquiry</span>
+          <ArrowRight className="w-4 h-4 text-brand-orange" />
+        </Link>
+
+        <Link
+          href={ROUTES.ADMIN}
+          onClick={onClose}
+          className="text-sm font-semibold text-slate-400 py-2 flex items-center justify-between"
+        >
+          <span>Admin CMS</span>
+        </Link>
+      </div>
+
+      {/* Bottom CTA Bar */}
+      <div className="p-6 border-t border-slate-800 flex flex-col gap-3 bg-slate-900/60">
+        <Button href={ROUTES.PLANNER} variant="primary" size="lg" className="w-full justify-center">
+          <Sparkles className="w-4 h-4 mr-2" />
+          Start AI Planner
+        </Button>
+        <Button href={ROUTES.TRACK_BOOKING} variant="outline" size="lg" className="w-full justify-center text-slate-200 border-slate-700">
+          <Compass className="w-4 h-4 mr-2 text-brand-orange" />
+          Track Booking Status
+        </Button>
       </div>
     </div>
   );

@@ -1,7 +1,4 @@
-'use client';
-
 import React from 'react';
-import { motion } from 'framer-motion';
 import { ShieldCheck, Compass, UserCheck, Car, Users, Smile, Headphones, Calendar, Receipt } from 'lucide-react';
 import { Container } from '@/components/v3/ui/Container';
 import { SectionHeading } from '@/components/v3/ui/SectionHeading';
@@ -16,22 +13,15 @@ function TrustCard({
   title,
   description,
   iconName,
-  index,
 }: {
   title: string;
   description: string;
   iconName: string;
-  index: number;
 }) {
   const IconComp = iconMap[iconName] || ShieldCheck;
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      whileInView={{ opacity: 1, y: 0 }}
-      viewport={{ once: true }}
-      transition={{ delay: index * 0.08, duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
-    >
+    <div>
       <Card variant="interactive" padding="lg" className="h-full group">
         <div className="space-y-4">
           <div className="w-12 h-12 rounded-card bg-brand-soft-orange flex items-center justify-center text-brand-orange group-hover:bg-brand-orange group-hover:text-white transition-all duration-300">
@@ -45,7 +35,7 @@ function TrustCard({
           </p>
         </div>
       </Card>
-    </motion.div>
+    </div>
   );
 }
 
@@ -61,13 +51,12 @@ export function WhyFriendliSection() {
         />
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-          {WHY_FRIENDLI_V2.map((item, index) => (
+          {WHY_FRIENDLI_V2.map((item) => (
             <TrustCard
               key={item.id}
               title={item.title}
               description={item.description}
               iconName={item.iconName}
-              index={index}
             />
           ))}
         </div>
@@ -75,3 +64,4 @@ export function WhyFriendliSection() {
     </section>
   );
 }
+

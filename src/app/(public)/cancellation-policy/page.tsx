@@ -1,8 +1,10 @@
 import React from 'react';
 import Link from 'next/link';
 import { Container } from '@/components/ui/Container';
-import { RotateCcw, ArrowLeft } from 'lucide-react';
+import { RotateCcw, ArrowLeft, Calendar, HelpCircle, CheckCircle2 } from 'lucide-react';
 import { ROUTES } from '@/lib/routes';
+
+import { BRAND_INFO } from '@/lib/data/trips';
 
 export const metadata = {
   title: 'Cancellation & Refund Policy | Friendli Tripz',
@@ -11,56 +13,55 @@ export const metadata = {
 
 export default function CancellationPolicyPage() {
   return (
-    <main className="min-h-screen py-12 sm:py-16">
-      <Container className="max-w-3xl">
-        <Link href={ROUTES.HOME} className="inline-flex items-center gap-2 text-sm font-semibold text-brand-orange hover:underline mb-8">
-          <ArrowLeft className="w-4 h-4" />
-          Back to Home
+    <div className="bg-slate-950 text-slate-100 min-h-screen pt-32 pb-24">
+      <Container className="max-w-4xl">
+        <Link href={ROUTES.HOME} className="text-xs font-semibold text-slate-400 hover:text-white flex items-center gap-1.5 mb-6">
+          <ArrowLeft className="w-3.5 h-3.5" /> Back to Home
         </Link>
 
-        <div className="flex items-center gap-3 mb-6">
-          <div className="w-10 h-10 rounded-xl bg-red-50 flex items-center justify-center">
-            <RotateCcw className="w-5 h-5 text-red-600" />
+        {/* Header Banner */}
+        <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 sm:p-8 mb-8 shadow-elevated flex items-center gap-4">
+          <div className="w-12 h-12 rounded-2xl bg-brand-orange/15 border border-brand-orange/30 text-brand-orange flex items-center justify-center shrink-0">
+            <RotateCcw className="w-6 h-6" />
           </div>
           <div>
-            <h1 className="text-3xl sm:text-4xl font-heading font-black text-brand-navy tracking-tight">Cancellation & Refund Policy</h1>
-            <p className="text-xs text-brand-muted mt-0.5">Last updated: July 2026</p>
+            <h1 className="text-3xl sm:text-4xl font-extrabold text-white tracking-tight">Cancellation & Refund Policy</h1>
+            <p className="text-xs text-slate-400 font-mono mt-1">Transparent Refund Windows • Last updated: July 2026</p>
           </div>
         </div>
 
-        <div className="prose prose-slate max-w-none space-y-6 text-brand-text leading-relaxed text-[15px]">
-          <section className="space-y-3">
-            <h2 className="text-xl font-heading font-bold text-brand-navy">1. Cancellation by Traveller</h2>
-            <p>We understand plans can change. The following cancellation charges apply based on how far in advance you cancel before the trip departure date:</p>
+        {/* Content Document */}
+        <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 sm:p-10 shadow-elevated space-y-8 text-slate-300 text-sm leading-relaxed">
+          <section className="space-y-4">
+            <h2 className="text-lg sm:text-xl font-extrabold text-white flex items-center gap-2 border-b border-slate-800 pb-2">
+              <Calendar className="w-4 h-4 text-brand-orange" /> 1. Cancellation Windows & Refunds
+            </h2>
+            <p>We understand plans can change. Refunds are calculated based on how far in advance you cancel before departure:</p>
 
-            <div className="overflow-x-auto">
-              <table className="w-full border-collapse text-sm">
+            <div className="bg-slate-950 border border-slate-800 rounded-2xl overflow-hidden">
+              <table className="w-full text-left border-collapse text-xs">
                 <thead>
-                  <tr className="bg-brand-soft-navy">
-                    <th className="text-left px-4 py-3 font-bold text-brand-navy border border-brand-border">Cancellation Window</th>
-                    <th className="text-left px-4 py-3 font-bold text-brand-navy border border-brand-border">Refund Amount</th>
+                  <tr className="bg-slate-900 text-slate-400 border-b border-slate-800 uppercase text-[10px] font-extrabold tracking-wider">
+                    <th className="px-5 py-3.5">Cancellation Window</th>
+                    <th className="px-5 py-3.5">Refund Percentage</th>
                   </tr>
                 </thead>
-                <tbody>
+                <tbody className="divide-y divide-slate-800/80">
                   <tr>
-                    <td className="px-4 py-3 border border-brand-border text-brand-muted">30+ days before departure</td>
-                    <td className="px-4 py-3 border border-brand-border font-bold text-emerald-700">90% refund (10% processing fee)</td>
-                  </tr>
-                  <tr className="bg-slate-50">
-                    <td className="px-4 py-3 border border-brand-border text-brand-muted">15–29 days before departure</td>
-                    <td className="px-4 py-3 border border-brand-border font-bold text-amber-700">50% refund</td>
+                    <td className="px-5 py-4 font-semibold text-slate-200">30+ days before departure</td>
+                    <td className="px-5 py-4 font-extrabold text-emerald-400">90% Refund (10% processing fee)</td>
                   </tr>
                   <tr>
-                    <td className="px-4 py-3 border border-brand-border text-brand-muted">7–14 days before departure</td>
-                    <td className="px-4 py-3 border border-brand-border font-bold text-orange-700">25% refund</td>
-                  </tr>
-                  <tr className="bg-slate-50">
-                    <td className="px-4 py-3 border border-brand-border text-brand-muted">Less than 7 days before departure</td>
-                    <td className="px-4 py-3 border border-brand-border font-bold text-red-700">No refund</td>
+                    <td className="px-5 py-4 font-semibold text-slate-200">15–29 days before departure</td>
+                    <td className="px-5 py-4 font-extrabold text-amber-400">50% Refund</td>
                   </tr>
                   <tr>
-                    <td className="px-4 py-3 border border-brand-border text-brand-muted">No-show on departure date</td>
-                    <td className="px-4 py-3 border border-brand-border font-bold text-red-700">No refund</td>
+                    <td className="px-5 py-4 font-semibold text-slate-200">7–14 days before departure</td>
+                    <td className="px-5 py-4 font-extrabold text-orange-400">25% Refund</td>
+                  </tr>
+                  <tr>
+                    <td className="px-5 py-4 font-semibold text-slate-200">Less than 7 days / No-show</td>
+                    <td className="px-5 py-4 font-extrabold text-rose-400">Non-refundable</td>
                   </tr>
                 </tbody>
               </table>
@@ -68,58 +69,34 @@ export default function CancellationPolicyPage() {
           </section>
 
           <section className="space-y-3">
-            <h2 className="text-xl font-heading font-bold text-brand-navy">2. How to Cancel</h2>
-            <ul className="list-disc pl-6 space-y-1 text-brand-muted">
-              <li>Contact us via WhatsApp or email with your booking reference code.</li>
-              <li>Cancellation requests are processed within 2 business days.</li>
-              <li>Refunds are initiated to the original payment method within 5-7 business days after processing.</li>
+            <h2 className="text-lg sm:text-xl font-extrabold text-white flex items-center gap-2 border-b border-slate-800 pb-2">
+              <RotateCcw className="w-4 h-4 text-brand-orange" /> 2. How to Request Cancellation
+            </h2>
+            <ul className="list-disc pl-5 space-y-2 text-slate-300">
+              <li>Submit your cancellation request via WhatsApp or email with your unique Reference ID.</li>
+              <li>Requests are processed within 24 hours on business days.</li>
+              <li>Refunds are returned to your original payment method (bank account / UPI) within 5–7 business days.</li>
             </ul>
           </section>
 
           <section className="space-y-3">
-            <h2 className="text-xl font-heading font-bold text-brand-navy">3. Cancellation by Friendli Tripz</h2>
-            <p>In rare circumstances, Friendli Tripz may cancel a trip due to:</p>
-            <ul className="list-disc pl-6 space-y-1 text-brand-muted">
-              <li>Minimum group size not met (you will be offered an alternative date or full refund).</li>
-              <li>Severe weather or natural disaster affecting the destination.</li>
-              <li>Government travel restrictions or advisories.</li>
-              <li>Safety concerns reported by our local operations team.</li>
-            </ul>
-            <p className="font-medium text-brand-navy">In all cases of company-initiated cancellation, you will receive a <strong>100% full refund</strong> or the option to reschedule to a future departure at no extra cost.</p>
+            <h2 className="text-lg sm:text-xl font-extrabold text-white flex items-center gap-2 border-b border-slate-800 pb-2">
+              <CheckCircle2 className="w-4 h-4 text-brand-orange" /> 3. Company-Initiated Cancellations
+            </h2>
+            <p>If Friendli Tripz cancels a trip due to severe weather, road closures, or safety concerns, travellers receive a <strong className="text-emerald-400">100% full refund</strong> or optional free reschedule.</p>
           </section>
 
           <section className="space-y-3">
-            <h2 className="text-xl font-heading font-bold text-brand-navy">4. Trip Date Changes & Amendments</h2>
-            <ul className="list-disc pl-6 space-y-1 text-brand-muted">
-              <li>Date changes are subject to availability and may incur a ₹500 amendment processing fee.</li>
-              <li>Changes to room category, meal plan, or activities may result in a price difference (higher or lower).</li>
-              <li>Amendments cannot be made within 7 days of departure.</li>
-            </ul>
-          </section>
-
-          <section className="space-y-3">
-            <h2 className="text-xl font-heading font-bold text-brand-navy">5. Partial Cancellations</h2>
-            <p>If one or more travellers in a group booking cancel while others continue:</p>
-            <ul className="list-disc pl-6 space-y-1 text-brand-muted">
-              <li>The cancelling traveller(s) will receive a refund per the cancellation window above.</li>
-              <li>The remaining group's pricing may be adjusted if the change affects room sharing, vehicle allocation, or activity group rates.</li>
-            </ul>
-          </section>
-
-          <section className="space-y-3">
-            <h2 className="text-xl font-heading font-bold text-brand-navy">6. Force Majeure</h2>
-            <p>Neither party shall be liable for delays or cancellations due to events beyond reasonable control, including but not limited to natural disasters, pandemics, government actions, civil unrest, or transport strikes. In such events, Friendli Tripz will offer a full credit for a future trip or a complete refund.</p>
-          </section>
-
-          <section className="space-y-3">
-            <h2 className="text-xl font-heading font-bold text-brand-navy">7. Contact for Cancellations</h2>
-            <p className="text-brand-muted">
-              <strong>Email:</strong> support@friendlitripz.com<br />
-              <strong>Response time:</strong> Within 24 hours on business days
-            </p>
+            <h2 className="text-lg sm:text-xl font-extrabold text-white flex items-center gap-2 border-b border-slate-800 pb-2">
+              <HelpCircle className="w-4 h-4 text-brand-orange" /> 4. Contact Support
+            </h2>
+            <div className="bg-slate-950 p-4 rounded-2xl border border-slate-800 text-xs font-mono space-y-1">
+              <p><strong className="text-white">Email:</strong> {BRAND_INFO.supportEmail}</p>
+              <p><strong className="text-white">Phone:</strong> {BRAND_INFO.contactPhone}</p>
+            </div>
           </section>
         </div>
       </Container>
-    </main>
+    </div>
   );
 }

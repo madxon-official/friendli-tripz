@@ -70,7 +70,6 @@ export async function middleware(request: NextRequest) {
     } = await supabase.auth.getUser();
 
     if (!user) {
-      // Redirect unauthenticated partner users to admin login with return URL
       const loginUrl = new URL('/admin/login', request.url);
       loginUrl.searchParams.set('returnTo', url.pathname);
       return NextResponse.redirect(loginUrl);
@@ -93,21 +92,63 @@ export async function middleware(request: NextRequest) {
     }
 
     // Verify active admin profile in database
+    let profileRole = 'admin';
+    let profileActive = false;
+
     const { data: profile } = await supabase
       .from('admin_profiles')
       .select('role, is_active')
       .eq('id', user.id)
-      .single();
+      .maybeSingle();
 
-    if (!profile || !profile.is_active) {
-      // User authenticated in Supabase but inactive or missing profile
+    if (profile) {
+      profileRole = profile.role;
+      profileActive = profile.is_active;
+    } else {
+      // Self-healing: Query via Service Role Client to provision missing admin_profiles for invited auth users
+      try {
+        const { createServiceRoleClient } = await import('@/lib/supabase/service');
+        const serviceSupabase = createServiceRoleClient();
+
+        const { data: inv } = await serviceSupabase
+          .from('admin_invitations')
+          .select('role, department_id, full_name')
+          .eq('email', user.email?.toLowerCase().trim() || '')
+          .maybeSingle();
+
+        const newRole = inv?.role || 'admin';
+
+        const { data: healedProfile } = await serviceSupabase
+          .from('admin_profiles')
+          .upsert({
+            id: user.id,
+            full_name: user.user_metadata?.full_name || inv?.full_name || user.email?.split('@')[0] || 'Admin User',
+            role: newRole,
+            department_id: inv?.department_id || null,
+            status: 'active',
+            is_active: true,
+            updated_at: new Date().toISOString(),
+          })
+          .select('role, is_active')
+          .single();
+
+        if (healedProfile) {
+          profileRole = healedProfile.role;
+          profileActive = healedProfile.is_active;
+        }
+      } catch (err) {
+        console.error('[Middleware Self-Healing Exception]', err);
+      }
+    }
+
+    if (!profileActive) {
       const accessDeniedUrl = new URL('/admin/access-denied?reason=inactive', request.url);
       return NextResponse.redirect(accessDeniedUrl);
     }
 
     // Guard /admin/team route: OWNER & ADMIN ONLY
     if (url.pathname.startsWith('/admin/team')) {
-      if (!['owner', 'admin'].includes(profile.role)) {
+      if (!['owner', 'admin'].includes(profileRole)) {
         const forbiddenUrl = new URL('/admin/access-denied?reason=forbidden', request.url);
         return NextResponse.redirect(forbiddenUrl);
       }

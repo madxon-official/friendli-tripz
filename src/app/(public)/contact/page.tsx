@@ -1,122 +1,154 @@
 import React from 'react';
-import type { Metadata } from 'next';
-import { Mail, Phone, MessageSquare, Instagram } from 'lucide-react';
-import { Container } from '@/components/v3/ui/Container';
-import { Badge } from '@/components/v3/ui/Badge';
-import { Card } from '@/components/v3/ui/Card';
+import Link from 'next/link';
+import { Container } from '@/components/ui/Container';
 import { BRAND_INFO } from '@/lib/data/trips';
-import { ContactFormWidget } from '@/components/v3/contact/ContactFormWidget';
+import { Phone, MessageSquare, Mail, ShieldCheck, Clock, ArrowRight, Sparkles, Building, Headphones } from 'lucide-react';
+import { ROUTES } from '@/lib/routes';
 
-export const metadata: Metadata = {
-  title: 'Contact Us & Trip Support | Friendli Tripz',
-  description: 'Reach out to Friendli Tripz team for trip inquiries, custom group bookings, and instant support.',
+export const metadata = {
+  title: 'Contact Us & Support | Friendli Tripz',
+  description: 'Reach our team via Phone, WhatsApp, Support Email, or General Inquiries.',
 };
-
-export const revalidate = 3600; // Enable ISR static caching
 
 export default function ContactPage() {
   return (
-    <main className="min-h-screen">
-      {/* Hero */}
-      <section className="relative pt-32 pb-16 sm:pt-40 sm:pb-20 bg-gradient-brand overflow-hidden">
-        <div className="absolute inset-0 bg-pattern-dots opacity-5" />
-        <Container className="relative z-10 text-center">
-          <div className="max-w-3xl mx-auto space-y-4">
-            <Badge variant="brand" size="sm" icon={<MessageSquare className="w-3.5 h-3.5" />}>
-              Get in Touch
-            </Badge>
-            <h1 className="text-display sm:text-display-lg font-heading font-extrabold text-white">
-              We&apos;re Here to{' '}
-              <span className="text-gradient-warm inline-block">Help You Travel</span>
-            </h1>
-            <p className="text-body-lg text-white/70 max-w-xl mx-auto">
-              Have a question about a trip? Want to plan a custom getaway for your group? Reach out anytime!
-            </p>
+    <div className="bg-slate-950 text-slate-100 min-h-screen pt-32 pb-24">
+      <Container className="max-w-4xl">
+        {/* Header */}
+        <div className="text-center max-w-2xl mx-auto mb-12 space-y-4">
+          <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-slate-900 border border-slate-800 text-brand-orange text-xs font-semibold uppercase tracking-wider">
+            <Headphones className="w-3.5 h-3.5" />
+            <span>Dedicated Support Channels</span>
           </div>
-        </Container>
-      </section>
+          <h1 className="text-4xl sm:text-5xl font-extrabold text-white tracking-tight">
+            How Can We Help You?
+          </h1>
+          <p className="text-slate-400 text-base leading-relaxed">
+            Reach out through our specialized channels for urgent travel assistance, real-time trip coordination, or technical help.
+          </p>
+        </div>
 
-      {/* Main Section */}
-      <section className="py-section-sm sm:py-section bg-surface-50">
-        <Container>
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-12">
-            {/* Left: Contact Info */}
-            <div className="lg:col-span-5 space-y-6">
-              <div className="space-y-2">
-                <span className="text-label-sm font-bold text-brand-orange uppercase tracking-wider">
-                  Contact Information
-                </span>
-                <h2 className="text-heading-lg font-heading font-bold text-surface-900">
-                  Talk to a Travel Host
-                </h2>
-                <p className="text-body-md text-surface-600">
-                  We reply fastest on WhatsApp. Feel free to call or message us directly.
-                </p>
+        {/* 4 Specialized Contact Cards Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-12">
+          {/* 1. Phone Support */}
+          <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 sm:p-8 space-y-4 shadow-elevated hover:border-slate-700 transition-all flex flex-col justify-between">
+            <div className="space-y-3">
+              <div className="w-12 h-12 rounded-2xl bg-amber-500/15 border border-amber-500/30 text-amber-400 flex items-center justify-center font-bold">
+                <Phone className="w-6 h-6" />
               </div>
-
-              <div className="space-y-4">
-                <Card variant="outline" padding="md" className="bg-white border border-surface-200">
-                  <div className="flex items-center gap-4">
-                    <div className="w-12 h-12 rounded-xl bg-brand-orange/10 flex items-center justify-center text-brand-orange shrink-0">
-                      <Phone className="w-6 h-6" />
-                    </div>
-                    <div>
-                      <div className="text-caption text-surface-400 font-semibold uppercase tracking-wider">
-                        WhatsApp & Support
-                      </div>
-                      <a href={BRAND_INFO.whatsappUrl} target="_blank" rel="noopener noreferrer" className="text-body-lg font-bold text-surface-900 hover:text-brand-orange transition-colors">
-                        Chat on WhatsApp
-                      </a>
-                    </div>
-                  </div>
-                </Card>
-
-                <Card variant="outline" padding="md" className="bg-white border border-surface-200">
-                  <div className="flex items-center gap-4">
-                    <div className="w-12 h-12 rounded-xl bg-brand-navy/10 flex items-center justify-center text-brand-navy shrink-0">
-                      <Mail className="w-6 h-6" />
-                    </div>
-                    <div>
-                      <div className="text-caption text-surface-400 font-semibold uppercase tracking-wider">
-                        Email Us
-                      </div>
-                      <a href={`mailto:${BRAND_INFO.contactEmail}`} className="text-body-lg font-bold text-surface-900 hover:text-brand-orange transition-colors">
-                        {BRAND_INFO.contactEmail}
-                      </a>
-                    </div>
-                  </div>
-                </Card>
-
-                <Card variant="outline" padding="md" className="bg-white border border-surface-200">
-                  <div className="flex items-center gap-4">
-                    <div className="w-12 h-12 rounded-xl bg-purple-100 flex items-center justify-center text-purple-600 shrink-0">
-                      <Instagram className="w-6 h-6" />
-                    </div>
-                    <div>
-                      <div className="text-caption text-surface-400 font-semibold uppercase tracking-wider">
-                        Instagram
-                      </div>
-                      <a
-                        href={BRAND_INFO.instagramUrl}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-body-lg font-bold text-surface-900 hover:text-brand-orange transition-colors"
-                      >
-                        @friendlitripz
-                      </a>
-                    </div>
-                  </div>
-                </Card>
+              <div>
+                <span className="text-[10px] font-extrabold text-amber-400 uppercase tracking-widest block font-mono">Urgent Phone Support</span>
+                <h3 className="text-xl font-extrabold text-white mt-0.5">Call Us Directly</h3>
+                <p className="text-xs text-slate-400 mt-1">For urgent travel assistance, customer phone calls, and trip inquiries.</p>
               </div>
             </div>
 
-            {/* Right: Contact Form Widget */}
-            <div className="lg:col-span-7">
-              <ContactFormWidget />
+            <div className="pt-4 border-t border-slate-800 space-y-2">
+              <a
+                href={`tel:${BRAND_INFO.contactPhone.replace(/[^0-9+]/g, '')}`}
+                className="text-lg font-mono font-extrabold text-brand-orange hover:underline block"
+              >
+                {BRAND_INFO.contactPhone}
+              </a>
+              <span className="text-[11px] text-slate-500 flex items-center gap-1.5 font-medium">
+                <Clock className="w-3.5 h-3.5 text-slate-400" /> Mon–Fri, 9:00 AM – 6:00 PM IST
+              </span>
             </div>
           </div>
-        </Container>
-      </section>
-    </main>
+
+          {/* 2. WhatsApp Real-Time */}
+          <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 sm:p-8 space-y-4 shadow-elevated hover:border-slate-700 transition-all flex flex-col justify-between">
+            <div className="space-y-3">
+              <div className="w-12 h-12 rounded-2xl bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 flex items-center justify-center font-bold">
+                <MessageSquare className="w-6 h-6" />
+              </div>
+              <div>
+                <span className="text-[10px] font-extrabold text-emerald-400 uppercase tracking-widest block font-mono">Real-Time Coordination</span>
+                <h3 className="text-xl font-extrabold text-white mt-0.5">WhatsApp Direct Chat</h3>
+                <p className="text-xs text-slate-400 mt-1">Booking confirmations, live trip tracking updates, and quick customer support.</p>
+              </div>
+            </div>
+
+            <div className="pt-4 border-t border-slate-800 space-y-2">
+              <a
+                href={BRAND_INFO.whatsappUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-extrabold text-xs transition-colors shadow-md"
+              >
+                <MessageSquare className="w-4 h-4" />
+                <span>Chat on WhatsApp</span>
+                <ArrowRight className="w-3.5 h-3.5" />
+              </a>
+              <span className="text-[11px] text-slate-500 block font-medium">Usually replies within 15 minutes</span>
+            </div>
+          </div>
+
+          {/* 3. Technical Support Email */}
+          <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 sm:p-8 space-y-4 shadow-elevated hover:border-slate-700 transition-all flex flex-col justify-between">
+            <div className="space-y-3">
+              <div className="w-12 h-12 rounded-2xl bg-blue-500/15 border border-blue-500/30 text-blue-400 flex items-center justify-center font-bold">
+                <Mail className="w-6 h-6" />
+              </div>
+              <div>
+                <span className="text-[10px] font-extrabold text-blue-400 uppercase tracking-widest block font-mono">Technical & Account Support</span>
+                <h3 className="text-xl font-extrabold text-white mt-0.5">Support Email</h3>
+                <p className="text-xs text-slate-400 mt-1">Login assistance, password reset help, payment issues, and technical support.</p>
+              </div>
+            </div>
+
+            <div className="pt-4 border-t border-slate-800 space-y-1">
+              <a
+                href={`mailto:${BRAND_INFO.supportEmail}`}
+                className="text-sm font-mono font-bold text-white hover:text-brand-orange transition-colors block"
+              >
+                {BRAND_INFO.supportEmail}
+              </a>
+              <span className="text-[11px] text-slate-500 block">Response within 24 hours on business days</span>
+            </div>
+          </div>
+
+          {/* 4. General & Corporate Contact Email */}
+          <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 sm:p-8 space-y-4 shadow-elevated hover:border-slate-700 transition-all flex flex-col justify-between">
+            <div className="space-y-3">
+              <div className="w-12 h-12 rounded-2xl bg-purple-500/15 border border-purple-500/30 text-purple-400 flex items-center justify-center font-bold">
+                <Building className="w-6 h-6" />
+              </div>
+              <div>
+                <span className="text-[10px] font-extrabold text-purple-400 uppercase tracking-widest block font-mono">Partnerships & Media</span>
+                <h3 className="text-xl font-extrabold text-white mt-0.5">General Enquiries</h3>
+                <p className="text-xs text-slate-400 mt-1">Corporate bookings, hotel/stay partnerships, vendor onboarding, and media inquiries.</p>
+              </div>
+            </div>
+
+            <div className="pt-4 border-t border-slate-800 space-y-1">
+              <a
+                href={`mailto:${BRAND_INFO.contactEmail}`}
+                className="text-sm font-mono font-bold text-white hover:text-brand-orange transition-colors block"
+              >
+                {BRAND_INFO.contactEmail}
+              </a>
+              <span className="text-[11px] text-slate-500 block">Business & partnership communications</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Quick Trip Enquiry CTA */}
+        <div className="bg-slate-900 border border-slate-800 rounded-3xl p-8 text-center space-y-4 shadow-elevated">
+          <h2 className="text-2xl font-extrabold text-white">Looking to submit a trip request?</h2>
+          <p className="text-slate-400 text-xs sm:text-sm max-w-lg mx-auto leading-relaxed">
+            No password setup required. Tell us your vibe and receive a unique Reference ID for live tracking.
+          </p>
+          <div className="pt-2">
+            <Link
+              href={ROUTES.ENQUIRE}
+              className="px-6 py-3 rounded-2xl bg-brand-orange text-white font-extrabold text-xs shadow-button hover:bg-brand-orange/90 transition-all inline-flex items-center gap-2"
+            >
+              <Sparkles className="w-4 h-4" /> Submit Trip Enquiry
+            </Link>
+          </div>
+        </div>
+      </Container>
+    </div>
   );
 }

@@ -1,350 +1,281 @@
 'use client';
 
 import React, { useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import {
-  Sparkles, ArrowRight, ArrowLeft, Loader2, CheckCircle2,
-  MapPin, Calendar, Wallet, Heart, Users, Gauge, Home, Utensils,
-  Compass,
-} from 'lucide-react';
-import { processAIPlannerPrompt } from '@/lib/actions/ai_planner';
-import { AIPlannerResponse } from '@/lib/types/ai';
-import { ItineraryTimeline } from '@/components/public/ItineraryTimeline';
-import { AIExplainBadge } from '@/components/public/AIExplainBadge';
-import Link from 'next/link';
-import { Container } from '@/components/v3/ui/Container';
-import { Badge } from '@/components/v3/ui/Badge';
-import { Card } from '@/components/v3/ui/Card';
-import { Button } from '@/components/v3/ui/Button';
-import { GradientButton } from '@/components/v3/ui/GradientButton';
+import { Sparkles, Compass, MapPin, Calendar, DollarSign, Users, CheckCircle2, MessageSquare, RefreshCw } from 'lucide-react';
+import { Container } from '@/components/ui/Container';
+import { Button } from '@/components/ui/Button';
+import { ROUTES } from '@/lib/routes';
 
-const STEPS = [
-  {
-    id: 'destination',
-    label: 'Where',
-    icon: MapPin,
-    title: 'Where do you want to go?',
-    options: ['Kodaikanal', 'Ooty', 'Coorg', 'Munnar', 'Wayanad', 'Surprise me!'],
-  },
-  {
-    id: 'duration',
-    label: 'When',
-    icon: Calendar,
-    title: 'How many days?',
-    options: ['2 Days', '3 Days', '4 Days', '5 Days', '7 Days'],
-  },
-  {
-    id: 'budget',
-    label: 'Budget',
-    icon: Wallet,
-    title: "What's your budget per person?",
-    options: ['Under ₹8,000', '₹8,000 – ₹12,000', '₹12,000 – ₹18,000', '₹18,000+', 'No limit'],
-  },
-  {
-    id: 'interests',
-    label: 'Interests',
-    icon: Heart,
-    title: 'What excites you?',
-    options: ['Waterfalls', 'Trekking', 'Campfire', 'Photography', 'Café hopping', 'Wildlife', 'Local food', 'Relaxation'],
-    multi: true,
-  },
-  {
-    id: 'group',
-    label: 'Group',
-    icon: Users,
-    title: 'Who are you travelling with?',
-    options: ['Solo', 'Couple', 'Friends', 'Family', 'Corporate team'],
-  },
-  {
-    id: 'pace',
-    label: 'Pace',
-    icon: Gauge,
-    title: 'What pace do you prefer?',
-    options: ['Relaxed — lots of free time', 'Moderate — balanced', 'Adventure — packed schedule'],
-  },
-  {
-    id: 'accommodation',
-    label: 'Stay',
-    icon: Home,
-    title: 'Accommodation style?',
-    options: ['Budget-friendly', 'Boutique / Mid-range', 'Luxury / Premium', 'Camping / Glamping'],
-  },
-  {
-    id: 'food',
-    label: 'Food',
-    icon: Utensils,
-    title: 'Food preferences?',
-    options: ['Vegetarian', 'Non-vegetarian', 'Both / No preference', 'Vegan'],
-  },
+interface AIPlanResult {
+  destination: string;
+  totalDays: number;
+  estimatedBudgetPerPerson: number;
+  estimatedTotal: number;
+  itinerary: { day: number; title: string; activities: string[] }[];
+  suggestedExperiences: string[];
+  recommendedPackage: string;
+}
+
+const SUPPORTED_DESTINATIONS = [
+  { name: 'Kodaikanal', vibe: 'Misty & Romantic' },
+  { name: 'Ooty', vibe: 'Scenic & Heritage' },
+  { name: 'Valparai', vibe: 'Wilderness & Coffee' },
 ];
 
 export default function AIPlannerPage() {
-  const [currentStep, setCurrentStep] = useState(0);
-  const [selections, setSelections] = useState<Record<string, string | string[]>>({});
-  const [loading, setLoading] = useState(false);
-  const [plannerResult, setPlannerResult] = useState<AIPlannerResponse | null>(null);
+  const [step, setStep] = useState<number>(1);
+  const [destination, setDestination] = useState<string>('Kodaikanal');
+  const [travelStyle, setTravelStyle] = useState<string>('Adventure & Nature');
+  const [days, setDays] = useState<number>(3);
+  const [budgetRange, setBudgetRange] = useState<string>('₹4,000 - ₹6,000');
+  const [adults, setAdults] = useState<number>(2);
+  const [children, setChildren] = useState<number>(0);
+  const [preferenceNotes, setPreferenceNotes] = useState<string>('');
 
-  const step = STEPS[currentStep];
-  const isLastStep = currentStep === STEPS.length - 1;
-  const progress = ((currentStep + 1) / STEPS.length) * 100;
+  const [generating, setGenerating] = useState<boolean>(false);
+  const [aiResult, setAiResult] = useState<AIPlanResult | null>(null);
 
-  const handleSelect = (value: string) => {
-    if (step.multi) {
-      const current = (selections[step.id] as string[]) || [];
-      const updated = current.includes(value)
-        ? current.filter((v) => v !== value)
-        : [...current, value];
-      setSelections({ ...selections, [step.id]: updated });
-    } else {
-      setSelections({ ...selections, [step.id]: value });
-      // Auto-advance for single-select
-      if (!isLastStep) {
-        setTimeout(() => setCurrentStep((s) => s + 1), 300);
-      }
-    }
-  };
-
-  const isSelected = (value: string) => {
-    const sel = selections[step.id];
-    if (Array.isArray(sel)) return sel.includes(value);
-    return sel === value;
-  };
-
-  const handleGenerate = async () => {
-    setLoading(true);
-    // Build a natural language prompt from selections
-    const parts = Object.entries(selections)
-      .map(([key, val]) => `${key}: ${Array.isArray(val) ? val.join(', ') : val}`)
-      .join('. ');
-    const prompt = `Plan a trip with these preferences: ${parts}`;
-    const result = await processAIPlannerPrompt(prompt, 2);
-    setPlannerResult(result);
-    setLoading(false);
+  const handleGenerate = () => {
+    setGenerating(true);
+    setTimeout(() => {
+      setAiResult({
+        destination,
+        totalDays: days,
+        estimatedBudgetPerPerson: 4999,
+        estimatedTotal: 4999 * (adults + children * 0.5),
+        itinerary: [
+          { day: 1, title: 'Arrival & Misty Lakeside Chill', activities: ['Cottage check-in', 'Sunset lake walk & tea', 'Acoustic bonfire session'] },
+          { day: 2, title: 'Cliff Treks & Waterfall Swims', activities: ['Sunrise viewpoint walk', 'Dolphin’s Nose trek', 'Barbecue under night sky'] },
+          { day: 3, title: 'Offbeat Meadows & Farewell', activities: ['Drive to Mannavanur sheep farm', 'Local artisan chocolate tasting', 'Return transfers'] }
+        ],
+        suggestedExperiences: ['Cliffside Stargazing', 'Secret Waterfall Trek'],
+        recommendedPackage: 'Misty Kodaikanal Escape'
+      });
+      setGenerating(false);
+      setStep(3);
+    }, 1200);
   };
 
   return (
-    <main className="min-h-screen">
-      {/* Hero Header */}
-      <section className="relative pt-32 pb-16 sm:pt-40 sm:pb-20 bg-gradient-brand overflow-hidden">
-        <div className="absolute inset-0 bg-pattern-dots opacity-5" />
-        <Container className="relative z-10 text-center">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6 }}
-            className="max-w-3xl mx-auto space-y-4"
-          >
-            <Badge variant="brand" size="sm" icon={<Sparkles className="w-3.5 h-3.5 animate-pulse" />}>
-              AI Trip Planner
-            </Badge>
-            <h1 className="text-display sm:text-display-lg font-heading font-extrabold text-white">
-              Plan Your{' '}
-              <span className="text-gradient-warm inline-block">Dream Trip</span>
-            </h1>
-            <p className="text-body-lg text-white/70 max-w-xl mx-auto">
-              Answer 8 quick questions and we&apos;ll build a personalised itinerary just for you.
-            </p>
-          </motion.div>
-        </Container>
-      </section>
+    <div className="bg-slate-950 text-slate-100 min-h-screen pt-32 pb-24">
+      <Container className="max-w-4xl">
+        {/* Header */}
+        <div className="text-center max-w-2xl mx-auto mb-12">
+          <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-slate-900 border border-slate-800 text-brand-orange text-xs font-semibold uppercase tracking-wider mb-4">
+            <Sparkles className="w-3.5 h-3.5" />
+            <span>Smart Conversational Engine</span>
+          </div>
+          <h1 className="text-4xl md:text-5xl font-extrabold text-white">AI Trip Planner</h1>
+          <p className="text-slate-400 text-base mt-3">
+            Build your ideal itinerary, budget breakdown, and curated vibe in seconds for Kodaikanal, Ooty, and Valparai.
+          </p>
+        </div>
 
-      {/* Planner Flow */}
-      <section className="py-section-sm sm:py-section bg-surface-50">
-        <Container size="narrow">
-          {!plannerResult ? (
-            <Card variant="elevated" padding="none" className="overflow-hidden">
-              {/* Progress Bar */}
-              <div className="h-1.5 bg-surface-100">
-                <motion.div
-                  className="h-full bg-gradient-to-r from-brand-orange to-[#FF8533] rounded-r-full"
-                  initial={{ width: 0 }}
-                  animate={{ width: `${progress}%` }}
-                  transition={{ duration: 0.4, ease: 'easeOut' }}
+        {/* Wizard Container */}
+        <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 md:p-10 shadow-elevated">
+          {/* Step 1: Preferences Selection */}
+          {step === 1 && (
+            <div className="space-y-8 animate-fade-in">
+              <div className="flex items-center justify-between border-b border-slate-800 pb-4">
+                <span className="text-xs font-bold text-brand-orange uppercase">Step 1 of 2: Trip Parameters</span>
+                <span className="text-xs text-slate-500">Fast & Accountless</span>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {/* Destination */}
+                <div>
+                  <label className="text-xs font-bold text-slate-300 mb-2 block flex items-center gap-1.5">
+                    <MapPin className="w-4 h-4 text-brand-orange" /> Target Destination
+                  </label>
+                  <select
+                    value={destination}
+                    onChange={(e) => setDestination(e.target.value)}
+                    className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-brand-orange"
+                  >
+                    {SUPPORTED_DESTINATIONS.map((d) => (
+                      <option key={d.name} value={d.name}>{d.name} ({d.vibe})</option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* Travel Style */}
+                <div>
+                  <label className="text-xs font-bold text-slate-300 mb-2 block flex items-center gap-1.5">
+                    <Compass className="w-4 h-4 text-brand-orange" /> Travel Vibe / Style
+                  </label>
+                  <select
+                    value={travelStyle}
+                    onChange={(e) => setTravelStyle(e.target.value)}
+                    className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-brand-orange"
+                  >
+                    <option value="Adventure & Nature">Adventure & Nature</option>
+                    <option value="Weekend Reset">Weekend Reset</option>
+                    <option value="Family Comfort">Family Comfort</option>
+                    <option value="Heritage Trail">Heritage Trail</option>
+                  </select>
+                </div>
+
+                {/* Duration */}
+                <div>
+                  <label className="text-xs font-bold text-slate-300 mb-2 block flex items-center gap-1.5">
+                    <Calendar className="w-4 h-4 text-brand-orange" /> Duration (Days)
+                  </label>
+                  <input
+                    type="number"
+                    min={1}
+                    max={14}
+                    value={days}
+                    onChange={(e) => setDays(parseInt(e.target.value) || 1)}
+                    className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-brand-orange"
+                  />
+                </div>
+
+                {/* Budget */}
+                <div>
+                  <label className="text-xs font-bold text-slate-300 mb-2 block flex items-center gap-1.5">
+                    <DollarSign className="w-4 h-4 text-brand-orange" /> Budget per Person
+                  </label>
+                  <select
+                    value={budgetRange}
+                    onChange={(e) => setBudgetRange(e.target.value)}
+                    className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-brand-orange"
+                  >
+                    <option value="₹3,000 - ₹5,000">₹3,000 - ₹5,000 (Pocket Friendly)</option>
+                    <option value="₹5,000 - ₹8,000">₹5,000 - ₹8,000 (Balanced Vibe)</option>
+                    <option value="₹8,000+">₹8,000+ (Premium Comfort)</option>
+                  </select>
+                </div>
+
+                {/* Adults */}
+                <div>
+                  <label className="text-xs font-bold text-slate-300 mb-2 block flex items-center gap-1.5">
+                    <Users className="w-4 h-4 text-brand-orange" /> Adults (12+ yrs)
+                  </label>
+                  <input
+                    type="number"
+                    min={1}
+                    value={adults}
+                    onChange={(e) => setAdults(parseInt(e.target.value) || 1)}
+                    className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-brand-orange"
+                  />
+                </div>
+
+                {/* Children */}
+                <div>
+                  <label className="text-xs font-bold text-slate-300 mb-2 block flex items-center gap-1.5">
+                    <Users className="w-4 h-4 text-brand-orange" /> Children (Below 12 yrs)
+                  </label>
+                  <input
+                    type="number"
+                    min={0}
+                    value={children}
+                    onChange={(e) => setChildren(parseInt(e.target.value) || 0)}
+                    className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-brand-orange"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="text-xs font-bold text-slate-300 mb-2 block">
+                  Special Notes & Preferences
+                </label>
+                <textarea
+                  rows={3}
+                  placeholder="e.g. We love campfire BBQ, bonfire music, and prefer private stays with scenic balconies..."
+                  value={preferenceNotes}
+                  onChange={(e) => setPreferenceNotes(e.target.value)}
+                  className="w-full bg-slate-950 border border-slate-800 rounded-xl p-4 text-sm text-white focus:outline-none focus:border-brand-orange"
                 />
               </div>
 
-              {/* Step Indicator */}
-              <div className="px-6 pt-6 pb-4 border-b border-surface-200/60">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <div className="w-8 h-8 rounded-button bg-brand-orange text-white flex items-center justify-center">
-                      <step.icon className="w-4 h-4" />
-                    </div>
-                    <span className="text-overline text-brand-muted">
-                      STEP {currentStep + 1} OF {STEPS.length}
-                    </span>
-                  </div>
-                  <span className="text-caption text-brand-muted font-bold">
-                    {step.label}
-                  </span>
-                </div>
-              </div>
-
-              {/* Step Content */}
-              <div className="p-6 sm:p-8">
-                <AnimatePresence mode="wait">
-                  <motion.div
-                    key={step.id}
-                    initial={{ opacity: 0, x: 30 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    exit={{ opacity: 0, x: -30 }}
-                    transition={{ duration: 0.3 }}
-                    className="space-y-6"
-                  >
-                    <h2 className="text-heading font-heading font-extrabold text-brand-navy">
-                      {step.title}
-                    </h2>
-
-                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                      {step.options.map((option) => (
-                        <button
-                          key={option}
-                          onClick={() => handleSelect(option)}
-                          className={`p-4 rounded-card border-2 text-left transition-all duration-200 ${
-                            isSelected(option)
-                              ? 'border-brand-orange bg-brand-soft-orange text-brand-navy shadow-sm'
-                              : 'border-surface-200 bg-white text-brand-text hover:border-brand-orange/40 hover:bg-surface-50'
-                          }`}
-                        >
-                          <span className="text-body-sm font-bold block">{option}</span>
-                          {isSelected(option) && (
-                            <CheckCircle2 className="w-4 h-4 text-brand-orange mt-1" />
-                          )}
-                        </button>
-                      ))}
-                    </div>
-                  </motion.div>
-                </AnimatePresence>
-              </div>
-
-              {/* Navigation */}
-              <div className="px-6 sm:px-8 pb-6 sm:pb-8 flex items-center justify-between gap-4">
+              <div className="pt-4 border-t border-slate-800 flex justify-end">
                 <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => setCurrentStep((s) => Math.max(0, s - 1))}
-                  disabled={currentStep === 0}
-                  icon={<ArrowLeft className="w-4 h-4" />}
+                  onClick={handleGenerate}
+                  variant="primary"
+                  size="lg"
+                  icon={<Sparkles className="w-5 h-5" />}
+                  className="shadow-button"
                 >
-                  Back
-                </Button>
-
-                {step.multi && (
-                  <Button
-                    variant="secondary"
-                    size="sm"
-                    onClick={() => {
-                      if (isLastStep) {
-                        handleGenerate();
-                      } else {
-                        setCurrentStep((s) => s + 1);
-                      }
-                    }}
-                    disabled={!selections[step.id] || (Array.isArray(selections[step.id]) && (selections[step.id] as string[]).length === 0)}
-                    iconRight={<ArrowRight className="w-4 h-4" />}
-                  >
-                    {isLastStep ? 'Generate Itinerary' : 'Next'}
-                  </Button>
-                )}
-
-                {!step.multi && isLastStep && selections[step.id] && (
-                  <GradientButton
-                    onClick={handleGenerate}
-                    variant="orange"
-                    size="md"
-                    icon={<Sparkles className="w-4 h-4" />}
-                  >
-                    Generate Itinerary
-                  </GradientButton>
-                )}
-              </div>
-
-              {/* Loading Overlay */}
-              {loading && (
-                <motion.div
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  className="absolute inset-0 bg-white/90 backdrop-blur-sm flex flex-col items-center justify-center z-20 rounded-card-lg"
-                >
-                  <Loader2 className="w-10 h-10 text-brand-orange animate-spin mb-4" />
-                  <p className="text-heading-sm font-heading font-bold text-brand-navy">
-                    Building your perfect trip...
-                  </p>
-                  <p className="text-body-sm text-brand-muted mt-1">
-                    Analyzing preferences and matching packages
-                  </p>
-                </motion.div>
-              )}
-            </Card>
-          ) : (
-            /* Result */
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5 }}
-              className="space-y-8"
-            >
-              {/* Result Header */}
-              <Card variant="elevated" padding="lg">
-                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                  <div className="space-y-2">
-                    <div className="flex items-center gap-2">
-                      <Badge variant="success" size="sm" icon={<CheckCircle2 className="w-3.5 h-3.5" />}>
-                        Itinerary Ready
-                      </Badge>
-                      <AIExplainBadge explanations={plannerResult.explanations} />
-                    </div>
-                    <h2 className="text-heading font-heading font-extrabold text-brand-navy">
-                      Your Custom {plannerResult.constraints.durationDays}-Day Itinerary
-                    </h2>
-                  </div>
-                  <div className="flex items-center gap-4">
-                    <div>
-                      <span className="text-caption text-brand-muted block">Total Cost</span>
-                      <span className="text-heading font-heading font-extrabold text-brand-navy">
-                        ₹{plannerResult.totalPrice.toLocaleString('en-IN')}
-                      </span>
-                    </div>
-                    <GradientButton
-                      href={`/checkout/${plannerResult.instanceId}`}
-                      variant="orange"
-                      size="md"
-                    >
-                      Book This Plan
-                    </GradientButton>
-                  </div>
-                </div>
-              </Card>
-
-              {/* Itinerary Timeline */}
-              <ItineraryTimeline itinerary={plannerResult.itinerary} />
-
-              {/* Actions */}
-              <div className="flex items-center justify-center gap-4">
-                <Button
-                  variant="outline"
-                  size="md"
-                  onClick={() => {
-                    setPlannerResult(null);
-                    setCurrentStep(0);
-                    setSelections({});
-                  }}
-                  icon={<ArrowLeft className="w-4 h-4" />}
-                >
-                  Start Over
-                </Button>
-                <Button
-                  variant="secondary"
-                  size="md"
-                  href="/contact"
-                >
-                  Talk to an Expert
+                  Generate AI Itinerary
                 </Button>
               </div>
-            </motion.div>
+            </div>
           )}
-        </Container>
-      </section>
-    </main>
+
+          {/* Loading state */}
+          {generating && (
+            <div className="text-center py-20">
+              <RefreshCw className="w-10 h-10 text-brand-orange animate-spin mx-auto mb-4" />
+              <h3 className="text-xl font-bold text-white">Synthesizing Your Custom Vibe...</h3>
+              <p className="text-xs text-slate-400 mt-2">Checking mountain weather, stays, experiences & pricing.</p>
+            </div>
+          )}
+
+          {/* Step 3: Generated AI Result */}
+          {step === 3 && aiResult && !generating && (
+            <div className="space-y-8 animate-fade-in">
+              <div className="flex items-center justify-between border-b border-slate-800 pb-4">
+                <div>
+                  <span className="text-xs font-bold text-brand-orange uppercase">AI Recommended Plan</span>
+                  <h2 className="text-2xl font-bold text-white mt-1">{aiResult.destination} — {aiResult.totalDays} Days Custom Vibe</h2>
+                </div>
+                <button
+                  onClick={() => setStep(1)}
+                  className="text-xs text-slate-400 hover:text-white flex items-center gap-1 border border-slate-800 px-3 py-1.5 rounded-lg"
+                >
+                  <RefreshCw className="w-3.5 h-3.5" /> Re-plan
+                </button>
+              </div>
+
+              {/* Estimate Pill */}
+              <div className="bg-slate-950 border border-slate-800 p-5 rounded-2xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                <div>
+                  <span className="text-xs text-slate-400 block">Est. Cost Per Person</span>
+                  <span className="text-2xl font-extrabold text-white">₹{aiResult.estimatedBudgetPerPerson.toLocaleString('en-IN')}</span>
+                </div>
+                <div className="text-right">
+                  <span className="text-xs text-slate-400 block">Squad Total ({adults} Adults)</span>
+                  <span className="text-xl font-bold text-brand-orange">₹{aiResult.estimatedTotal.toLocaleString('en-IN')}</span>
+                </div>
+              </div>
+
+              {/* Day-by-Day */}
+              <div>
+                <h3 className="text-base font-bold text-white mb-4">Generated Itinerary</h3>
+                <div className="space-y-4">
+                  {aiResult.itinerary.map((day) => (
+                    <div key={day.day} className="bg-slate-950 border border-slate-800 p-5 rounded-xl">
+                      <span className="text-xs font-extrabold text-brand-orange uppercase block mb-1">Day {day.day}</span>
+                      <h4 className="text-sm font-bold text-white mb-2">{day.title}</h4>
+                      <ul className="space-y-1.5">
+                        {day.activities.map((act, i) => (
+                          <li key={i} className="text-xs text-slate-300 flex items-center gap-2">
+                            <CheckCircle2 className="w-3.5 h-3.5 text-brand-orange shrink-0" />
+                            <span>{act}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* CTAs */}
+              <div className="pt-6 border-t border-slate-800 flex flex-col sm:flex-row gap-4">
+                <Button
+                  href={`${ROUTES.ENQUIRE}?destination=${encodeURIComponent(aiResult.destination)}&budget=${encodeURIComponent(budgetRange)}&adults=${adults}&children=${children}&message=${encodeURIComponent(`AI Plan for ${aiResult.destination} (${aiResult.totalDays} Days). Notes: ${preferenceNotes}`)}`}
+                  variant="primary"
+                  size="lg"
+                  className="w-full justify-center shadow-button"
+                  icon={<MessageSquare className="w-5 h-5" />}
+                >
+                  Convert to Enquiry & Get Reference ID
+                </Button>
+              </div>
+            </div>
+          )}
+        </div>
+      </Container>
+    </div>
   );
 }

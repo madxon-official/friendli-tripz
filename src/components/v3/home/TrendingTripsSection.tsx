@@ -1,10 +1,7 @@
-'use client';
-
 import React from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { motion } from 'framer-motion';
-import { MapPin, Clock, Star, Users, ArrowRight } from 'lucide-react';
+import { MapPin, Clock, Star, ArrowRight } from 'lucide-react';
 import { Container } from '@/components/v3/ui/Container';
 import { SectionHeading } from '@/components/v3/ui/SectionHeading';
 import { Badge } from '@/components/v3/ui/Badge';
@@ -26,12 +23,7 @@ function TripCard({
   index,
 }: (typeof TRENDING_TRIPS)[number] & { index: number }) {
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 24 }}
-      whileInView={{ opacity: 1, y: 0 }}
-      viewport={{ once: true }}
-      transition={{ delay: index * 0.08, duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
-    >
+    <div className={index >= 3 ? 'hidden sm:block' : ''}>
       <Link
         href={`${ROUTES.PACKAGES}/${slug}`}
         className="group block bg-white rounded-card-lg border border-surface-200/80 shadow-subtle overflow-hidden card-interactive"
@@ -42,6 +34,7 @@ function TripCard({
             src={image}
             alt={name}
             fill
+            loading="lazy"
             className="object-cover group-hover:scale-105 transition-transform duration-700 ease-out-expo"
             sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
           />
@@ -106,7 +99,7 @@ function TripCard({
           </div>
         </div>
       </Link>
-    </motion.div>
+    </div>
   );
 }
 
@@ -131,3 +124,4 @@ export function TrendingTripsSection() {
     </section>
   );
 }
+

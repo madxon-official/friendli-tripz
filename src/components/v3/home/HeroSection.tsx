@@ -1,10 +1,6 @@
-'use client';
-
 import React from 'react';
 import Image from 'next/image';
-import Link from 'next/link';
-import { motion } from 'framer-motion';
-import { Sparkles, ArrowRight, ChevronDown, MapPin, Users, Star } from 'lucide-react';
+import { Sparkles, ChevronDown, MapPin, Users, Star } from 'lucide-react';
 import { Container } from '@/components/v3/ui/Container';
 import { GlassCard } from '@/components/v3/ui/GlassCard';
 import { AnimatedCounter } from '@/components/v3/ui/AnimatedCounter';
@@ -17,7 +13,7 @@ export function HeroSection() {
       {/* Background Image */}
       <div className="absolute inset-0">
         <Image
-          src="https://images.unsplash.com/photo-1589182373726-e4f658ab50f0?auto=format&fit=crop&w=1600&q=80"
+          src="/destinations/kodaikanal/kodaikanal-hero.webp"
           alt="Misty mountains of Kodaikanal"
           fill
           priority
@@ -33,52 +29,27 @@ export function HeroSection() {
 
       {/* Content */}
       <Container className="relative z-10 text-center py-32 sm:py-40">
-        <motion.div
-          initial={{ opacity: 0, y: 30 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
-          className="max-w-4xl mx-auto space-y-6"
-        >
+        <div className="max-w-4xl mx-auto space-y-6">
           {/* Eyebrow Badge */}
-          <motion.div
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ delay: 0.2, duration: 0.5 }}
-          >
+          <div>
             <span className="inline-flex items-center gap-2 px-4 py-2 rounded-badge bg-white/10 backdrop-blur-md border border-white/20 text-white text-caption font-bold uppercase tracking-wider">
               <Sparkles className="w-3.5 h-3.5 text-brand-orange" />
               Curated Group Travel Experiences
             </span>
-          </motion.div>
+          </div>
 
           {/* Main Headline */}
-          <motion.h1
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.3, duration: 0.7 }}
-            className="text-display-lg sm:text-display-xl text-white leading-[1.05]"
-          >
-            Travel. Vibe.{' '}
-            <span className="text-gradient-warm inline-block">Repeat.</span>
-          </motion.h1>
+          <h1 className="text-display-lg sm:text-display-xl text-white leading-[1.05]">
+            Travel. Vibe. <span className="text-gradient-warm inline-block">Repeat.</span>
+          </h1>
 
           {/* Sub-headline */}
-          <motion.p
-            initial={{ opacity: 0, y: 15 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.45, duration: 0.6 }}
-            className="text-body-lg sm:text-xl text-white/80 max-w-2xl mx-auto leading-relaxed"
-          >
+          <p className="text-body-lg sm:text-xl text-white/80 max-w-2xl mx-auto leading-relaxed">
             Stop scrolling. Start living. Discover curated trips with handpicked stays, great company, and zero planning stress.
-          </motion.p>
+          </p>
 
           {/* CTAs */}
-          <motion.div
-            initial={{ opacity: 0, y: 15 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.6, duration: 0.5 }}
-            className="flex flex-col sm:flex-row items-center justify-center gap-4 pt-4"
-          >
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-4 pt-4">
             <GradientButton
               href={ROUTES.PACKAGES}
               variant="orange"
@@ -96,16 +67,11 @@ export function HeroSection() {
             >
               Plan My Trip
             </GradientButton>
-          </motion.div>
-        </motion.div>
+          </div>
+        </div>
 
         {/* Floating Stat Badges */}
-        <motion.div
-          initial={{ opacity: 0, y: 30 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.9, duration: 0.6 }}
-          className="flex flex-wrap items-center justify-center gap-4 sm:gap-6 mt-14"
-        >
+        <div className="flex flex-wrap items-center justify-center gap-4 sm:gap-6 mt-14">
           {[
             { icon: MapPin, label: 'Destinations', value: 12, suffix: '+' },
             { icon: Users, label: 'Happy Travellers', value: 2400, suffix: '+' },
@@ -134,23 +100,16 @@ export function HeroSection() {
               </div>
             </GlassCard>
           ))}
-        </motion.div>
+        </div>
       </Container>
 
       {/* Scroll Indicator */}
-      <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ delay: 1.5 }}
-        className="absolute bottom-8 left-1/2 -translate-x-1/2 z-10"
-      >
-        <motion.div
-          animate={{ y: [0, 8, 0] }}
-          transition={{ repeat: Infinity, duration: 2, ease: 'easeInOut' }}
-        >
+      <div className="absolute bottom-8 left-1/2 -translate-x-1/2 z-10">
+        <div className="animate-bounce">
           <ChevronDown className="w-6 h-6 text-white/40" />
-        </motion.div>
-      </motion.div>
+        </div>
+      </div>
     </section>
   );
 }
+

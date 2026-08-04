@@ -1,8 +1,5 @@
-'use client';
-
 import React from 'react';
 import Image from 'next/image';
-import { motion } from 'framer-motion';
 import { Container } from '@/components/v3/ui/Container';
 import { SectionHeading } from '@/components/v3/ui/SectionHeading';
 import { GALLERY_ITEMS } from '@/lib/data/trips';
@@ -22,19 +19,16 @@ export function GallerySection() {
         />
 
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 sm:gap-4">
-          {GALLERY_ITEMS.map((item, index) => (
-            <motion.div
+          {GALLERY_ITEMS.map((item) => (
+            <div
               key={item.id}
-              initial={{ opacity: 0, scale: 0.9 }}
-              whileInView={{ opacity: 1, scale: 1 }}
-              viewport={{ once: true }}
-              transition={{ delay: index * 0.06, duration: 0.4 }}
-              className={`relative ${item.aspect} rounded-card overflow-hidden group cursor-pointer`}
+              className={`relative ${item.aspect} rounded-card overflow-hidden group cursor-pointer hover-lift`}
             >
               <Image
                 src={item.thumbnail}
                 alt={item.title}
                 fill
+                loading="lazy"
                 className="object-cover group-hover:scale-110 transition-transform duration-700 ease-out-expo"
                 sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 16vw"
               />
@@ -53,10 +47,11 @@ export function GallerySection() {
                   <Play className="w-3 h-3 text-brand-navy ml-0.5" />
                 </div>
               )}
-            </motion.div>
+            </div>
           ))}
         </div>
       </Container>
     </section>
   );
 }
+

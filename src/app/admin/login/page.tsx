@@ -8,6 +8,7 @@ import { Container } from '@/components/ui/Container';
 import { Button } from '@/components/ui/Button';
 import { BrandWordmark } from '@/components/ui/BrandWordmark';
 import { createClient } from '@/lib/supabase/client';
+import { verifyAndProvisionAdminProfile } from '@/lib/actions/teamActions';
 
 function AdminLoginForm() {
   const router = useRouter();
@@ -37,14 +38,10 @@ function AdminLoginForm() {
         throw new Error('Invalid email or password.');
       }
 
-      // 2. Verify active admin profile
-      const { data: profile, error: profileError } = await supabase
-        .from('admin_profiles')
-        .select('is_active, role, full_name')
-        .eq('id', authData.user.id)
-        .single();
+      // 2. Verify or provision active admin profile via Service Role Server Action
+      const profile = await verifyAndProvisionAdminProfile(authData.user.id, authData.user.email || email);
 
-      if (profileError || !profile || !profile.is_active) {
+      if (!profile || !profile.is_active) {
         // Sign out unprivileged user
         await supabase.auth.signOut();
         throw new Error('Access Denied: You do not have active admin permissions.');

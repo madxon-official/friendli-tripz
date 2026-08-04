@@ -1,203 +1,86 @@
-'use client';
-
-import React, { useState, useMemo } from 'react';
-import Image from 'next/image';
+import React from 'react';
 import Link from 'next/link';
-import { motion } from 'framer-motion';
-import {
-  MapPin, Clock, Star, ArrowRight, Search, SlidersHorizontal, X,
-  Compass, Users, Filter,
-} from 'lucide-react';
-import { Container } from '@/components/v3/ui/Container';
-import { Badge } from '@/components/v3/ui/Badge';
-import { Tabs } from '@/components/v3/ui/Tabs';
-import { Input } from '@/components/v3/ui/Input';
-import { Button } from '@/components/v3/ui/Button';
-import { GradientButton } from '@/components/v3/ui/GradientButton';
-import { TRENDING_TRIPS, VIBE_CATEGORIES } from '@/lib/data/trips';
+import { Compass } from 'lucide-react';
+import { Container } from '@/components/ui/Container';
+import { PackageService } from '@/lib/services/packageService';
+import { PackageCard } from '@/components/public/PackageCard';
 import { ROUTES } from '@/lib/routes';
 
-const FILTER_TABS = [
-  { id: 'all', label: 'All Trips' },
-  { id: 'trending', label: 'Trending', count: 6 },
-  { id: 'weekend', label: 'Weekend' },
-  { id: 'long', label: 'Long Trips' },
-];
+export const metadata = {
+  title: 'Ready-To-Go Packages | Friendli Tripz',
+  description: 'Book all-inclusive trip packages for Kodaikanal, Ooty, and Valparai.',
+};
 
-export default function PackagesPage() {
-  const [activeFilter, setActiveFilter] = useState('all');
-  const [searchQuery, setSearchQuery] = useState('');
-  const [selectedVibe, setSelectedVibe] = useState<string | null>(null);
+interface PackagesPageProps {
+  searchParams?: Promise<{ destination?: string }>;
+}
 
-  const filteredTrips = useMemo(() => {
-    let trips = TRENDING_TRIPS;
+export default async function PackagesPage({ searchParams }: PackagesPageProps) {
+  const resolvedSearchParams = await searchParams;
+  const currentDestSlug = resolvedSearchParams?.destination || 'all';
+  const packages = await PackageService.getPackages(currentDestSlug);
 
-    if (searchQuery) {
-      const q = searchQuery.toLowerCase();
-      trips = trips.filter(
-        (t) =>
-          t.name.toLowerCase().includes(q) ||
-          t.location.toLowerCase().includes(q)
-      );
-    }
-
-    if (activeFilter === 'trending') {
-      trips = trips.filter((t) => t.badge);
-    }
-
-    return trips;
-  }, [activeFilter, searchQuery]);
+  const destinationTabs = [
+    { label: 'All Destinations', slug: 'all' },
+    { label: 'Kodaikanal', slug: 'kodaikanal' },
+    { label: 'Ooty', slug: 'ooty' },
+    { label: 'Valparai', slug: 'valparai' },
+  ];
 
   return (
-    <main className="min-h-screen">
-      {/* Hero */}
-      <section className="relative pt-32 pb-16 sm:pt-40 sm:pb-20 bg-gradient-brand overflow-hidden">
-        <div className="absolute inset-0 bg-pattern-dots opacity-5" />
-        <Container className="relative z-10 text-center">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6 }}
-            className="max-w-3xl mx-auto space-y-4"
-          >
-            <Badge variant="brand" size="sm" icon={<Compass className="w-3.5 h-3.5" />}>
-              Curated Packages
-            </Badge>
-            <h1 className="text-display sm:text-display-lg font-heading font-extrabold text-white">
-              Trip Packages
-            </h1>
-            <p className="text-body-lg text-white/70 max-w-xl mx-auto">
-              Fixed departures. Verified stays. Zero hassle. Pick your escape and we&apos;ll handle the rest.
-            </p>
-          </motion.div>
-        </Container>
-      </section>
-
-      {/* Filters & Grid */}
-      <section className="py-section-sm sm:py-section bg-surface-50">
-        <Container>
-          {/* Toolbar */}
-          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-8">
-            <Tabs
-              tabs={FILTER_TABS}
-              defaultTab="all"
-              onChange={(id) => setActiveFilter(id)}
-              variant="pills"
-              size="sm"
-            />
-
-            <div className="flex items-center gap-3 w-full sm:w-auto">
-              <Input
-                placeholder="Search trips..."
-                icon={<Search className="w-4 h-4" />}
-                size="sm"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="!rounded-badge"
-              />
-            </div>
+    <div className="bg-slate-950 text-slate-100 min-h-screen pt-28 pb-20">
+      <Container>
+        {/* Header */}
+        <div className="max-w-3xl mb-8">
+          <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-slate-900 border border-slate-800 text-brand-orange text-xs font-semibold uppercase tracking-wider mb-3">
+            <Compass className="w-3.5 h-3.5" />
+            <span>Complete All-In-One Trips</span>
           </div>
+          <h1 className="text-3xl sm:text-4xl md:text-5xl font-extrabold text-white tracking-tight">
+            Ready-To-Go Trips
+          </h1>
+          <p className="text-slate-400 text-sm sm:text-base mt-2 leading-relaxed">
+            Stay. Transport. Activities. Meals. All in one package.
+          </p>
+        </div>
 
-          {/* Vibe Filters (horizontal scroll) */}
-          <div className="flex items-center gap-2 mb-8 overflow-x-auto scrollbar-hide pb-2">
-            {VIBE_CATEGORIES.slice(0, 8).map((vibe) => (
-              <button
-                key={vibe.id}
-                onClick={() => setSelectedVibe(selectedVibe === vibe.title ? null : vibe.title)}
-                className={`shrink-0 flex items-center gap-2 px-4 py-2 rounded-badge border text-body-sm font-bold transition-all ${
-                  selectedVibe === vibe.title
-                    ? 'border-brand-orange bg-brand-soft-orange text-brand-orange'
-                    : 'border-surface-200 bg-white text-brand-muted hover:border-brand-orange/40'
+        {/* Destination Tabs */}
+        <div className="flex items-center gap-2 overflow-x-auto pb-4 mb-8 scrollbar-none">
+          {destinationTabs.map((tab) => {
+            const isActive = currentDestSlug.toLowerCase() === tab.slug.toLowerCase();
+            const href = tab.slug === 'all' ? ROUTES.PACKAGES : `${ROUTES.PACKAGES}?destination=${tab.slug}`;
+
+            return (
+              <Link
+                key={tab.slug}
+                href={href}
+                className={`px-4 py-2.5 rounded-xl text-xs font-extrabold whitespace-nowrap transition-all border ${
+                  isActive
+                    ? 'bg-brand-orange text-white border-brand-orange shadow-button'
+                    : 'bg-slate-900 text-slate-300 border-slate-800 hover:border-slate-700'
                 }`}
               >
-                <span>{vibe.title}</span>
-                {selectedVibe === vibe.title && <X className="w-3 h-3" />}
-              </button>
+                {tab.label}
+              </Link>
+            );
+          })}
+        </div>
+
+        {/* Packages Grid */}
+        {packages.length > 0 ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 sm:gap-8">
+            {packages.map((pkg) => (
+              <PackageCard key={pkg.id} packageData={pkg} />
             ))}
           </div>
-
-          {/* Trip Grid */}
-          {filteredTrips.length > 0 ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8">
-              {filteredTrips.map((trip, index) => (
-                <motion.div
-                  key={trip.id}
-                  initial={{ opacity: 0, y: 24 }}
-                  whileInView={{ opacity: 1, y: 0 }}
-                  viewport={{ once: true }}
-                  transition={{ delay: index * 0.06, duration: 0.4 }}
-                >
-                  <Link
-                    href={`${ROUTES.PACKAGES}/${trip.slug}`}
-                    className="group block bg-white rounded-card-lg border border-surface-200/80 shadow-subtle overflow-hidden card-interactive"
-                  >
-                    {/* Image */}
-                    <div className="relative aspect-[4/3] overflow-hidden">
-                      <Image
-                        src={trip.image}
-                        alt={trip.name}
-                        fill
-                        className="object-cover group-hover:scale-105 transition-transform duration-700 ease-out-expo"
-                        sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
-                      />
-                      {trip.badge && (
-                        <div className="absolute top-3 left-3">
-                          <Badge variant="brand" size="xs">{trip.badge}</Badge>
-                        </div>
-                      )}
-                      <div className="absolute top-3 right-3 flex items-center gap-1 px-2 py-1 rounded-badge bg-black/40 backdrop-blur-md text-white text-caption font-bold">
-                        <Star className="w-3 h-3 text-amber-400 fill-amber-400" />
-                        <span>{trip.rating}</span>
-                      </div>
-                      <div className="absolute bottom-3 left-3">
-                        <Badge variant="warning" size="xs" pulse>{trip.seatsLeft}</Badge>
-                      </div>
-                    </div>
-
-                    {/* Content */}
-                    <div className="p-5 space-y-3">
-                      <div className="flex items-center gap-3 text-caption text-brand-muted">
-                        <span className="flex items-center gap-1">
-                          <MapPin className="w-3.5 h-3.5 text-brand-orange" />
-                          {trip.location}
-                        </span>
-                        <span className="flex items-center gap-1">
-                          <Clock className="w-3.5 h-3.5" />
-                          {trip.duration}
-                        </span>
-                      </div>
-                      <h3 className="text-heading-sm font-heading font-extrabold text-brand-navy group-hover:text-brand-orange transition-colors leading-tight">
-                        {trip.name}
-                      </h3>
-                      <div className="flex items-center justify-between pt-3 border-t border-surface-200/60">
-                        <div>
-                          <span className="text-caption text-brand-muted block">From</span>
-                          <span className="text-heading-sm font-heading font-extrabold text-brand-navy">{trip.price}</span>
-                        </div>
-                        <span className="inline-flex items-center gap-1.5 text-body-sm font-bold text-brand-orange group-hover:gap-2.5 transition-all">
-                          View Trip
-                          <ArrowRight className="w-4 h-4" />
-                        </span>
-                      </div>
-                    </div>
-                  </Link>
-                </motion.div>
-              ))}
-            </div>
-          ) : (
-            <div className="text-center py-20 space-y-4">
-              <div className="w-16 h-16 rounded-full bg-surface-100 flex items-center justify-center mx-auto text-brand-muted/40">
-                <Search className="w-8 h-8" />
-              </div>
-              <h3 className="text-heading-sm font-heading font-bold text-brand-navy">No trips found</h3>
-              <p className="text-body-sm text-brand-muted">Try adjusting your filters or search query.</p>
-              <Button variant="outline" size="sm" onClick={() => { setSearchQuery(''); setActiveFilter('all'); setSelectedVibe(null); }}>
-                Clear Filters
-              </Button>
-            </div>
-          )}
-        </Container>
-      </section>
-    </main>
+        ) : (
+          <div className="text-center py-16 bg-slate-900/40 rounded-3xl border border-slate-800">
+            <Compass className="w-12 h-12 text-slate-600 mx-auto mb-3" />
+            <h3 className="text-xl font-bold text-white">No packages found for this destination</h3>
+            <p className="text-sm text-slate-400 mt-1">Select another destination tab above.</p>
+          </div>
+        )}
+      </Container>
+    </div>
   );
 }

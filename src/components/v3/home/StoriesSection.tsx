@@ -1,7 +1,4 @@
-'use client';
-
 import React from 'react';
-import { motion } from 'framer-motion';
 import { Star, Quote } from 'lucide-react';
 import { Container } from '@/components/v3/ui/Container';
 import { SectionHeading } from '@/components/v3/ui/SectionHeading';
@@ -15,15 +12,9 @@ function StoryCard({
   comment,
   rating,
   tripName,
-  index,
-}: (typeof TRAVELLER_STORIES)[number] & { index: number }) {
+}: (typeof TRAVELLER_STORIES)[number]) {
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      whileInView={{ opacity: 1, y: 0 }}
-      viewport={{ once: true }}
-      transition={{ delay: index * 0.1, duration: 0.4 }}
-    >
+    <div>
       <Card variant="elevated" padding="lg" className="h-full relative group hover:shadow-card-hover transition-shadow">
         {/* Quote icon */}
         <div className="absolute top-4 right-4">
@@ -57,7 +48,7 @@ function StoryCard({
           </div>
         </div>
       </Card>
-    </motion.div>
+    </div>
   );
 }
 
@@ -74,11 +65,12 @@ export function StoriesSection() {
         />
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-          {TRAVELLER_STORIES.map((story, index) => (
-            <StoryCard key={story.id} {...story} index={index} />
+          {TRAVELLER_STORIES.map((story) => (
+            <StoryCard key={story.id} {...story} />
           ))}
         </div>
       </Container>
     </section>
   );
 }
+

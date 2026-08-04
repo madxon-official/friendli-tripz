@@ -3,13 +3,13 @@
 import React, { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { Menu, ChevronDown, User, Sparkles, X } from 'lucide-react';
+import { Menu, ChevronDown, Sparkles } from 'lucide-react';
 import { Container } from '@/components/v3/ui/Container';
 import { BrandWordmark } from '@/components/ui/BrandWordmark';
 import { Button } from '@/components/v3/ui/Button';
 import { ROUTES, NAV_LINKS, MEGA_MENU_DATA, PRIMARY_CTA } from '@/lib/routes';
 import { V3MobileMenu } from './MobileMenu';
-import { V3MegaMenu } from './MegaMenu';
+import { MegaMenu } from './MegaMenu';
 
 export function V3Navbar() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -51,19 +51,15 @@ export function V3Navbar() {
     }, 200);
   };
 
-  const handleMegaMenuContentEnter = () => {
-    if (megaMenuTimeout.current) clearTimeout(megaMenuTimeout.current);
-  };
-
   return (
     <>
       <header
-        className={`fixed top-0 left-0 right-0 z-50 transition-all duration-500 ease-out-expo ${
+        className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
           isVisible ? 'translate-y-0' : '-translate-y-full'
         } ${
           isScrolled
-            ? 'bg-white/90 backdrop-blur-xl border-b border-surface-200/60 shadow-subtle py-3'
-            : 'bg-transparent py-4 sm:py-5'
+            ? 'bg-slate-950/95 backdrop-blur-xl border-b border-slate-800/80 shadow-lg py-3 text-white'
+            : 'bg-slate-950/90 backdrop-blur-md border-b border-slate-800/50 py-3.5 sm:py-4 text-white'
         }`}
         role="banner"
       >
@@ -85,7 +81,7 @@ export function V3Navbar() {
               />
             </div>
             <BrandWordmark
-              theme={isScrolled ? 'light' : 'dark'}
+              theme="dark"
               size="md"
               showTagline
             />
@@ -108,11 +104,9 @@ export function V3Navbar() {
                 >
                   <Link
                     href={link.href}
-                    className={`inline-flex items-center gap-1 px-3.5 py-2 rounded-button text-body-sm font-bold transition-all duration-200 ${
-                      isScrolled
-                        ? 'text-brand-navy hover:text-brand-orange hover:bg-surface-50'
-                        : 'text-white/90 hover:text-white hover:bg-white/10'
-                    } ${isMegaOpen ? '!text-brand-orange' : ''}`}
+                    className={`inline-flex items-center gap-1 px-3.5 py-2 rounded-xl text-xs sm:text-sm font-semibold transition-all duration-200 text-slate-300 hover:text-brand-orange hover:bg-slate-900/60 ${
+                      isMegaOpen ? '!text-brand-orange bg-slate-900' : ''
+                    }`}
                   >
                     <span>{link.label}</span>
                     {hasMega && (
@@ -129,19 +123,7 @@ export function V3Navbar() {
           </nav>
 
           {/* Desktop Right Actions */}
-          <div className="hidden lg:flex items-center gap-2">
-            <Link
-              href={ROUTES.AUTH_LOGIN}
-              className={`inline-flex items-center gap-1.5 px-3.5 py-2 rounded-button text-body-sm font-bold transition-all duration-200 ${
-                isScrolled
-                  ? 'text-brand-navy hover:bg-surface-50'
-                  : 'text-white/90 hover:bg-white/10'
-              }`}
-            >
-              <User className="w-4 h-4" />
-              <span>Login</span>
-            </Link>
-
+          <div className="hidden lg:flex items-center gap-3">
             <Button
               href={PRIMARY_CTA.href}
               variant="primary"
@@ -155,11 +137,7 @@ export function V3Navbar() {
           {/* Mobile Menu Toggle */}
           <button
             onClick={() => setMobileMenuOpen(true)}
-            className={`p-2.5 rounded-button lg:hidden min-h-[44px] min-w-[44px] flex items-center justify-center transition-colors ${
-              isScrolled
-                ? 'text-brand-navy hover:bg-surface-100'
-                : 'text-white hover:bg-white/10'
-            }`}
+            className="p-2.5 rounded-xl lg:hidden text-slate-200 hover:bg-slate-900 transition-colors min-h-[44px] min-w-[44px] flex items-center justify-center"
             aria-label="Open navigation menu"
             aria-expanded={mobileMenuOpen}
           >
@@ -168,11 +146,9 @@ export function V3Navbar() {
         </Container>
 
         {/* Mega Menu */}
-        <V3MegaMenu
-          activeMenu={activeMegaMenu}
+        <MegaMenu 
+          activeMenu={activeMegaMenu} 
           onClose={() => setActiveMegaMenu(null)}
-          onMouseEnter={handleMegaMenuContentEnter}
-          onMouseLeave={handleMegaMenuLeave}
         />
       </header>
 

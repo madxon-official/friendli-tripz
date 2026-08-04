@@ -31,7 +31,12 @@ import { AdminLayout } from '@/components/admin/AdminLayout';
 import { Button } from '@/components/ui/Button';
 import { AdminRole, getRoleLabel, ALL_ROLES } from '@/lib/rbac/roles';
 import { can } from '@/lib/rbac/can';
-import { getRolePermissions } from '@/lib/rbac/permissions';
+import {
+  ROLE_PERMISSIONS,
+  hasPermission,
+  getRolePermissions,
+  Permission,
+} from '@/lib/rbac/permissions';
 
 export interface DepartmentItem {
   id: string;
@@ -126,22 +131,10 @@ const getRoleBadge = (role: AdminRole) => {
           OPERATIONS
         </span>
       );
-    case 'sales':
-      return (
-        <span className="px-2.5 py-1 text-xs font-bold rounded-full bg-emerald-100 text-emerald-900 border border-emerald-300 font-mono w-fit">
-          SALES
-        </span>
-      );
     case 'support':
       return (
         <span className="px-2.5 py-1 text-xs font-bold rounded-full bg-purple-100 text-purple-900 border border-purple-300 font-mono w-fit">
           SUPPORT
-        </span>
-      );
-    case 'viewer':
-      return (
-        <span className="px-2.5 py-1 text-xs font-bold rounded-full bg-slate-100 text-slate-800 border border-slate-300 font-mono w-fit">
-          VIEWER
         </span>
       );
     default:
@@ -534,7 +527,7 @@ export const TeamManagementClient: React.FC<TeamManagementClientProps> = ({
   const [inviteName, setInviteName] = useState('');
   const [inviteEmail, setInviteEmail] = useState('');
   const [invitePhone, setInvitePhone] = useState('');
-  const [inviteRole, setInviteRole] = useState<AdminRole>('sales');
+  const [inviteRole, setInviteRole] = useState<AdminRole>('operations');
   const [inviteDept, setInviteDept] = useState<string>('');
   const [inviting, setInviting] = useState(false);
   const [inviteError, setInviteError] = useState<string | null>(null);
@@ -545,7 +538,7 @@ export const TeamManagementClient: React.FC<TeamManagementClientProps> = ({
   const [editName, setEditName] = useState('');
   const [editPhone, setEditPhone] = useState('');
   const [editDept, setEditDept] = useState('');
-  const [editRole, setEditRole] = useState<AdminRole>('sales');
+  const [editRole, setEditRole] = useState<AdminRole>('operations');
   const [editStatus, setEditStatus] = useState<'active' | 'inactive' | 'suspended' | 'archived'>('active');
   const [savingEdit, setSavingEdit] = useState(false);
   const [editError, setEditError] = useState<string | null>(null);
@@ -1639,7 +1632,7 @@ export const TeamManagementClient: React.FC<TeamManagementClientProps> = ({
                     const grouped: Record<string, { key: string; label: string }[]> = {};
                     const order = ['Dashboard', 'Team', 'Enquiries', 'Trips', 'Bookings', 'Payments', 'Settings'];
 
-                    activePerms.forEach((p) => {
+                    activePerms.forEach((p: Permission) => {
                       const meta = PERM_MODULES[p] || { module: 'Other', label: p };
                       if (!grouped[meta.module]) grouped[meta.module] = [];
                       grouped[meta.module].push({ key: p, label: meta.label });

@@ -1,4 +1,4 @@
-export type AdminRole = 'owner' | 'admin' | 'operations' | 'sales' | 'support' | 'viewer';
+export type AdminRole = 'owner' | 'admin' | 'operations' | 'support';
 
 export interface RoleDefinition {
   id: AdminRole;
@@ -15,62 +15,44 @@ export const ROLES: Record<AdminRole, RoleDefinition> = {
     id: 'owner',
     label: 'Owner',
     level: 100,
-    description: 'Founder & highest authority. Full system control. Single owner architecture.',
-    badgeBg: 'bg-amber-100',
-    badgeText: 'text-amber-900',
-    badgeBorder: 'border-amber-300',
+    description: 'Founder & highest authority. Full system control, team governance, settings, and transfer ownership.',
+    badgeBg: 'bg-amber-950/60',
+    badgeText: 'text-amber-400',
+    badgeBorder: 'border-amber-800',
   },
   admin: {
     id: 'admin',
-    label: 'Admin',
+    label: 'Administrator',
     level: 80,
-    description: 'Daily operational manager. Manages Operations, Sales, Support, Viewers, and enquiries.',
-    badgeBg: 'bg-orange-100',
-    badgeText: 'text-orange-900',
-    badgeBorder: 'border-orange-300',
+    description: 'Daily operational manager. Full access to content, catalog, team management, and settings.',
+    badgeBg: 'bg-brand-orange/20',
+    badgeText: 'text-brand-orange',
+    badgeBorder: 'border-brand-orange/30',
   },
   operations: {
     id: 'operations',
     label: 'Operations',
     level: 50,
-    description: 'Trip operations team. Manages assigned enquiries, bookings, travellers, vehicles, hotels.',
-    badgeBg: 'bg-blue-100',
-    badgeText: 'text-blue-900',
-    badgeBorder: 'border-blue-300',
-  },
-  sales: {
-    id: 'sales',
-    label: 'Sales',
-    level: 50,
-    description: 'Lead conversion team. Views enquiries, updates follow-ups, calls, and WhatsApp interactions.',
-    badgeBg: 'bg-emerald-100',
-    badgeText: 'text-emerald-900',
-    badgeBorder: 'border-emerald-300',
+    description: 'Trip operations team. Manages enquiries, packages, destinations, experiences, and trip tracking.',
+    badgeBg: 'bg-blue-950/60',
+    badgeText: 'text-blue-400',
+    badgeBorder: 'border-blue-800',
   },
   support: {
     id: 'support',
     label: 'Support',
-    level: 50,
-    description: 'Customer support team. Views assigned travellers and updates customer support notes.',
-    badgeBg: 'bg-purple-100',
-    badgeText: 'text-purple-900',
-    badgeBorder: 'border-purple-300',
-  },
-  viewer: {
-    id: 'viewer',
-    label: 'Viewer',
-    level: 10,
-    description: 'Read-only access across allowed operational dashboards and enquiries.',
-    badgeBg: 'bg-slate-100',
-    badgeText: 'text-slate-800',
-    badgeBorder: 'border-slate-300',
+    level: 30,
+    description: 'Customer support team. Reads enquiries, replies to travellers, updates status steps, and adds notes.',
+    badgeBg: 'bg-purple-950/60',
+    badgeText: 'text-purple-400',
+    badgeBorder: 'border-purple-800',
   },
 };
 
 export const ALL_ROLES: RoleDefinition[] = Object.values(ROLES);
 
 export function isValidRole(role: string): role is AdminRole {
-  return ['owner', 'admin', 'operations', 'sales', 'support', 'viewer'].includes(role);
+  return ['owner', 'admin', 'operations', 'support'].includes(role);
 }
 
 export function getRoleLabel(role: string): string {
@@ -80,27 +62,21 @@ export function getRoleLabel(role: string): string {
   return role;
 }
 
-/**
- * SINGLE OWNER ARCHITECTURE:
- * Owner CANNOT be casually invited or assigned via role dropdown.
- * Owner role can ONLY be assigned via explicit Transfer Ownership flow.
- */
 export function getAssignableRolesForActor(actorRole: AdminRole): RoleDefinition[] {
   if (actorRole === 'owner') {
-    // Owner can assign Admin, Operations, Sales, Support, Viewer (Owner excluded)
+    // Owner can assign Administrator, Operations, Support (Owner role excluded from direct assignment)
     return ALL_ROLES.filter((r) => r.id !== 'owner');
   }
   if (actorRole === 'admin') {
-    // Admin can assign Operations, Sales, Support, Viewer (Owner and Admin excluded)
-    return ALL_ROLES.filter((r) => ['operations', 'sales', 'support', 'viewer'].includes(r.id));
+    // Administrator can assign Operations, Support (Owner and Admin excluded)
+    return ALL_ROLES.filter((r) => ['operations', 'support'].includes(r.id));
   }
   return [];
 }
 
 export function canManageTargetRole(actorRole: AdminRole, targetRole: AdminRole): boolean {
-  if (actorRole === 'owner') return true; // Owner can manage anyone except himself (self-protection handled separately)
+  if (actorRole === 'owner') return true;
   if (actorRole === 'admin') {
-    // Admin cannot manage Owner or other Admins
     return targetRole !== 'owner' && targetRole !== 'admin';
   }
   return false;

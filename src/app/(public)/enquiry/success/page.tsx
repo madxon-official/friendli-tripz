@@ -9,6 +9,8 @@ import { Badge } from '@/components/ui/Badge';
 import { ROUTES } from '@/lib/routes';
 import { trackEvent } from '@/lib/analytics';
 
+import { BRAND_INFO } from '@/lib/data/trips';
+
 function EnquirySuccessContent() {
   const searchParams = useSearchParams();
 
@@ -19,7 +21,7 @@ function EnquirySuccessContent() {
   const [city, setCity] = useState<string>('Not specified');
   const [copied, setCopied] = useState(false);
 
-  const whatsappNumber = process.env.NEXT_PUBLIC_WHATSAPP_NUMBER || '';
+  const whatsappNumber = BRAND_INFO.whatsappNumber;
 
   useEffect(() => {
     const qRef = searchParams.get('ref');

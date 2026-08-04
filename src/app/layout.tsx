@@ -1,18 +1,5 @@
 import type { Metadata, Viewport } from 'next';
-import { Outfit, Inter } from 'next/font/google';
 import './globals.css';
-
-const outfit = Outfit({
-  subsets: ['latin'],
-  variable: '--font-outfit',
-  display: 'swap',
-});
-
-const inter = Inter({
-  subsets: ['latin'],
-  variable: '--font-inter',
-  display: 'swap',
-});
 
 export const metadata: Metadata = {
   metadataBase: new URL('https://friendlitripz.com'),
@@ -21,7 +8,7 @@ export const metadata: Metadata = {
     template: '%s | Friendli Tripz',
   },
   description:
-    'Discover curated group trips, handpicked stays, and unforgettable experiences across South India. Travel with great people, zero planning stress.',
+    'Discover curated group trips, handpicked stays, and unforgettable experiences across Kodaikanal, Ooty, and Valparai.',
   keywords: [
     'Friendli Tripz',
     'group travel India',
@@ -29,9 +16,7 @@ export const metadata: Metadata = {
     'social travel',
     'Kodaikanal trip',
     'Ooty trip',
-    'Coorg trip',
-    'Munnar trip',
-    'Wayanad trip',
+    'Valparai trip',
     'travel lifestyle',
     'weekend getaway India',
     'hill station trips',
@@ -39,12 +24,12 @@ export const metadata: Metadata = {
   openGraph: {
     title: 'Friendli Tripz | Travel. Vibe. Repeat.',
     description:
-      'Curated group trips built around great places, good company, and memorable experiences. Stop scrolling. Start living.',
+      'Curated group trips built around great places, good company, and memorable experiences in Kodaikanal, Ooty, and Valparai.',
     url: 'https://friendlitripz.com',
     siteName: 'Friendli Tripz',
     images: [
       {
-        url: '/friendli/logo.svg',
+        url: '/friendli/logo.png',
         width: 800,
         height: 600,
         alt: 'Friendli Tripz — Travel Lifestyle Platform',
@@ -56,15 +41,19 @@ export const metadata: Metadata = {
   twitter: {
     card: 'summary_large_image',
     title: 'Friendli Tripz | Travel. Vibe. Repeat.',
-    description: 'Curated group trips built around great places, good company, and memorable experiences.',
+    description: 'Curated group trips built around great places, good company, and memorable experiences in Kodaikanal, Ooty, and Valparai.',
   },
   robots: {
     index: true,
     follow: true,
   },
   icons: {
-    icon: '/friendli/logo.svg',
-    apple: '/friendli/logo.svg',
+    icon: [
+      { url: '/friendli/logo.svg', type: 'image/svg+xml' },
+      { url: '/friendli/logo.png', type: 'image/png' },
+    ],
+    apple: '/friendli/logo.png',
+    shortcut: '/friendli/logo.png',
   },
 };
 
@@ -81,8 +70,8 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className={`scroll-smooth ${outfit.variable} ${inter.variable}`}>
-      <body className="antialiased bg-brand-warm text-brand-text min-h-screen flex flex-col font-sans">
+    <html lang="en" className="scroll-smooth">
+      <body className="antialiased bg-slate-950 text-slate-100 min-h-screen flex flex-col font-sans">
         {children}
       </body>
     </html>

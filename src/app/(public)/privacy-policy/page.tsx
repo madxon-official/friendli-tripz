@@ -1,8 +1,10 @@
 import React from 'react';
 import Link from 'next/link';
 import { Container } from '@/components/ui/Container';
-import { ShieldCheck, ArrowLeft } from 'lucide-react';
+import { ShieldCheck, ArrowLeft, Lock, Database, Eye, UserCheck, Cookie, Mail } from 'lucide-react';
 import { ROUTES } from '@/lib/routes';
+
+import { BRAND_INFO } from '@/lib/data/trips';
 
 export const metadata = {
   title: 'Privacy Policy | Friendli Tripz',
@@ -11,94 +13,96 @@ export const metadata = {
 
 export default function PrivacyPolicyPage() {
   return (
-    <main className="min-h-screen py-12 sm:py-16">
-      <Container className="max-w-3xl">
-        <Link href={ROUTES.HOME} className="inline-flex items-center gap-2 text-sm font-semibold text-brand-orange hover:underline mb-8">
-          <ArrowLeft className="w-4 h-4" />
-          Back to Home
+    <div className="bg-slate-950 text-slate-100 min-h-screen pt-32 pb-24">
+      <Container className="max-w-4xl">
+        <Link href={ROUTES.HOME} className="text-xs font-semibold text-slate-400 hover:text-white flex items-center gap-1.5 mb-6">
+          <ArrowLeft className="w-3.5 h-3.5" /> Back to Home
         </Link>
 
-        <div className="flex items-center gap-3 mb-6">
-          <div className="w-10 h-10 rounded-xl bg-brand-soft-orange flex items-center justify-center">
-            <ShieldCheck className="w-5 h-5 text-brand-orange" />
+        {/* Header Banner */}
+        <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 sm:p-8 mb-8 shadow-elevated flex items-center gap-4">
+          <div className="w-12 h-12 rounded-2xl bg-brand-orange/15 border border-brand-orange/30 text-brand-orange flex items-center justify-center shrink-0">
+            <ShieldCheck className="w-6 h-6" />
           </div>
           <div>
-            <h1 className="text-3xl sm:text-4xl font-heading font-black text-brand-navy tracking-tight">Privacy Policy</h1>
-            <p className="text-xs text-brand-muted mt-0.5">Last updated: July 2026</p>
+            <h1 className="text-3xl sm:text-4xl font-extrabold text-white tracking-tight">Privacy Policy</h1>
+            <p className="text-xs text-slate-400 font-mono mt-1">DPDP Act 2023 Compliant • Last updated: July 2026</p>
           </div>
         </div>
 
-        <div className="prose prose-slate max-w-none space-y-6 text-brand-text leading-relaxed text-[15px]">
+        {/* Content Document */}
+        <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 sm:p-10 shadow-elevated space-y-8 text-slate-300 text-sm leading-relaxed">
           <section className="space-y-3">
-            <h2 className="text-xl font-heading font-bold text-brand-navy">1. Information We Collect</h2>
+            <h2 className="text-lg sm:text-xl font-extrabold text-white flex items-center gap-2 border-b border-slate-800 pb-2">
+              <Database className="w-4 h-4 text-brand-orange" /> 1. Information We Collect
+            </h2>
             <p>When you use Friendli Tripz, we collect information that you provide directly to us, including:</p>
-            <ul className="list-disc pl-6 space-y-1 text-brand-muted">
-              <li><strong>Personal Information:</strong> Full name, email address, phone number, and age when you submit an enquiry or make a booking.</li>
-              <li><strong>Travel Preferences:</strong> Destination preferences, group size, dietary requirements, and special assistance needs.</li>
-              <li><strong>Identity Documents:</strong> Government-issued ID numbers (Aadhaar, Passport) required for hotel check-in, stored in our encrypted document vault.</li>
-              <li><strong>Payment Information:</strong> Payment details are processed directly by our payment gateway partner (Razorpay) and are never stored on our servers.</li>
-              <li><strong>Usage Data:</strong> Pages visited, features used, and interaction patterns to improve our service.</li>
+            <ul className="list-disc pl-5 space-y-2 text-slate-300">
+              <li><strong className="text-white">Personal Information:</strong> Full name, email address, phone number, and age when you submit an enquiry or make a booking.</li>
+              <li><strong className="text-white">Travel Preferences:</strong> Destination preferences, starting city, group size, dietary requirements, and custom requests.</li>
+              <li><strong className="text-white">Identity Documents:</strong> Government-issued ID numbers (Aadhaar, Passport) required for hotel check-in, stored in our encrypted vault.</li>
+              <li><strong className="text-white">Payment Information:</strong> Payment details are processed directly by our payment gateway partner (Razorpay) and are never stored on our servers.</li>
+              <li><strong className="text-white">Usage Data:</strong> Pages visited, interaction patterns, and session telemetry to improve platform quality.</li>
             </ul>
           </section>
 
           <section className="space-y-3">
-            <h2 className="text-xl font-heading font-bold text-brand-navy">2. How We Use Your Information</h2>
-            <ul className="list-disc pl-6 space-y-1 text-brand-muted">
-              <li>To process and manage your trip bookings and enquiries.</li>
-              <li>To communicate booking confirmations, trip updates, and operational information.</li>
-              <li>To coordinate with our hotel partners, vehicle operators, and activity vendors on your behalf.</li>
-              <li>To contact you via WhatsApp, email, or phone regarding your trip.</li>
-              <li>To improve our platform and travel services.</li>
+            <h2 className="text-lg sm:text-xl font-extrabold text-white flex items-center gap-2 border-b border-slate-800 pb-2">
+              <Eye className="w-4 h-4 text-brand-orange" /> 2. How We Use Your Information
+            </h2>
+            <ul className="list-disc pl-5 space-y-2 text-slate-300">
+              <li>To process and manage your trip enquiries, lead assignments, and live trip tracking.</li>
+              <li>To send transactional emails, booking confirmations, and operational trip alerts via WhatsApp and email.</li>
+              <li>To coordinate with verified hotel partners, vehicle operators, and local trip captains.</li>
+              <li>To fulfill safety guidelines and customer support requests.</li>
             </ul>
           </section>
 
           <section className="space-y-3">
-            <h2 className="text-xl font-heading font-bold text-brand-navy">3. Data Protection (DPDP Act 2023 Compliance)</h2>
-            <p>Friendli Tripz is committed to compliance with the Digital Personal Data Protection Act, 2023 (DPDP Act). We implement the following safeguards:</p>
-            <ul className="list-disc pl-6 space-y-1 text-brand-muted">
-              <li>Identity documents are stored in an AES-256 encrypted vault with automatic purge after 30 days post-trip completion.</li>
-              <li>All data processing is purpose-limited to trip booking and operations.</li>
-              <li>You may request deletion of your personal data at any time by contacting us.</li>
-              <li>We do not sell, trade, or rent your personal information to third parties.</li>
+            <h2 className="text-lg sm:text-xl font-extrabold text-white flex items-center gap-2 border-b border-slate-800 pb-2">
+              <Lock className="w-4 h-4 text-brand-orange" /> 3. Data Protection (DPDP Act 2023 Compliance)
+            </h2>
+            <p>Friendli Tripz is committed to compliance with the Digital Personal Data Protection Act, 2023 (DPDP Act). We enforce strict security protocols:</p>
+            <ul className="list-disc pl-5 space-y-2 text-slate-300">
+              <li>Identity documents are stored in an AES-256 encrypted vault with automatic purge 30 days post-trip completion.</li>
+              <li>All data processing is purpose-limited to trip booking, safety verification, and platform operations.</li>
+              <li>You may request deletion of your personal data at any time by contacting our support team.</li>
+              <li>We do not sell, trade, or rent your personal information to third-party brokers.</li>
             </ul>
           </section>
 
           <section className="space-y-3">
-            <h2 className="text-xl font-heading font-bold text-brand-navy">4. Data Sharing</h2>
-            <p>We share your information only with parties essential to delivering your trip experience:</p>
-            <ul className="list-disc pl-6 space-y-1 text-brand-muted">
-              <li><strong>Hotel Partners:</strong> Guest name, room requirements, meal plans, and special requests.</li>
-              <li><strong>Vehicle Operators:</strong> Pickup location, contact number, and passenger count.</li>
-              <li><strong>Activity Vendors:</strong> Participant names and group size for pre-booked activities.</li>
-              <li><strong>Payment Processors:</strong> Razorpay processes payments under their own privacy policy.</li>
+            <h2 className="text-lg sm:text-xl font-extrabold text-white flex items-center gap-2 border-b border-slate-800 pb-2">
+              <UserCheck className="w-4 h-4 text-brand-orange" /> 4. Data Sharing & Partners
+            </h2>
+            <p>We share your information only with essential operational partners:</p>
+            <ul className="list-disc pl-5 space-y-2 text-slate-300">
+              <li><strong className="text-white">Verified Hotel Partners:</strong> Guest names, check-in dates, and room occupancy.</li>
+              <li><strong className="text-white">Transport Captains:</strong> Pickup location, traveller phone number, and passenger count.</li>
+              <li><strong className="text-white">Payment Processors:</strong> Razorpay processes transactions securely under bank-grade encryption.</li>
             </ul>
           </section>
 
           <section className="space-y-3">
-            <h2 className="text-xl font-heading font-bold text-brand-navy">5. Cookies & Analytics</h2>
-            <p>We use essential cookies for authentication and session management. Analytics cookies help us understand how travellers interact with our platform. You may disable non-essential cookies in your browser settings.</p>
+            <h2 className="text-lg sm:text-xl font-extrabold text-white flex items-center gap-2 border-b border-slate-800 pb-2">
+              <Cookie className="w-4 h-4 text-brand-orange" /> 5. Cookies & Analytics
+            </h2>
+            <p>We use essential cookies for authentication, session management, and CSRF protection. Analytics cookies help us optimize page load speeds and user experience.</p>
           </section>
 
           <section className="space-y-3">
-            <h2 className="text-xl font-heading font-bold text-brand-navy">6. Your Rights</h2>
-            <ul className="list-disc pl-6 space-y-1 text-brand-muted">
-              <li>Access your personal data held by Friendli Tripz.</li>
-              <li>Request correction of inaccurate information.</li>
-              <li>Request deletion of your data (subject to legal retention requirements).</li>
-              <li>Withdraw consent for marketing communications at any time.</li>
-            </ul>
-          </section>
-
-          <section className="space-y-3">
-            <h2 className="text-xl font-heading font-bold text-brand-navy">7. Contact Us</h2>
-            <p>For privacy-related enquiries, contact our Data Protection team:</p>
-            <p className="text-brand-muted">
-              <strong>Email:</strong> privacy@friendlitripz.com<br />
-              <strong>Address:</strong> Friendli Tripz, Tamil Nadu, India
-            </p>
+            <h2 className="text-lg sm:text-xl font-extrabold text-white flex items-center gap-2 border-b border-slate-800 pb-2">
+              <Mail className="w-4 h-4 text-brand-orange" /> 6. Contact Data Protection Team
+            </h2>
+            <p>For privacy-related requests or data deletion inquiries:</p>
+            <div className="bg-slate-950 p-4 rounded-2xl border border-slate-800 text-xs font-mono space-y-1">
+              <p><strong className="text-white">Email:</strong> {BRAND_INFO.supportEmail}</p>
+              <p><strong className="text-white">Phone:</strong> {BRAND_INFO.contactPhone}</p>
+              <p><strong className="text-white">Office:</strong> Friendli Tripz Operations, Tamil Nadu, India</p>
+            </div>
           </section>
         </div>
       </Container>
-    </main>
+    </div>
   );
 }

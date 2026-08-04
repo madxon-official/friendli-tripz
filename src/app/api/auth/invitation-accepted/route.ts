@@ -16,13 +16,13 @@ export async function POST(req: NextRequest) {
     }
 
     const serviceClient = createServiceRoleClient();
+    const cleanEmail = email.toLowerCase().trim();
 
-    // 1. Find pending invitation for this email
-    const { data: inv, error: invErr } = await serviceClient
+    // 1. Find invitation for this email
+    const { data: inv } = await serviceClient
       .from('admin_invitations')
-      .select('id, email, phone, role, department_id, invited_by, status')
-      .eq('email', email.toLowerCase().trim())
-      .eq('status', 'pending')
+      .select('id, email, phone, role, department_id, invited_by, full_name')
+      .eq('email', cleanEmail)
       .maybeSingle();
 
     if (inv) {
@@ -34,62 +34,53 @@ export async function POST(req: NextRequest) {
           accepted_at: new Date().toISOString(),
         })
         .eq('id', inv.id);
+    }
 
-      // 3. Update admin profile to active status
-      const { data: profile } = await serviceClient
-        .from('admin_profiles')
-        .select('phone, department_id')
-        .eq('id', userId)
-        .single();
-
-      const profileUpdates: Record<string, any> = {
+    // 3. Upsert admin_profiles to ensure user profile exists and is active
+    const { error: profileErr } = await serviceClient
+      .from('admin_profiles')
+      .upsert({
+        id: userId,
+        full_name: inv?.full_name || email.split('@')[0],
+        role: inv?.role || 'admin',
+        department_id: inv?.department_id || null,
+        phone: inv?.phone || null,
         status: 'active',
         is_active: true,
         updated_at: new Date().toISOString(),
-      };
+      });
 
-      if (inv.phone && (!profile || !profile.phone)) {
-        profileUpdates.phone = inv.phone;
-      }
-      if (inv.department_id && (!profile || !profile.department_id)) {
-        profileUpdates.department_id = inv.department_id;
-      }
+    if (profileErr) {
+      console.error('[invitation-accepted Profile Upsert Error]', profileErr);
+    }
 
-      await serviceClient
-        .from('admin_profiles')
-        .update(profileUpdates)
-        .eq('id', userId);
-
-      // 4. Audit Log
+    // 4. Audit Log
+    try {
       await logActivity({
         actorId: userId,
         targetType: 'invitation',
-        targetId: inv.id,
+        targetId: inv?.id || userId,
         action: 'accept',
-        newData: { email, role: inv.role, accepted_at: new Date().toISOString() },
+        newData: { email: cleanEmail, accepted_at: new Date().toISOString() },
         req,
       });
+    } catch {
+      // Fallback ignore
+    }
 
-      // 5. Notify the invited_by user / Owners
-      if (inv.invited_by) {
+    // 5. Notify owner
+    try {
+      if (inv?.invited_by) {
         await createAdminNotification({
           recipientId: inv.invited_by,
           title: 'Invitation Accepted',
-          body: `${email} has accepted their invitation and set up their password.`,
+          body: `${cleanEmail} has accepted their invitation and set up their password.`,
           type: 'invitation_accepted',
           link: '/admin/team',
         });
       }
-    } else {
-      // Direct user password update fallback
-      await serviceClient
-        .from('admin_profiles')
-        .update({
-          status: 'active',
-          is_active: true,
-          updated_at: new Date().toISOString(),
-        })
-        .eq('id', userId);
+    } catch {
+      // Fallback ignore
     }
 
     return NextResponse.json({

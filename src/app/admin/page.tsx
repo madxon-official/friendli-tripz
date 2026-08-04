@@ -1,351 +1,257 @@
-import React from 'react';
+'use client';
+
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { redirect } from 'next/navigation';
-import { createServerSupabaseClient } from '@/lib/supabase/server';
 import {
-  Inbox,
-  ArrowRight,
-  Clock,
-  UserCheck,
-  CheckCircle2,
-  Car,
-  Calendar,
-  Plus,
+  MessageSquare,
   Compass,
-  AlertTriangle,
-  FileText,
-  ShieldCheck,
+  MapPin,
+  Package as PackageIcon,
   Sparkles,
+  ArrowUpRight,
+  Eye,
+  CheckCircle2,
 } from 'lucide-react';
-import { Button } from '@/components/ui/Button';
-import { StatusBadge } from '@/components/ui/StatusBadge';
-import { getBookings } from '@/lib/actions/booking';
-import { getLiveDeployments } from '@/lib/actions/operations';
+import { getAllEnquiries } from '@/lib/actions/enquiryActions';
+import { getDestinations } from '@/lib/actions/destination';
+import { TripEnquiryRecord } from '@/lib/types/platform';
+import { useRealtimeSubscription } from '@/lib/hooks/useRealtime';
 
-export const dynamic = 'force-dynamic';
+export default function AdminOverviewDashboard() {
+  const [enquiries, setEnquiries] = useState<TripEnquiryRecord[]>([]);
+  const [destinationCount, setDestinationCount] = useState<number>(0);
+  const [packageCount, setPackageCount] = useState<number>(0);
 
-export const metadata = {
-  title: 'Operations Dashboard | Friendli Tripz Admin',
-  description: 'Operations-first travel management control panel.',
-};
+  const loadData = async () => {
+    try {
+      const list = await getAllEnquiries();
+      setEnquiries(list);
 
-export default async function AdminDashboardPage() {
-  const supabase = await createServerSupabaseClient();
+      const destRes = await getDestinations({ limit: 1 });
+      setDestinationCount(destRes.totalCount);
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+      const { createClient } = await import('@/lib/supabase/client');
+      const supabase = createClient();
+      const { count } = await supabase.from('package_families').select('*', { count: 'exact', head: true });
+      setPackageCount(count || 0);
+    } catch (err) {
+      console.error('[Admin Dashboard Load Error]', err);
+    }
+  };
 
-  if (!user) {
-    redirect('/admin/login');
-  }
+  useEffect(() => {
+    loadData();
+  }, []);
 
-  // Get admin profile
-  const { data: profile } = await supabase
-    .from('admin_profiles')
-    .select('full_name, role, is_active')
-    .eq('id', user.id)
-    .single();
+  useRealtimeSubscription('enquiries', () => {
+    loadData();
+  });
 
-  if (!profile || !profile.is_active) {
-    redirect('/admin/login?error=access_denied');
-  }
-
-  const adminFirstName = profile.full_name.split(' ')[0] || 'Admin';
-
-  const hour = new Date().getHours();
-  const greeting =
-    hour < 12 ? 'Good morning' : hour < 18 ? 'Good afternoon' : 'Good evening';
-
-  // Concurrent data fetching for operations dashboard
-  const [
-    { count: newCount },
-    { count: followUpCount },
-    { count: confirmedCount },
-    { count: completedCount },
-    deployments,
-    bookingsResult,
-    recentRes,
-  ] = await Promise.all([
-    supabase.from('enquiries').select('id', { count: 'exact', head: true }).eq('status', 'new').is('archived_at', null),
-    supabase.from('enquiries').select('id', { count: 'exact', head: true }).eq('status', 'follow_up').is('archived_at', null),
-    supabase.from('enquiries').select('id', { count: 'exact', head: true }).eq('status', 'confirmed').is('archived_at', null),
-    supabase.from('enquiries').select('id', { count: 'exact', head: true }).eq('status', 'completed').is('archived_at', null),
-    getLiveDeployments(),
-    getBookings({ limit: 5 }),
-    supabase
-      .from('enquiries')
-      .select('id, reference, name, phone, traveller_count, starting_location, destination, status, created_at')
-      .is('archived_at', null)
-      .order('created_at', { ascending: false })
-      .limit(5),
-  ]);
-
-  const recentEnquiries = recentRes.data || [];
-  const bookings = bookingsResult.bookings || [];
-
-  // Filter Today's Arrivals and Today's Departures
-  const todayStr = new Date().toISOString().split('T')[0];
-  const todaysArrivals = bookings.filter((b) => b.start_date === todayStr || b.status === 'confirmed');
-  const todaysDepartures = bookings.filter((b) => b.end_date === todayStr || b.status === 'in_progress');
+  const activeTripsCount = enquiries.filter(
+    (e) => e.status === 'Trip Confirmed' || e.status === 'Trip Started'
+  ).length;
 
   return (
-    <div className="space-y-8">
-      {/* Top Greeting & Action Header */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-200/80 pb-6">
+    <div className="space-y-8 animate-fade-in">
+      {/* Header Banner */}
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-slate-800 pb-6">
         <div>
-          <div className="flex items-center gap-2 text-xs font-mono font-bold uppercase tracking-wider text-brand-orange">
-            <Sparkles className="w-4 h-4" />
-            <span>Operations Command Center</span>
-          </div>
-          <h1 className="text-2xl sm:text-3xl font-black text-slate-900 font-heading tracking-tight mt-1">
-            {greeting}, {adminFirstName}
-          </h1>
-          <p className="text-xs sm:text-sm text-slate-500 mt-1">
-            Daily operational arrivals, departures, driver allocations, and pending bookings.
+          <span className="text-xs font-mono font-bold text-brand-orange uppercase tracking-widest">
+            Overview & Telemetry
+          </span>
+          <h1 className="text-3xl font-extrabold text-white tracking-tight mt-1">Admin Dashboard</h1>
+          <p className="text-xs text-slate-400 mt-1">
+            Realtime operations telemetry, enquiry activity, and system overview.
           </p>
         </div>
 
-        {/* Quick Actions Bar */}
-        <div className="flex flex-wrap items-center gap-2">
-          <Link href="/admin/bookings">
-            <button className="px-4 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs flex items-center gap-2 shadow-sm transition-all">
-              <Calendar className="w-4 h-4 text-brand-orange" />
-              <span>Bookings Roster</span>
-            </button>
-          </Link>
-
-          <Link href="/admin/enquiries">
-            <button className="px-4 py-2.5 rounded-xl bg-brand-orange hover:bg-brand-orange-dark text-white font-bold text-xs flex items-center gap-2 shadow-button transition-all">
-              <Plus className="w-4 h-4" />
-              <span>New Enquiry</span>
-            </button>
+        <div className="flex items-center gap-3">
+          <Link
+            href="/admin/enquiries"
+            className="bg-brand-orange hover:bg-brand-orange-hover text-white text-xs font-bold px-4 py-2.5 rounded-xl transition-colors shadow-button flex items-center gap-2"
+          >
+            <MessageSquare className="w-4 h-4" />
+            <span>Manage Enquiries ({enquiries.length})</span>
           </Link>
         </div>
       </div>
 
-      {/* 4 Operations-First KPI Metric Cards */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        {/* Today's Arrivals */}
-        <Link
-          href="/admin/arrivals"
-          className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm hover:shadow-md transition-all hover:border-emerald-400 group space-y-3"
-        >
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-bold uppercase tracking-wider text-slate-500 font-mono">
-              Today's Arrivals
-            </span>
-            <div className="w-9 h-9 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center group-hover:scale-110 transition-transform">
-              <Clock className="w-4 h-4" />
+      {/* KPI Grid */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+        <div className="bg-slate-900 border border-slate-800 p-6 rounded-2xl shadow-card">
+          <div className="flex items-center justify-between text-slate-400 mb-2">
+            <span className="text-xs font-bold uppercase tracking-wider">Total Enquiries</span>
+            <div className="w-8 h-8 rounded-xl bg-brand-orange/10 text-brand-orange border border-brand-orange/30 flex items-center justify-center">
+              <MessageSquare className="w-4 h-4" />
             </div>
           </div>
-          <div className="flex items-baseline justify-between">
-            <span className="text-2xl sm:text-3xl font-black text-slate-900 font-heading">
-              {todaysArrivals.length}
-            </span>
-            <span className="text-xs font-bold text-emerald-600 group-hover:underline">
-              View Roster →
-            </span>
-          </div>
-        </Link>
+          <div className="text-3xl font-extrabold text-white">{enquiries.length}</div>
+          <span className="text-[11px] text-emerald-400 mt-2 inline-flex items-center gap-1 font-semibold">
+            <ArrowUpRight className="w-3 h-3" /> Live updating via Supabase
+          </span>
+        </div>
 
-        {/* Today's Departures */}
-        <Link
-          href="/admin/departures"
-          className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm hover:shadow-md transition-all hover:border-blue-400 group space-y-3"
-        >
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-bold uppercase tracking-wider text-slate-500 font-mono">
-              Active Departures
-            </span>
-            <div className="w-9 h-9 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center group-hover:scale-110 transition-transform">
+        <div className="bg-slate-900 border border-slate-800 p-6 rounded-2xl shadow-card">
+          <div className="flex items-center justify-between text-slate-400 mb-2">
+            <span className="text-xs font-bold uppercase tracking-wider">Active Trips</span>
+            <div className="w-8 h-8 rounded-xl bg-brand-orange/10 text-brand-orange border border-brand-orange/30 flex items-center justify-center">
               <Compass className="w-4 h-4" />
             </div>
           </div>
-          <div className="flex items-baseline justify-between">
-            <span className="text-2xl sm:text-3xl font-black text-slate-900 font-heading">
-              {todaysDepartures.length}
-            </span>
-            <span className="text-xs font-bold text-blue-600 group-hover:underline">
-              View Queue →
-            </span>
-          </div>
-        </Link>
-
-        {/* Vehicle & Fleet Readiness */}
-        <Link
-          href="/admin/operations"
-          className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm hover:shadow-md transition-all hover:border-amber-400 group space-y-3"
-        >
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-bold uppercase tracking-wider text-slate-500 font-mono">
-              Fleet Deployments
-            </span>
-            <div className="w-9 h-9 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center group-hover:scale-110 transition-transform">
-              <Car className="w-4 h-4" />
-            </div>
-          </div>
-          <div className="flex items-baseline justify-between">
-            <span className="text-2xl sm:text-3xl font-black text-slate-900 font-heading">
-              {deployments.length}
-            </span>
-            <span className="text-xs font-bold text-amber-600 group-hover:underline">
-              Assign Fleet →
-            </span>
-          </div>
-        </Link>
-
-        {/* Pending Enquiries */}
-        <Link
-          href="/admin/enquiries?status=new"
-          className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm hover:shadow-md transition-all hover:border-brand-orange group space-y-3"
-        >
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-bold uppercase tracking-wider text-slate-500 font-mono">
-              Pending Enquiries
-            </span>
-            <div className="w-9 h-9 rounded-xl bg-brand-soft-orange text-brand-orange flex items-center justify-center group-hover:scale-110 transition-transform">
-              <Inbox className="w-4 h-4" />
-            </div>
-          </div>
-          <div className="flex items-baseline justify-between">
-            <span className="text-2xl sm:text-3xl font-black text-slate-900 font-heading">
-              {newCount || 0}
-            </span>
-            <span className="text-xs font-bold text-brand-orange group-hover:underline">
-              Action Queue →
-            </span>
-          </div>
-        </Link>
-      </div>
-
-      {/* Main Operations Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-        {/* Active Deployments & Driver Roster (Col 7) */}
-        <div className="lg:col-span-7 bg-white rounded-3xl p-6 border border-slate-200 shadow-sm space-y-6">
-          <div className="flex items-center justify-between border-b border-slate-100 pb-4">
-            <div>
-              <h2 className="text-lg font-heading font-black text-slate-900">
-                Today's Fleet & Driver Allocations
-              </h2>
-              <p className="text-xs text-slate-500">
-                Real-time active vehicle assignments and readiness scores
-              </p>
-            </div>
-
-            <Link
-              href="/admin/operations"
-              className="text-xs font-bold text-brand-orange hover:underline flex items-center gap-1"
-            >
-              <span>Manage Fleet</span>
-              <ArrowRight className="w-3.5 h-3.5" />
-            </Link>
-          </div>
-
-          {deployments.length === 0 ? (
-            <div className="text-center py-10 space-y-2">
-              <Car className="w-10 h-10 text-slate-300 mx-auto" />
-              <p className="text-sm font-bold text-slate-800">No active vehicle deployments today</p>
-              <p className="text-xs text-slate-500">Driver assignments for departures will appear here.</p>
-            </div>
-          ) : (
-            <div className="space-y-3">
-              {deployments.slice(0, 4).map((dep) => (
-                <div
-                  key={dep.id}
-                  className="p-4 rounded-2xl bg-slate-50/80 border border-slate-200/80 flex flex-col sm:flex-row sm:items-center justify-between gap-3 hover:border-slate-300 transition-colors"
-                >
-                  <div className="space-y-1">
-                    <div className="flex items-center gap-2">
-                      <span className="font-mono text-xs font-bold text-brand-orange">
-                        {dep.bookingCode}
-                      </span>
-                      <span className="text-xs font-bold text-slate-900">
-                        {dep.leadBookerName}
-                      </span>
-                    </div>
-                    <div className="flex items-center gap-4 text-xs text-slate-500">
-                      <span className="flex items-center gap-1">
-                        <Car className="w-3.5 h-3.5 text-slate-400" />
-                        {dep.vehicle?.model || 'Vehicle Unassigned'}
-                      </span>
-                      <span>• Driver: {dep.driver?.name || 'Pending'}</span>
-                    </div>
-                  </div>
-
-                  <div className="flex items-center gap-3 self-end sm:self-auto">
-                    <span
-                      className={`text-xs font-extrabold px-2.5 py-1 rounded-full font-mono ${
-                        dep.readinessScore >= 90
-                          ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
-                          : 'bg-amber-50 text-amber-700 border border-amber-200'
-                      }`}
-                    >
-                      {dep.readinessScore}% Ready
-                    </span>
-                    <Link
-                      href={`/admin/operations`}
-                      className="px-3 py-1.5 rounded-xl bg-white border border-slate-200 text-xs font-bold text-slate-700 hover:bg-slate-50"
-                    >
-                      Details
-                    </Link>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
+          <div className="text-3xl font-extrabold text-white">{activeTripsCount}</div>
+          <span className="text-[11px] text-slate-400 mt-2 inline-block font-medium">
+            Confirmed & dispatched trips
+          </span>
         </div>
 
-        {/* Actionable Enquiries Queue (Col 5) */}
-        <div className="lg:col-span-5 bg-white rounded-3xl p-6 border border-slate-200 shadow-sm space-y-6">
-          <div className="flex items-center justify-between border-b border-slate-100 pb-4">
-            <div>
-              <h2 className="text-lg font-heading font-black text-slate-900">
-                Actionable Enquiries
-              </h2>
-              <p className="text-xs text-slate-500">Submissions awaiting traveller contact</p>
+        <div className="bg-slate-900 border border-slate-800 p-6 rounded-2xl shadow-card">
+          <div className="flex items-center justify-between text-slate-400 mb-2">
+            <span className="text-xs font-bold uppercase tracking-wider">Destinations</span>
+            <div className="w-8 h-8 rounded-xl bg-brand-orange/10 text-brand-orange border border-brand-orange/30 flex items-center justify-center">
+              <MapPin className="w-4 h-4" />
             </div>
-            <Link
-              href="/admin/enquiries"
-              className="text-xs font-bold text-brand-orange hover:underline flex items-center gap-1"
-            >
-              <span>View All</span>
-              <ArrowRight className="w-3.5 h-3.5" />
+          </div>
+          <div className="text-3xl font-extrabold text-white">{destinationCount}</div>
+          <span className="text-[11px] text-slate-400 mt-2 inline-block font-medium">
+            Published public guides
+          </span>
+        </div>
+
+        <div className="bg-slate-900 border border-slate-800 p-6 rounded-2xl shadow-card">
+          <div className="flex items-center justify-between text-slate-400 mb-2">
+            <span className="text-xs font-bold uppercase tracking-wider">Commercial Packages</span>
+            <div className="w-8 h-8 rounded-xl bg-brand-orange/10 text-brand-orange border border-brand-orange/30 flex items-center justify-center">
+              <PackageIcon className="w-4 h-4" />
+            </div>
+          </div>
+          <div className="text-3xl font-extrabold text-white">{packageCount}</div>
+          <span className="text-[11px] text-slate-400 mt-2 inline-block font-medium">
+            Active itinerary templates
+          </span>
+        </div>
+      </div>
+
+      {/* Quick Action Cards */}
+      <div>
+        <h3 className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-4">Quick Management Actions</h3>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <Link
+            href="/admin/enquiries"
+            className="group bg-slate-900 border border-slate-800 p-5 rounded-2xl hover:border-brand-orange/50 transition-all flex items-center justify-between"
+          >
+            <div>
+              <h4 className="text-sm font-bold text-white group-hover:text-brand-orange transition-colors">Review Enquiries</h4>
+              <p className="text-[11px] text-slate-400 mt-0.5">Assign drivers & update quotes</p>
+            </div>
+            <ArrowUpRight className="w-4 h-4 text-slate-500 group-hover:text-brand-orange group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
+          </Link>
+
+          <Link
+            href="/admin/destinations"
+            className="group bg-slate-900 border border-slate-800 p-5 rounded-2xl hover:border-brand-orange/50 transition-all flex items-center justify-between"
+          >
+            <div>
+              <h4 className="text-sm font-bold text-white group-hover:text-brand-orange transition-colors">Manage Destinations</h4>
+              <p className="text-[11px] text-slate-400 mt-0.5">Add mountain guides & vibes</p>
+            </div>
+            <ArrowUpRight className="w-4 h-4 text-slate-500 group-hover:text-brand-orange group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
+          </Link>
+
+          <Link
+            href="/admin/trip-tracker"
+            className="group bg-slate-900 border border-slate-800 p-5 rounded-2xl hover:border-brand-orange/50 transition-all flex items-center justify-between"
+          >
+            <div>
+              <h4 className="text-sm font-bold text-white group-hover:text-brand-orange transition-colors">Trip Tracker Pipeline</h4>
+              <p className="text-[11px] text-slate-400 mt-0.5">Live status progression</p>
+            </div>
+            <ArrowUpRight className="w-4 h-4 text-slate-500 group-hover:text-brand-orange group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
+          </Link>
+
+          <Link
+            href="/admin/blogs"
+            className="group bg-slate-900 border border-slate-800 p-5 rounded-2xl hover:border-brand-orange/50 transition-all flex items-center justify-between"
+          >
+            <div>
+              <h4 className="text-sm font-bold text-white group-hover:text-brand-orange transition-colors">Publish Travel Blog</h4>
+              <p className="text-[11px] text-slate-400 mt-0.5">Share offbeat mountain guides</p>
+            </div>
+            <ArrowUpRight className="w-4 h-4 text-slate-500 group-hover:text-brand-orange group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
+          </Link>
+        </div>
+      </div>
+
+      {/* Grid: Recent Enquiries Feed + Activity Stream */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        {/* Recent Enquiries Preview (Left 2 cols) */}
+        <div className="lg:col-span-2 bg-slate-900 border border-slate-800 rounded-3xl p-6 shadow-card">
+          <div className="flex items-center justify-between mb-6">
+            <div>
+              <h3 className="text-base font-bold text-white">Recent Trip Enquiries</h3>
+              <p className="text-xs text-slate-400 mt-0.5">Incoming traveller submissions requiring review.</p>
+            </div>
+            <Link href="/admin/enquiries" className="text-xs font-bold text-brand-orange hover:underline">
+              View all
             </Link>
           </div>
 
-          {recentEnquiries.length === 0 ? (
-            <div className="text-center py-10 space-y-2">
-              <Inbox className="w-10 h-10 text-slate-300 mx-auto" />
-              <p className="text-sm font-bold text-slate-800">No pending enquiries</p>
-            </div>
-          ) : (
-            <div className="space-y-3">
-              {recentEnquiries.map((enq) => (
-                <Link
+          <div className="space-y-3">
+            {enquiries.length === 0 ? (
+              <div className="p-8 text-center text-slate-500 text-xs bg-slate-955 rounded-2xl border border-slate-800">
+                No active enquiries in system.
+              </div>
+            ) : (
+              enquiries.slice(0, 5).map((enq) => (
+                <div
                   key={enq.id}
-                  href={`/admin/enquiries/${enq.id}`}
-                  className="block p-4 rounded-2xl bg-slate-50/80 hover:bg-brand-orange/5 border border-slate-200/80 hover:border-brand-orange/40 transition-colors space-y-2"
+                  className="bg-slate-950 border border-slate-800 p-4 rounded-2xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3"
                 >
-                  <div className="flex items-center justify-between">
-                    <span className="font-mono text-xs font-bold text-slate-900">
-                      {enq.reference}
-                    </span>
-                    <StatusBadge status={enq.status} size="sm" />
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="font-bold text-slate-900 text-sm">{enq.name}</p>
-                      <p className="text-xs text-slate-500">
-                        {enq.destination} · {enq.traveller_count} travellers
-                      </p>
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs font-mono font-bold text-brand-orange">{enq.reference}</span>
+                      <span className="text-[10px] font-semibold bg-slate-800 px-2 py-0.5 rounded text-slate-300">
+                        {enq.status}
+                      </span>
                     </div>
-                    <ArrowRight className="w-4 h-4 text-brand-orange shrink-0" />
+                    <h4 className="text-sm font-bold text-white mt-1">{enq.name}</h4>
+                    <span className="text-[11px] text-slate-400">{enq.destination} • {enq.adults} Adults • {enq.phone}</span>
                   </div>
-                </Link>
-              ))}
+
+                  <Link
+                    href={`/track/${enq.reference}`}
+                    target="_blank"
+                    className="text-xs font-semibold text-slate-300 hover:text-white bg-slate-900 border border-slate-800 px-3 py-1.5 rounded-xl flex items-center gap-1"
+                  >
+                    <Eye className="w-3.5 h-3.5 text-brand-orange" /> Track
+                  </Link>
+                </div>
+              ))
+            )}
+          </div>
+        </div>
+
+        {/* Realtime Stream (Right col) */}
+        <div className="lg:col-span-1 bg-slate-900 border border-slate-800 rounded-3xl p-6 shadow-card">
+          <h3 className="text-base font-bold text-white mb-4">Realtime Telemetry Stream</h3>
+          <div className="space-y-4">
+            <div className="bg-slate-950 p-4 rounded-2xl border border-slate-800 text-xs space-y-1">
+              <span className="text-[10px] text-emerald-400 font-mono font-bold block uppercase">Supabase Realtime Channel</span>
+              <span className="font-bold text-white">Listening on postgres_changes</span>
+              <p className="text-slate-400 text-[11px]">Enquiry status transitions stream directly to visitor screens without page reloads.</p>
             </div>
-          )}
+
+            <div className="space-y-3">
+              <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">Operational Highlights</span>
+              <div className="text-xs text-slate-300 flex items-start gap-2">
+                <CheckCircle2 className="w-4 h-4 text-brand-orange shrink-0 mt-0.5" />
+                <span>Connected directly to Supabase production database.</span>
+              </div>
+              <div className="text-xs text-slate-300 flex items-start gap-2">
+                <CheckCircle2 className="w-4 h-4 text-brand-orange shrink-0 mt-0.5" />
+                <span>Reference ID generation active on format FT-YYYY-XXXX.</span>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </div>

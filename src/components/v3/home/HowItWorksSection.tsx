@@ -1,7 +1,4 @@
-'use client';
-
 import React from 'react';
-import { motion } from 'framer-motion';
 import { Sparkles, Compass, CheckCircle2, HeartHandshake } from 'lucide-react';
 import { Container } from '@/components/v3/ui/Container';
 import { SectionHeading } from '@/components/v3/ui/SectionHeading';
@@ -32,14 +29,7 @@ export function HowItWorksSection() {
               const isEven = index % 2 === 0;
 
               return (
-                <motion.div
-                  key={step.step}
-                  initial={{ opacity: 0, x: isEven ? -30 : 30 }}
-                  whileInView={{ opacity: 1, x: 0 }}
-                  viewport={{ once: true }}
-                  transition={{ delay: index * 0.1, duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
-                  className="relative"
-                >
+                <div key={step.step} className="relative">
                   {/* Mobile layout (stacked) */}
                   <div className="flex items-start gap-5 sm:hidden">
                     <div className="relative shrink-0">
@@ -82,7 +72,7 @@ export function HowItWorksSection() {
                       </div>
                     </div>
                   </div>
-                </motion.div>
+                </div>
               );
             })}
           </div>
@@ -91,3 +81,4 @@ export function HowItWorksSection() {
     </section>
   );
 }
+
