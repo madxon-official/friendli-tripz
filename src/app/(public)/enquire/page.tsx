@@ -7,7 +7,7 @@ import { Container } from '@/components/ui/Container';
 import { Button } from '@/components/ui/Button';
 import { submitTripEnquiry } from '@/lib/actions/enquiryActions';
 
-const SUPPORTED_DESTINATIONS = ['Kodaikanal', 'Ooty', 'Valparai'];
+const SUPPORTED_DESTINATIONS = ['Kodaikanal', 'Ooty', 'Valparai', 'Other / Custom'];
 
 export default function TripEnquiryPage() {
   const router = useRouter();
@@ -16,8 +16,9 @@ export default function TripEnquiryPage() {
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
   const [email, setEmail] = useState('');
-  const [startingLocation, setStartingLocation] = useState('Coimbatore');
+  const [startingLocation, setStartingLocation] = useState('');
   const [destination, setDestination] = useState('Kodaikanal');
+  const [customDestination, setCustomDestination] = useState('');
   const [travelDate, setTravelDate] = useState('');
   const [budget, setBudget] = useState('₹4,000 - ₹6,000');
   const [adults, setAdults] = useState(2);
@@ -36,7 +37,14 @@ export default function TripEnquiryPage() {
       const msgParam = searchParams.get('message');
       const budgetParam = searchParams.get('budget');
 
-      if (destParam) setDestination(destParam);
+      if (destParam) {
+        if (SUPPORTED_DESTINATIONS.includes(destParam)) {
+          setDestination(destParam);
+        } else {
+          setDestination('Other / Custom');
+          setCustomDestination(destParam);
+        }
+      }
       if (fromParam) setStartingLocation(fromParam);
       if (budgetParam) setBudget(budgetParam);
       if (expParam) setMessage(`Enquiry for Experience: ${expParam}`);
@@ -55,12 +63,14 @@ export default function TripEnquiryPage() {
     setSubmitting(true);
     setErrorMsg('');
 
+    const finalDestination = destination === 'Other / Custom' ? (customDestination.trim() || 'Other / Custom') : destination;
+
     const res = await submitTripEnquiry({
       name,
       phone,
       email,
       starting_location: startingLocation,
-      destination,
+      destination: finalDestination,
       travel_date: travelDate || 'Flexible',
       budget,
       adults,
@@ -154,18 +164,13 @@ export default function TripEnquiryPage() {
                   </span>
                   <span className="text-[10px] text-slate-500 font-mono">Optional</span>
                 </label>
-                <select
+                <input
+                  type="text"
+                  placeholder="City / Mode (e.g. Coimbatore, Chennai or Own Transport)"
                   value={startingLocation}
                   onChange={(e) => setStartingLocation(e.target.value)}
                   className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-brand-orange"
-                >
-                  <option value="Coimbatore">Coimbatore (Main Hub)</option>
-                  <option value="Chennai">Chennai</option>
-                  <option value="Bangalore">Bangalore</option>
-                  <option value="Madurai">Madurai</option>
-                  <option value="Kochi">Kochi</option>
-                  <option value="Own Transport / Self Arrival">Own Transport / Self Arrival</option>
-                </select>
+                />
               </div>
 
               {/* Target Destination */}
@@ -182,6 +187,15 @@ export default function TripEnquiryPage() {
                     <option key={d} value={d}>{d}</option>
                   ))}
                 </select>
+                {destination === 'Other / Custom' && (
+                  <input
+                    type="text"
+                    placeholder="Specify city/destination (e.g. Munnar, Wayanad)"
+                    value={customDestination}
+                    onChange={(e) => setCustomDestination(e.target.value)}
+                    className="w-full mt-2.5 bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-brand-orange"
+                  />
+                )}
               </div>
 
               {/* Preferred Date */}
